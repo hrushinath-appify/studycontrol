@@ -1,5 +1,4 @@
 import { DiaryEntry } from '@/types'
-import { diaryCache, CACHE_KEYS } from './cache'
 
 export interface StreakData {
   currentStreak: number
@@ -85,124 +84,6 @@ export const calculateStreak = (entries: DiaryEntry[]): StreakData => {
 }
 
 /**
- * Load diary entries from localStorage with proper type conversion
- * @returns Array of DiaryEntry objects
- */
-export const loadDiaryEntries = (): DiaryEntry[] => {
-  try {
-    // Check cache first
-    const cached = diaryCache.get(CACHE_KEYS.DIARY_ENTRIES)
-    if (cached) {
-      return cached
-    }
-
-    const savedEntries = localStorage.getItem('diaryEntries')
-    if (savedEntries) {
-      const entries = JSON.parse(savedEntries).map((entry: any) => ({
-        ...entry,
-        createdAt: new Date(entry.createdAt)
-      }))
-      
-      // Cache the loaded entries
-      diaryCache.set(CACHE_KEYS.DIARY_ENTRIES, entries)
-      return entries
-    }
-    return []
-  } catch (error) {
-    console.error('Error loading diary entries:', error)
-    return []
-  }
-}
-
-/**
- * Save diary entries to localStorage
- * @param entries Array of DiaryEntry objects to save
- */
-export const saveDiaryEntries = (entries: DiaryEntry[]): void => {
-  try {
-    localStorage.setItem('diaryEntries', JSON.stringify(entries))
-    
-    // Update cache
-    diaryCache.set(CACHE_KEYS.DIARY_ENTRIES, entries)
-    
-    // Dispatch custom event to notify other components of the update
-    window.dispatchEvent(new CustomEvent('diaryEntriesUpdated'))
-  } catch (error) {
-    console.error('Error saving diary entries:', error)
-    throw error
-  }
-}
-
-/**
- * Load streak data from localStorage
- * @returns StreakData object
- */
-export const loadStreakData = (): StreakData | null => {
-  try {
-    const savedStreak = localStorage.getItem('diaryStreakData')
-    return savedStreak ? JSON.parse(savedStreak) : null
-  } catch (error) {
-    console.error('Error loading streak data:', error)
-    return null
-  }
-}
-
-/**
- * Save streak data to localStorage
- * @param streakData StreakData object to save
- */
-export const saveStreakData = (streakData: StreakData): void => {
-  try {
-    localStorage.setItem('diaryStreakData', JSON.stringify(streakData))
-  } catch (error) {
-    console.error('Error saving streak data:', error)
-    throw error
-  }
-}
-
-/**
- * Update diary entries and recalculate streak data
- * @param entries Updated array of DiaryEntry objects
- */
-export const updateEntriesAndStreak = (entries: DiaryEntry[]): void => {
-  try {
-    // Save entries
-    saveDiaryEntries(entries)
-    
-    // Recalculate and save streak data
-    const newStreakData = calculateStreak(entries)
-    saveStreakData(newStreakData)
-  } catch (error) {
-    console.error('Error updating entries and streak:', error)
-    throw error
-  }
-}
-
-/**
- * Delete a diary entry by ID and update streak data
- * @param entryId ID of the entry to delete
- * @returns Updated array of entries, or null if entry not found
- */
-export const deleteDiaryEntry = (entryId: string): DiaryEntry[] | null => {
-  try {
-    const entries = loadDiaryEntries()
-    const entryIndex = entries.findIndex(entry => entry.id === entryId)
-    
-    if (entryIndex === -1) {
-      return null // Entry not found
-    }
-    
-    const updatedEntries = entries.filter(entry => entry.id !== entryId)
-    updateEntriesAndStreak(updatedEntries)
-    
-    return updatedEntries
-  } catch (error) {
-    console.error('Error deleting diary entry:', error)
-    throw error
-  }
-}
-
-/**
  * Generate a smart title from content
  * @param content The diary entry content
  * @param fallbackDate Date to use for fallback title
@@ -233,40 +114,5 @@ export const generateSmartTitle = (content: string, _fallbackDate?: Date): strin
   } else {
     // Return null instead of generating a date-based title to avoid redundancy
     return null
-  }
-}
-
-/**
- * Update a diary entry by ID
- * @param entryId ID of the entry to update
- * @param updates Partial DiaryEntry object with fields to update
- * @returns Updated DiaryEntry object, or null if entry not found
- */
-export const updateDiaryEntry = (entryId: string, updates: Partial<DiaryEntry>): DiaryEntry | null => {
-  try {
-    const entries = loadDiaryEntries()
-    const entryIndex = entries.findIndex(entry => entry.id === entryId)
-    
-    if (entryIndex === -1) {
-      return null // Entry not found
-    }
-    
-    const existingEntry = entries[entryIndex]!
-    // Update the entry
-    const updatedEntry: DiaryEntry = {
-      ...existingEntry,
-      ...updates,
-      // Ensure we don't accidentally change the ID or creation date
-      id: existingEntry.id,
-      createdAt: existingEntry.createdAt
-    }
-    
-    entries[entryIndex] = updatedEntry
-    updateEntriesAndStreak(entries)
-    
-    return updatedEntry
-  } catch (error) {
-    console.error('Error updating diary entry:', error)
-    throw error
   }
 }

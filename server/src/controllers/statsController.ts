@@ -1,11 +1,13 @@
 import { Request, Response } from 'express'
 import { UserStats, DiaryEntry, Task, Note } from '../models'
 import { AuthenticatedRequest } from '../types'
+import { calculateDiaryStreaks } from '../utils/streakCalculator'
 
 // Get user statistics
 export const getUserStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user!.id
+    // Handle both _id and id fields for compatibility
+    const userId = req.user!._id || req.user!.id
 
     // Get or create user stats
     let userStats = await UserStats.findOne({ userId })
@@ -21,53 +23,9 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
       Note.find({ userId })
     ])
 
-    // Calculate diary stats
+    // Calculate diary stats using the shared streak calculation utility
     const totalDiaryEntries = diaryEntries.length
-    const diaryDates = diaryEntries.map(entry => new Date(entry.createdAt)).sort((a, b) => a.getTime() - b.getTime())
-    
-    let currentStreak = 0
-    let longestStreak = 0
-    let tempStreak = 0
-    
-    if (diaryDates.length > 0) {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      
-      // Calculate streaks
-      const uniqueDates = [...new Set(diaryDates.map(date => {
-        const d = new Date(date)
-        d.setHours(0, 0, 0, 0)
-        return d.getTime()
-      }))]
-      
-      uniqueDates.sort((a, b) => a - b)
-      
-      for (let i = 0; i < uniqueDates.length; i++) {
-        if (i === 0) {
-          tempStreak = 1
-        } else {
-          const prevDate = new Date(uniqueDates[i - 1])
-          const currDate = new Date(uniqueDates[i])
-          const daysDiff = (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24)
-          
-          if (daysDiff === 1) {
-            tempStreak++
-          } else {
-            tempStreak = 1
-          }
-        }
-        
-        longestStreak = Math.max(longestStreak, tempStreak)
-        
-        // Check if this is current streak (includes today or yesterday)
-        const lastDate = new Date(uniqueDates[uniqueDates.length - 1])
-        const daysSinceLastEntry = (today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
-        
-        if (i === uniqueDates.length - 1 && daysSinceLastEntry <= 1) {
-          currentStreak = tempStreak
-        }
-      }
-    }
+    const { currentStreak, longestStreak } = calculateDiaryStreaks(diaryEntries)
 
     // Calculate task stats
     const totalTasks = tasks.length
@@ -122,9 +80,18 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
 
   } catch (error) {
     console.error('Get user stats error:', error)
+    
+    // Add detailed error logging
+    if (error instanceof Error) {
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve user statistics'
+      error: 'Failed to retrieve user statistics',
+      details: error instanceof Error ? error.message : 'Unknown error'
     })
   }
 }

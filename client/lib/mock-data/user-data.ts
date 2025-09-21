@@ -1,228 +1,42 @@
-// Mock data for user-related information
-// Used across various components for demo purposes
+// Mock data for user-related functionality
+// This provides sample data for development and testing
 
-export interface MockUser {
-  id: string
-  name: string
-  email: string
-  avatar?: string
-  role: 'student' | 'teacher' | 'admin'
-  preferences: {
-    theme: 'light' | 'dark' | 'system'
-    notifications: boolean
-    studyReminders: boolean
-    language: string
-  }
-  profile: {
-    institution?: string
-    course?: string
-    year?: number
-    specialization?: string
-    goals?: string[]
-  }
-  stats: {
-    studyStreak: number
-    totalStudyHours: number
-    completedTasks: number
-    notesCreated: number
-  }
-}
-
-export const mockUser: MockUser = {
-  id: 'user-1',
-  name: 'Ammu',
-  email: 'ammu@studycontrol.com',
-  avatar: 'https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=ammu',
-  role: 'student',
-  preferences: {
-    theme: 'system',
-    notifications: true,
-    studyReminders: true,
-    language: 'en'
-  },
-  profile: {
-    institution: 'Kakatiya Medical College',
-    course: 'MBBS',
-    year: 2,
-    specialization: 'General Medicine',
-    goals: [
-      'Score below 3,000 rank in NEET PG',
-      'Complete MBBS with distinction',
-      'Develop strong clinical skills',
-      'Maintain work-life balance'
-    ]
-  },
-  stats: {
-    studyStreak: 7,
-    totalStudyHours: 245,
-    completedTasks: 89,
-    notesCreated: 34
-  }
-}
-
-// Timer/Focus session related mock data
-export interface MockTimerSettings {
-  workDuration: number
-  shortBreakDuration: number
-  longBreakDuration: number
-  autoStartBreaks: boolean
-  autoStartPomodoros: boolean
-  sessionsUntilLongBreak: number
-}
-
-export const defaultTimerSettings: MockTimerSettings = {
-  workDuration: 25,
-  shortBreakDuration: 5,
-  longBreakDuration: 15,
-  autoStartBreaks: false,
-  autoStartPomodoros: false,
-  sessionsUntilLongBreak: 4
-}
-
-export interface MockPomodoroSession {
-  id: string
-  type: 'work' | 'shortBreak' | 'longBreak'
-  duration: number
-  completed: boolean
-  startedAt: string
-  completedAt?: string
-  notes?: string
-}
-
-export const mockPomodoroSessions: MockPomodoroSession[] = [
-  {
-    id: 'session-1',
-    type: 'work',
-    duration: 25,
-    completed: true,
-    startedAt: '2024-01-15T09:00:00.000Z',
-    completedAt: '2024-01-15T09:25:00.000Z',
-    notes: 'Studied organic chemistry - reaction mechanisms'
-  },
-  {
-    id: 'session-2',
-    type: 'shortBreak',
-    duration: 5,
-    completed: true,
-    startedAt: '2024-01-15T09:25:00.000Z',
-    completedAt: '2024-01-15T09:30:00.000Z'
-  },
-  {
-    id: 'session-3',
-    type: 'work',
-    duration: 25,
-    completed: true,
-    startedAt: '2024-01-15T09:30:00.000Z',
-    completedAt: '2024-01-15T09:55:00.000Z',
-    notes: 'Physics - quantum mechanics problems'
-  },
-  {
-    id: 'session-4',
-    type: 'shortBreak',
-    duration: 5,
-    completed: false,
-    startedAt: '2024-01-15T09:55:00.000Z'
-  }
-]
-
-// Study statistics and analytics
 export interface MockStudyStats {
-  daily: {
-    date: string
-    studyMinutes: number
-    tasksCompleted: number
-    focusSessions: number
-  }[]
-  weekly: {
-    week: string
-    totalHours: number
-    averageDaily: number
-    productivity: number
-  }[]
-  subjects: {
-    name: string
-    hoursSpent: number
-    progress: number
-    lastStudied: string
-  }[]
+  totalStudyTime: number // in minutes
+  sessionsToday: number
+  currentStreak: number
+  weeklyGoal: number
+  weeklyProgress: number
+  averageSessionLength: number
+  favoriteSubjects: string[]
+  totalSessions: number
+  longestStreak: number
 }
 
-export const mockStudyStats: MockStudyStats = {
-  daily: [
-    { date: '2024-01-15', studyMinutes: 180, tasksCompleted: 5, focusSessions: 7 },
-    { date: '2024-01-14', studyMinutes: 150, tasksCompleted: 3, focusSessions: 6 },
-    { date: '2024-01-13', studyMinutes: 120, tasksCompleted: 4, focusSessions: 5 },
-    { date: '2024-01-12', studyMinutes: 200, tasksCompleted: 6, focusSessions: 8 },
-    { date: '2024-01-11', studyMinutes: 90, tasksCompleted: 2, focusSessions: 4 },
-    { date: '2024-01-10', studyMinutes: 160, tasksCompleted: 5, focusSessions: 6 },
-    { date: '2024-01-09', studyMinutes: 140, tasksCompleted: 3, focusSessions: 5 }
-  ],
-  weekly: [
-    { week: 'Week 3', totalHours: 20.5, averageDaily: 2.9, productivity: 85 },
-    { week: 'Week 2', totalHours: 18.2, averageDaily: 2.6, productivity: 78 },
-    { week: 'Week 1', totalHours: 22.1, averageDaily: 3.2, productivity: 92 }
-  ],
-  subjects: [
-    { name: 'Organic Chemistry', hoursSpent: 45, progress: 78, lastStudied: '2024-01-15' },
-    { name: 'Physics', hoursSpent: 38, progress: 65, lastStudied: '2024-01-15' },
-    { name: 'Mathematics', hoursSpent: 42, progress: 82, lastStudied: '2024-01-14' },
-    { name: 'Biology', hoursSpent: 35, progress: 70, lastStudied: '2024-01-13' },
-    { name: 'English', hoursSpent: 25, progress: 88, lastStudied: '2024-01-12' }
-  ]
-}
-
-// Application preferences and settings
 export interface MockAppSettings {
+  theme: 'light' | 'dark' | 'system'
+  language: string
   notifications: {
     studyReminders: boolean
-    breakReminders: boolean
+    achievements: boolean
     dailyGoals: boolean
-    weeklyReports: boolean
-  }
-  appearance: {
-    theme: 'light' | 'dark' | 'system'
-    fontSize: 'small' | 'medium' | 'large'
-    compactMode: boolean
+    email: boolean
   }
   study: {
-    defaultFocusTime: number
+    defaultSessionLength: number
+    shortBreakLength: number
+    longBreakLength: number
+    pomodoroCount: number
     autoStartBreaks: boolean
-    soundEnabled: boolean
-    backgroundSounds: string
+    autoStartSessions: boolean
   }
   privacy: {
-    shareProgress: boolean
-    publicProfile: boolean
-    dataCollection: boolean
+    shareStats: boolean
+    showOnLeaderboard: boolean
+    allowDataCollection: boolean
   }
 }
 
-export const defaultAppSettings: MockAppSettings = {
-  notifications: {
-    studyReminders: true,
-    breakReminders: true,
-    dailyGoals: true,
-    weeklyReports: false
-  },
-  appearance: {
-    theme: 'system',
-    fontSize: 'medium',
-    compactMode: false
-  },
-  study: {
-    defaultFocusTime: 25,
-    autoStartBreaks: false,
-    soundEnabled: true,
-    backgroundSounds: 'nature'
-  },
-  privacy: {
-    shareProgress: false,
-    publicProfile: false,
-    dataCollection: true
-  }
-}
-
-// Goal tracking
 export interface MockGoal {
   id: string
   title: string
@@ -232,72 +46,194 @@ export interface MockGoal {
   unit: string
   category: 'study' | 'health' | 'personal' | 'academic'
   deadline: string
-  priority: 'low' | 'medium' | 'high'
-  status: 'active' | 'completed' | 'paused'
+  isCompleted: boolean
   createdAt: string
 }
 
+export interface TimerSettings {
+  workDuration: number
+  shortBreakDuration: number
+  longBreakDuration: number
+  autoStartBreaks: boolean
+  autoStartPomodoros: boolean
+  sessionsUntilLongBreak: number
+}
+
+export interface PomodoroSession {
+  id: string
+  type: 'work' | 'shortBreak' | 'longBreak'
+  duration: number
+  completed: boolean
+  startedAt: string
+  completedAt?: string
+  notes?: string
+  userId?: string
+}
+
+// Mock user data
+export const mockUser = {
+  id: 'user-123',
+  name: 'Alex Johnson',
+  email: 'alex.johnson@example.com',
+  avatar: '/images/avatar-placeholder.jpg',
+  createdAt: '2025-01-15T10:30:00Z',
+  lastLoginAt: '2025-09-22T08:15:00Z',
+  role: 'user' as const,
+  preferences: {
+    theme: 'system' as const,
+    language: 'en',
+    timezone: 'America/New_York'
+  }
+}
+
+// Mock study statistics
+export const mockStudyStats: MockStudyStats = {
+  totalStudyTime: 2847, // in minutes (47.5 hours)
+  sessionsToday: 3,
+  currentStreak: 7, // days
+  weeklyGoal: 1200, // minutes (20 hours)
+  weeklyProgress: 856, // minutes completed this week
+  averageSessionLength: 45, // minutes
+  favoriteSubjects: ['Mathematics', 'Computer Science', 'Physics'],
+  totalSessions: 89,
+  longestStreak: 21 // days
+}
+
+// Mock app settings
+export const defaultAppSettings: MockAppSettings = {
+  theme: 'system',
+  language: 'en',
+  notifications: {
+    studyReminders: true,
+    achievements: true,
+    dailyGoals: true,
+    email: false
+  },
+  study: {
+    defaultSessionLength: 25, // minutes
+    shortBreakLength: 5, // minutes
+    longBreakLength: 15, // minutes
+    pomodoroCount: 4, // sessions before long break
+    autoStartBreaks: false,
+    autoStartSessions: false
+  },
+  privacy: {
+    shareStats: true,
+    showOnLeaderboard: true,
+    allowDataCollection: true
+  }
+}
+
+// Mock goals
 export const mockGoals: MockGoal[] = [
   {
     id: 'goal-1',
-    title: 'NEET PG Preparation',
-    description: 'Achieve rank below 3,000 in NEET PG examination',
-    targetValue: 3000,
-    currentValue: 0,
-    unit: 'rank',
-    category: 'academic',
-    deadline: '2024-12-31',
-    priority: 'high',
-    status: 'active',
-    createdAt: '2024-01-01T00:00:00.000Z'
+    title: 'Study 20 hours this week',
+    description: 'Complete 20 hours of focused study sessions this week',
+    targetValue: 1200, // minutes
+    currentValue: 856, // minutes
+    unit: 'minutes',
+    category: 'study',
+    deadline: '2025-09-28T23:59:59Z',
+    isCompleted: false,
+    createdAt: '2025-09-16T09:00:00Z'
   },
   {
     id: 'goal-2',
-    title: 'Daily Study Hours',
-    description: 'Maintain 4 hours of focused study daily',
-    targetValue: 4,
-    currentValue: 3.2,
-    unit: 'hours',
+    title: 'Maintain 30-day study streak',
+    description: 'Study for at least 25 minutes every day for 30 days',
+    targetValue: 30,
+    currentValue: 7,
+    unit: 'days',
     category: 'study',
-    deadline: '2024-01-31',
-    priority: 'high',
-    status: 'active',
-    createdAt: '2024-01-01T00:00:00.000Z'
+    deadline: '2025-10-22T23:59:59Z',
+    isCompleted: false,
+    createdAt: '2025-09-15T10:00:00Z'
   },
   {
     id: 'goal-3',
-    title: 'Complete Organic Chemistry',
-    description: 'Finish all topics in organic chemistry syllabus',
+    title: 'Complete Math Course',
+    description: 'Finish all modules in Advanced Calculus course',
     targetValue: 100,
-    currentValue: 78,
+    currentValue: 75,
     unit: 'percent',
     category: 'academic',
-    deadline: '2024-03-15',
-    priority: 'medium',
-    status: 'active',
-    createdAt: '2024-01-05T00:00:00.000Z'
+    deadline: '2025-12-15T23:59:59Z',
+    isCompleted: false,
+    createdAt: '2025-08-01T12:00:00Z'
+  },
+  {
+    id: 'goal-4',
+    title: 'Read 2 Research Papers',
+    description: 'Read and summarize 2 academic papers this month',
+    targetValue: 2,
+    currentValue: 2,
+    unit: 'papers',
+    category: 'academic',
+    deadline: '2025-09-30T23:59:59Z',
+    isCompleted: true,
+    createdAt: '2025-09-01T14:00:00Z'
   }
 ]
 
-// Utility functions
-export const getUserProgress = (_userId: string = 'user-1') => {
-  // In a real app, this would fetch from API based on userId
-  return {
-    user: mockUser,
-    stats: mockStudyStats,
-    goals: mockGoals,
-    settings: defaultAppSettings
-  }
+// Mock timer settings
+export const defaultTimerSettings: TimerSettings = {
+  workDuration: 25, // minutes
+  shortBreakDuration: 5, // minutes
+  longBreakDuration: 15, // minutes
+  autoStartBreaks: false,
+  autoStartPomodoros: false,
+  sessionsUntilLongBreak: 4
 }
 
-export const getStudyStreakData = () => {
-  const today = new Date()
-  const streak = mockUser.stats.studyStreak
-  
-  return {
-    currentStreak: streak,
-    longestStreak: Math.max(streak, 14), // Mock longest streak
-    lastStudyDate: today.toISOString().split('T')[0],
-    totalStudyDays: 45 // Mock total study days
+// Mock pomodoro sessions
+export const mockPomodoroSessions: PomodoroSession[] = [
+  {
+    id: 'session-1',
+    type: 'work',
+    duration: 25,
+    completed: true,
+    startedAt: '2025-09-22T09:00:00Z',
+    completedAt: '2025-09-22T09:25:00Z',
+    notes: 'Studied calculus chapter 3',
+    userId: 'user-123'
+  },
+  {
+    id: 'session-2',
+    type: 'shortBreak',
+    duration: 5,
+    completed: true,
+    startedAt: '2025-09-22T09:25:00Z',
+    completedAt: '2025-09-22T09:30:00Z',
+    userId: 'user-123'
+  },
+  {
+    id: 'session-3',
+    type: 'work',
+    duration: 25,
+    completed: true,
+    startedAt: '2025-09-22T09:30:00Z',
+    completedAt: '2025-09-22T09:55:00Z',
+    notes: 'Worked on physics problems',
+    userId: 'user-123'
+  },
+  {
+    id: 'session-4',
+    type: 'shortBreak',
+    duration: 5,
+    completed: false,
+    startedAt: '2025-09-22T09:55:00Z',
+    userId: 'user-123'
   }
+]
+
+const userData = {
+  mockUser,
+  mockStudyStats,
+  defaultAppSettings,
+  mockGoals,
+  defaultTimerSettings,
+  mockPomodoroSessions
 }
+
+export default userData

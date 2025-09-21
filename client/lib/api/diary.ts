@@ -3,6 +3,7 @@
 
 // Removed mock data import - now using database
 import { apiClient } from './index'
+import { validateObjectId } from '@/lib/utils'
 
 export interface DiaryApiParams {
   limit?: number
@@ -33,6 +34,7 @@ export interface DiaryEntry {
   preview: string
   date: string
   createdAt: string
+  updatedAt: string
   mood?: 'great' | 'good' | 'okay' | 'bad' | 'terrible'
   tags?: string[]
   wordCount?: number
@@ -44,6 +46,7 @@ export interface DiaryStats {
   totalEntries: number
   currentStreak: number
   longestStreak: number
+  diaryHighestStreak: number  // Alias for longestStreak to match UserStats API
   totalWords: number
   averageWordsPerEntry: number
   moodDistribution: Record<string, number>
@@ -54,13 +57,27 @@ export interface DiaryStats {
 export class DiaryApi {
   private static readonly ENDPOINT = '/diary'
 
-  // Get diary entries
+  // Get entries from the backend
   static async getEntries(params?: DiaryApiParams): Promise<DiaryEntry[]> {
     try {
-      const response = await apiClient.get<DiaryEntry[]>(this.ENDPOINT, params)
-      return response.data || []
+      const { data } = await apiClient.get('/diary', { params }) as { data: any[] }
+      
+      return data.map((entry: any) => ({
+        id: entry._id || entry.id,
+        title: entry.title,
+        content: entry.content,
+        preview: entry.content.length > 150 ? entry.content.substring(0, 150) + '...' : entry.content,
+        date: entry.date,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+        mood: entry.mood,
+        tags: entry.tags || [],
+        wordCount: entry.wordCount || entry.content.split(/\s+/).length,
+        isPrivate: entry.isPrivate || false,
+        attachments: entry.attachments || []
+      }))
     } catch (error) {
-      console.error('Failed to fetch diary entries from API:', error)
+      console.error('Failed to get diary entries:', error)
       throw error
     }
   }
@@ -68,6 +85,9 @@ export class DiaryApi {
   // Get entry by ID
   static async getEntryById(id: string): Promise<DiaryEntry | null> {
     try {
+      // Validate the ID before making the API call
+      validateObjectId(id, 'diary entry')
+      
       const response = await apiClient.get<DiaryEntry>(`${this.ENDPOINT}/${id}`)
       return response.data || null
     } catch (error) {
@@ -90,6 +110,9 @@ export class DiaryApi {
   // Update diary entry
   static async updateEntry(data: UpdateDiaryEntryData): Promise<DiaryEntry> {
     try {
+      // Validate the ID before making the API call
+      validateObjectId(data.id, 'diary entry')
+      
       const response = await apiClient.put<DiaryEntry>(`${this.ENDPOINT}/${data.id}`, data)
       return response.data!
     } catch (error) {
@@ -101,6 +124,9 @@ export class DiaryApi {
   // Delete diary entry
   static async deleteEntry(id: string): Promise<boolean> {
     try {
+      // Validate the ID before making the API call
+      validateObjectId(id, 'diary entry')
+      
       await apiClient.delete(`${this.ENDPOINT}/${id}`)
       return true
     } catch (error) {

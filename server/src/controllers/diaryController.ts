@@ -12,6 +12,7 @@ import {
 } from '../utils/response';
 import { asyncHandler } from '../utils/asyncHandler';
 import { validationResult } from 'express-validator';
+import { calculateDiaryStreaks } from '../utils/streakCalculator';
 
 // Get all diary entries for a user
 export const getDiaryEntries = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -85,8 +86,22 @@ export const getDiaryEntries = asyncHandler(async (req: AuthenticatedRequest, re
       .limit(validLimit)
       .lean();
 
+    // Ensure ObjectId is converted to string for frontend consumption
+    const entriesWithStringIds = entries.map(entry => ({
+      ...entry,
+      id: entry._id.toString(),
+      _id: undefined // Remove the _id field
+    }));
+
+    console.log('=== Backend Response Debug ===');
+    if (entriesWithStringIds.length > 0) {
+      console.log('First entry ID:', entriesWithStringIds[0].id);
+      console.log('First entry ID type:', typeof entriesWithStringIds[0].id);
+      console.log('First entry ID length:', entriesWithStringIds[0].id?.length);
+    }
+
     res.json(createPaginatedResponse(
-      entries,
+      entriesWithStringIds,
       validPage,
       validLimit,
       total,
@@ -105,14 +120,26 @@ export const getDiaryEntry = asyncHandler(async (req: AuthenticatedRequest, res:
   const userId = req.user!._id || req.user!.id;
 
   try {
-    const entry = await DiaryEntry.findOne({ _id: id, userId });
+    const entry = await DiaryEntry.findOne({ _id: id, userId }).lean();
 
     if (!entry) {
       return res.status(404).json(createErrorResponse('Diary entry not found'));
     }
 
+    // Ensure ObjectId is converted to string for frontend consumption
+    const entryWithStringId = {
+      ...entry,
+      id: entry._id.toString(),
+      _id: undefined // Remove the _id field
+    };
+
+    console.log('=== Single Entry Response Debug ===');
+    console.log('Entry ID:', entryWithStringId.id);
+    console.log('Entry ID type:', typeof entryWithStringId.id);
+    console.log('Entry ID length:', entryWithStringId.id?.length);
+
     res.json(createSuccessResponse(
-      entry,
+      entryWithStringId,
       'Diary entry retrieved successfully'
     ));
   } catch (error) {
@@ -154,8 +181,15 @@ export const createDiaryEntry = asyncHandler(async (req: AuthenticatedRequest, r
 
     const savedEntry = await entry.save();
 
+    // Ensure ObjectId is converted to string for frontend consumption
+    const entryWithStringId = {
+      ...savedEntry.toObject(),
+      id: savedEntry._id.toString(),
+      _id: undefined // Remove the _id field
+    };
+
     res.status(201).json(createSuccessResponse(
-      savedEntry,
+      entryWithStringId,
       'Diary entry created successfully'
     ));
   } catch (error) {
@@ -265,42 +299,18 @@ export const getDiaryStats = asyncHandler(async (req: AuthenticatedRequest, res:
       { $limit: 10 }
     ]);
 
-    // Calculate streaks (simplified - you might want to implement more sophisticated logic)
-    const recentEntries = await DiaryEntry.find({ userId })
+    // Calculate streaks with proper consecutive day logic using shared utility
+    const allEntries = await DiaryEntry.find({ userId })
       .sort({ createdAt: -1 })
-      .limit(30)
-      .select('createdAt');
+      .select('date createdAt');
 
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 0;
-
-    // Simple streak calculation (consecutive days with entries)
-    const entryDates = recentEntries.map(entry => 
-      new Date(entry.createdAt).toDateString()
-    );
-    
-    const uniqueDates = [...new Set(entryDates)];
-    
-    for (let i = 0; i < uniqueDates.length; i++) {
-      const currentDate = new Date(uniqueDates[i]);
-      const previousDate = i > 0 ? new Date(uniqueDates[i - 1]) : null;
-      
-      if (previousDate && (currentDate.getTime() - previousDate.getTime()) === 24 * 60 * 60 * 1000) {
-        tempStreak++;
-      } else {
-        if (i === 0) tempStreak = 1;
-        else tempStreak = 1;
-      }
-      
-      if (i === 0) currentStreak = tempStreak;
-      longestStreak = Math.max(longestStreak, tempStreak);
-    }
+    const { currentStreak, longestStreak } = calculateDiaryStreaks(allEntries)
 
     const stats = {
       totalEntries,
       currentStreak,
       longestStreak,
+      diaryHighestStreak: longestStreak,  // Alias for consistency with UserStats API
       totalWords: totalWords[0]?.total || 0,
       averageWordsPerEntry: totalEntries > 0 ? Math.round((totalWords[0]?.total || 0) / totalEntries) : 0,
       moodDistribution: moodStats.reduce((acc, stat) => {

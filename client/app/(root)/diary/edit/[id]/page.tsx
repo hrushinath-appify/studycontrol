@@ -1,18 +1,18 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Save, X } from 'lucide-react'
+import { DiaryApi } from '@/lib/api/diary'
 import { DiaryEntry } from '@/types'
-import { loadDiaryEntries, updateDiaryEntry, generateSmartTitle } from '@/lib/utils/diary'
+import { generateSmartTitle } from '@/lib/utils/diary'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 
 const DiaryEditPage = () => {
   const params = useParams()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const entryId = params.id as string
   
   const [title, setTitle] = useState('')
@@ -21,50 +21,44 @@ const DiaryEditPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadEntry = () => {
+    const loadEntry = async () => {
       try {
-        // First try to get data from URL params (when navigating from view page)
-        const urlData = searchParams.get('data')
-        if (urlData) {
-          const entryData = JSON.parse(decodeURIComponent(urlData))
-          setTitle(entryData.title || '')
-          setContent(entryData.content || '')
-          setOriginalEntry(entryData)
-          setIsLoading(false)
-          return
-        }
-
-        // Fallback: load from localStorage
-        const entries = loadDiaryEntries()
-        if (entries.length > 0) {
-          const entry = entries.find(e => e.id === entryId)
-          if (entry) {
-            setTitle(entry.title)
-            setContent(entry.content)
-            setOriginalEntry(entry)
-          } else {
-            // Entry not found, redirect back
-            router.push('/diary')
-            return
-          }
+        setIsLoading(true)
+        setError(null)
+        
+        const entry = await DiaryApi.getEntryById(entryId)
+        if (entry) {
+          setTitle(entry.title)
+          setContent(entry.content)
+          setOriginalEntry(entry)
         } else {
-          // No entries found, redirect back
-          router.push('/diary')
-          return
+          setError('Entry not found')
+          setTimeout(() => router.push('/diary'), 2000)
         }
       } catch (error) {
-        console.error('Error loading entry for editing:', error)
-        router.push('/diary')
-        return
+        console.error('Error loading entry:', error)
+        setError('Failed to load entry')
+        setTimeout(() => router.push('/diary'), 2000)
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadEntry()
-  }, [entryId, searchParams, router])
+    if (entryId) {
+      loadEntry()
+    }
+  }, [entryId, router])
+
+  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value)
+  }, [])
+
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value)
+  }, [])
 
   // Check for changes
   useEffect(() => {
@@ -75,43 +69,39 @@ const DiaryEditPage = () => {
     }
   }, [title, content, originalEntry])
 
-  const handleSave = async () => {
-    if (!originalEntry || isSaving) return
+  const handleSave = useCallback(async () => {
+    if (!originalEntry || !hasChanges) return
 
-    setIsSaving(true)
     try {
-      // Generate new title using shared utility
-      let newTitle: string
-      if (title.trim()) {
-        // Use provided title if user entered one
-        newTitle = title.trim()
-      } else {
-        // Generate smart title from content, use simple fallback if none found
-        const smartTitle = generateSmartTitle(content, originalEntry?.createdAt ? new Date(originalEntry.createdAt) : undefined)
-        newTitle = smartTitle || 'Untitled Entry'
-      }
+      setIsSaving(true)
       
-      // Update the entry using the utility function
-      const updatedEntry = updateDiaryEntry(entryId, {
-        title: newTitle,
-        content: content,
+      // Generate smart title if title is empty or unchanged from original generated title
+      let finalTitle = title.trim()
+      if (!finalTitle || finalTitle === originalEntry.title) {
+        const smartTitle = generateSmartTitle(content)
+        finalTitle = smartTitle || 'Untitled Entry'
+      }
+
+      await DiaryApi.updateEntry({
+        id: entryId,
+        title: finalTitle,
+        content: content.trim()
       })
 
-      if (!updatedEntry) {
-        throw new Error('Entry not found')
-      }
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('diaryEntriesUpdated'))
 
-      // Navigate back to the entry view
-      router.replace(`/diary/${entryId}`)
+      // Navigate back to the entry
+      router.push(`/diary/${entryId}`)
     } catch (error) {
       console.error('Error saving entry:', error)
-      alert('Failed to save changes. Please try again.')
+      alert('Failed to save entry. Please try again.')
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [originalEntry, hasChanges, title, content, entryId, router])
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     if (hasChanges) {
       const confirmCancel = window.confirm(
         'You have unsaved changes. Are you sure you want to cancel?'
@@ -119,19 +109,28 @@ const DiaryEditPage = () => {
       if (!confirmCancel) return
     }
     
-    router.replace(`/diary/${entryId}`)
-  }
+    router.push(`/diary/${entryId}`)
+  }, [hasChanges, entryId, router])
 
-  const handleBack = () => {
-    if (hasChanges) {
-      const confirmBack = window.confirm(
-        'You have unsaved changes. Are you sure you want to go back?'
-      )
-      if (!confirmBack) return
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 's') {
+          e.preventDefault()
+          if (hasChanges && !isSaving) {
+            handleSave()
+          }
+        }
+      }
+      if (e.key === 'Escape') {
+        handleCancel()
+      }
     }
-    
-    router.replace(`/diary/${entryId}`)
-  }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [hasChanges, isSaving, handleSave, handleCancel])
 
   if (isLoading) {
     return (
@@ -141,15 +140,13 @@ const DiaryEditPage = () => {
     )
   }
 
-  if (!originalEntry) {
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Entry Not Found</h1>
-          <p className="text-muted-foreground mb-6">The diary entry you&apos;re trying to edit doesn&apos;t exist.</p>
-          <Link href="/diary">
-            <Button>Back to Diary</Button>
-          </Link>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Error</h1>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <p className="text-sm text-muted-foreground">Redirecting to diary...</p>
         </div>
       </div>
     )
@@ -162,27 +159,29 @@ const DiaryEditPage = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="hover:bg-accent/50"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+              <Link href={`/diary/${entryId}`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-accent/50"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
               <div>
                 <h1 className="text-lg font-semibold text-foreground">Edit Entry</h1>
                 <p className="text-sm text-muted-foreground">
-                  {originalEntry.date} {hasChanges && '• Unsaved changes'}
+                  {hasChanges ? 'Unsaved changes' : 'No changes'}
                 </p>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={handleCancel}
                 disabled={isSaving}
+                className="hover:bg-accent/50"
               >
                 <X className="h-4 w-4 mr-2" />
                 Cancel
@@ -190,13 +189,9 @@ const DiaryEditPage = () => {
               <Button
                 onClick={handleSave}
                 disabled={!hasChanges || isSaving}
-                className="min-w-[100px]"
+                className="bg-primary hover:bg-primary/90"
               >
-                {isSaving ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
+                <Save className="h-4 w-4 mr-2" />
                 {isSaving ? 'Saving...' : 'Save'}
               </Button>
             </div>
@@ -205,9 +200,9 @@ const DiaryEditPage = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          {/* Title Field */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-6">
+          {/* Title */}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-foreground mb-2">
               Title
@@ -216,56 +211,48 @@ const DiaryEditPage = () => {
               id="title"
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={handleTitleChange}
               placeholder="Enter a title for your entry..."
-              className="w-full px-4 py-3 bg-card/30 backdrop-blur-sm border border-border/50 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors overflow-hidden"
+              className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Leave empty to auto-generate from content
-            </p>
           </div>
 
-          {/* Content Field */}
-          <div>
+          {/* Content */}
+          <div className="flex-1">
             <label htmlFor="content" className="block text-sm font-medium text-foreground mb-2">
               Content
             </label>
             <textarea
               id="content"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={handleContentChange}
               placeholder="Write your diary entry here..."
               rows={20}
-              className="w-full px-4 py-3 bg-card/30 backdrop-blur-sm border border-border/50 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors resize-vertical min-h-[400px] overflow-auto"
-              style={{ fontFamily: 'inherit' }}
+              className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
             />
-            <div className="flex justify-between items-center mt-2">
-              <p className="text-xs text-muted-foreground">
-                {content.length} characters
-              </p>
-              {hasChanges && (
-                <p className="text-xs text-amber-500">
-                  Unsaved changes
-                </p>
-              )}
-            </div>
           </div>
 
-          {/* Save Button (Mobile) */}
-          <div className="sm:hidden">
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-              className="w-full"
-              size="lg"
-            >
-              {isSaving ? (
-                <LoadingSpinner size="sm" className="mr-2" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-4 border-t border-border/30">
+            <div className="text-sm text-muted-foreground">
+              {content.length} characters • Press Ctrl+S to save • Esc to cancel
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={!hasChanges || isSaving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

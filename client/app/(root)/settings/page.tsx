@@ -84,9 +84,11 @@ const SettingsPage = () => {
   
   // Stats loading state
   const [statsError, setStatsError] = useState<string | null>(null)
+  const [isLoadingStats, setIsLoadingStats] = useState(false)
 
   const loadUserStats = useCallback(async () => {
     try {
+      setIsLoadingStats(true)
       setStatsError(null) // Clear any previous errors
       const stats = await fetchUserStats()
       
@@ -124,7 +126,7 @@ const SettingsPage = () => {
       if (diaryStreakData) {
         try {
           const streakData = JSON.parse(diaryStreakData)
-          fallbackStats.diaryHighestStreak = streakData.longestStreak || 0
+          fallbackStats.diaryHighestStreak = streakData.diaryHighestStreak || streakData.longestStreak || 0
         } catch (parseError) {
           console.error('Error parsing diary streak data:', parseError)
         }
@@ -134,6 +136,8 @@ const SettingsPage = () => {
       fallbackStats.mysteryClicks = getMysteryExplorationCount()
       
       setUserStats(fallbackStats)
+    } finally {
+      setIsLoadingStats(false)
     }
   }, [setStatsError])
 
@@ -174,16 +178,27 @@ const SettingsPage = () => {
     return cleanup
   }, [])
 
-  // Listen for other events
+  // Listen for other events that might update stats
   useEffect(() => {
     const handleDiaryUpdate = () => {
+      console.log('Diary entries updated, refreshing settings stats...')
       loadUserStats()
     }
 
+    const handleStatsUpdate = () => {
+      console.log('Stats updated event received, refreshing settings stats...')
+      loadUserStats()
+    }
+
+    // Listen for diary entry updates
     window.addEventListener('diaryEntriesUpdated', handleDiaryUpdate)
+    
+    // Listen for general stats updates
+    window.addEventListener('userStatsUpdated', handleStatsUpdate)
 
     return () => {
       window.removeEventListener('diaryEntriesUpdated', handleDiaryUpdate)
+      window.removeEventListener('userStatsUpdated', handleStatsUpdate)
     }
   }, [loadUserStats])
 
@@ -492,10 +507,21 @@ const SettingsPage = () => {
         {/* User Stats Section */}
         <Card className="mb-8 content-overlay">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <Trophy className="h-5 w-5" />
-              Your Statistics
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Trophy className="h-5 w-5" />
+                Your Statistics
+              </CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={loadUserStats}
+                className="text-xs"
+                disabled={isLoadingStats}
+              >
+                {isLoadingStats ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {statsError && (

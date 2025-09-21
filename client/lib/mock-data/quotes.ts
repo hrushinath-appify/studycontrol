@@ -1,176 +1,145 @@
 // Mock data for motivational quotes
-// Used in: Home page
+// This provides inspirational quotes for the study app
 
 export interface Quote {
   id: string
-  quote: string
+  text: string
   author: string
-  category?: 'motivation' | 'education' | 'success' | 'learning'
-  tags?: string[]
+  category: 'motivation' | 'learning' | 'success' | 'perseverance' | 'growth'
+  tags: string[]
 }
 
 export const motivationalQuotes: Quote[] = [
   {
-    id: '1',
-    quote: "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-    author: "Winston Churchill",
-    category: 'motivation',
-    tags: ['success', 'failure', 'courage']
+    id: 'quote-1',
+    text: 'The only way to do great work is to love what you do.',
+    author: 'Steve Jobs',
+    category: 'success',
+    tags: ['work', 'passion', 'success']
   },
   {
-    id: '2',
-    quote: "The expert in anything was once a beginner.",
-    author: "Helen Hayes",
+    id: 'quote-2',
+    text: 'Education is the most powerful weapon which you can use to change the world.',
+    author: 'Nelson Mandela',
     category: 'learning',
-    tags: ['expertise', 'learning', 'growth']
+    tags: ['education', 'change', 'power']
   },
   {
-    id: '3',
-    quote: "Education is the most powerful weapon which you can use to change the world.",
-    author: "Nelson Mandela",
-    category: 'education',
-    tags: ['education', 'power', 'change']
+    id: 'quote-3',
+    text: 'The expert in anything was once a beginner.',
+    author: 'Helen Hayes',
+    category: 'growth',
+    tags: ['expertise', 'practice', 'beginning']
   },
   {
-    id: '4',
-    quote: "The beautiful thing about learning is that no one can take it away from you.",
-    author: "B.B. King",
+    id: 'quote-4',
+    text: 'Success is not final, failure is not fatal: it is the courage to continue that counts.',
+    author: 'Winston Churchill',
+    category: 'perseverance',
+    tags: ['success', 'failure', 'courage', 'persistence']
+  },
+  {
+    id: 'quote-5',
+    text: 'The beautiful thing about learning is that no one can take it away from you.',
+    author: 'B.B. King',
     category: 'learning',
     tags: ['learning', 'knowledge', 'permanent']
   },
   {
-    id: '5',
-    quote: "Study hard, for the well is deep, and our brains are shallow.",
-    author: "Richard Baxter",
-    category: 'education',
-    tags: ['study', 'knowledge', 'depth']
-  },
-  {
-    id: '6',
-    quote: "The more that you read, the more things you will know. The more that you learn, the more places you'll go.",
-    author: "Dr. Seuss",
-    category: 'learning',
-    tags: ['reading', 'knowledge', 'opportunities']
-  },
-  {
-    id: '7',
-    quote: "Learning never exhausts the mind.",
-    author: "Leonardo da Vinci",
-    category: 'learning',
-    tags: ['learning', 'mind', 'endless']
-  },
-  {
-    id: '8',
-    quote: "The only impossible journey is the one you never begin.",
-    author: "Tony Robbins",
+    id: 'quote-6',
+    text: 'It is during our darkest moments that we must focus to see the light.',
+    author: 'Aristotle',
     category: 'motivation',
-    tags: ['journey', 'beginning', 'action']
+    tags: ['hope', 'focus', 'light', 'difficult times']
   },
   {
-    id: '9',
-    quote: "Your limitation—it's only your imagination.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['limitations', 'imagination', 'potential']
+    id: 'quote-7',
+    text: 'In the middle of difficulty lies opportunity.',
+    author: 'Albert Einstein',
+    category: 'growth',
+    tags: ['opportunity', 'difficulty', 'potential']
   },
   {
-    id: '10',
-    quote: "Dream it. Wish it. Do it.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['dreams', 'action', 'achievement']
-  },
-  {
-    id: '11',
-    quote: "Great things never come from comfort zones.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['comfort zone', 'growth', 'achievement']
-  },
-  {
-    id: '12',
-    quote: "Success doesn't just find you. You have to go out and get it.",
-    author: "Anonymous",
-    category: 'success',
-    tags: ['success', 'action', 'initiative']
-  },
-  {
-    id: '13',
-    quote: "The harder you work for something, the greater you'll feel when you achieve it.",
-    author: "Anonymous",
-    category: 'success',
-    tags: ['hard work', 'achievement', 'satisfaction']
-  },
-  {
-    id: '14',
-    quote: "Don't stop when you're tired. Stop when you're done.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['perseverance', 'completion', 'endurance']
-  },
-  {
-    id: '15',
-    quote: "Wake up with determination. Go to bed with satisfaction.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['determination', 'satisfaction', 'daily']
-  },
-  {
-    id: '16',
-    quote: "A goal without a plan is just a wish.",
-    author: "Antoine de Saint-Exupéry",
-    category: 'success',
-    tags: ['goals', 'planning', 'strategy']
-  },
-  {
-    id: '17',
-    quote: "The future belongs to those who believe in the beauty of their dreams.",
-    author: "Eleanor Roosevelt",
-    category: 'motivation',
-    tags: ['future', 'dreams', 'belief']
-  },
-  {
-    id: '18',
-    quote: "It is during our darkest moments that we must focus to see the light.",
-    author: "Aristotle",
-    category: 'motivation',
-    tags: ['darkness', 'focus', 'hope']
-  },
-  {
-    id: '19',
-    quote: "Believe you can and you're halfway there.",
-    author: "Theodore Roosevelt",
+    id: 'quote-8',
+    text: 'Believe you can and you\'re halfway there.',
+    author: 'Theodore Roosevelt',
     category: 'motivation',
     tags: ['belief', 'confidence', 'achievement']
   },
   {
-    id: '20',
-    quote: "The only way to do great work is to love what you do.",
-    author: "Steve Jobs",
+    id: 'quote-9',
+    text: 'The way to get started is to quit talking and begin doing.',
+    author: 'Walt Disney',
+    category: 'motivation',
+    tags: ['action', 'starting', 'doing']
+  },
+  {
+    id: 'quote-10',
+    text: 'Learning never exhausts the mind.',
+    author: 'Leonardo da Vinci',
+    category: 'learning',
+    tags: ['learning', 'mind', 'endless']
+  },
+  {
+    id: 'quote-11',
+    text: 'The future belongs to those who believe in the beauty of their dreams.',
+    author: 'Eleanor Roosevelt',
     category: 'success',
-    tags: ['great work', 'passion', 'love']
+    tags: ['future', 'dreams', 'belief']
+  },
+  {
+    id: 'quote-12',
+    text: 'It always seems impossible until it\'s done.',
+    author: 'Nelson Mandela',
+    category: 'perseverance',
+    tags: ['impossible', 'achievement', 'completion']
+  },
+  {
+    id: 'quote-13',
+    text: 'Don\'t watch the clock; do what it does. Keep going.',
+    author: 'Sam Levenson',
+    category: 'perseverance',
+    tags: ['persistence', 'time', 'progress']
+  },
+  {
+    id: 'quote-14',
+    text: 'The only impossible journey is the one you never begin.',
+    author: 'Tony Robbins',
+    category: 'motivation',
+    tags: ['journey', 'beginning', 'action']
+  },
+  {
+    id: 'quote-15',
+    text: 'What we learn with pleasure we never forget.',
+    author: 'Alfred Mercier',
+    category: 'learning',
+    tags: ['pleasure', 'memory', 'enjoyment']
   }
 ]
 
-// Utility functions for working with quotes
-export const getRandomQuote = (): Quote => {
+// Utility functions
+export function getRandomQuote(): Quote {
   const randomIndex = Math.floor(Math.random() * motivationalQuotes.length)
-  return motivationalQuotes[randomIndex]!
+  return motivationalQuotes[randomIndex] || motivationalQuotes[0]
 }
 
-export const getQuotesByCategory = (category: Quote['category']): Quote[] => {
+export function getQuotesByCategory(category: Quote['category']): Quote[] {
   return motivationalQuotes.filter(quote => quote.category === category)
 }
 
-export const getQuotesByTag = (tag: string): Quote[] => {
-  return motivationalQuotes.filter(quote => quote.tags?.includes(tag))
-}
-
-export const searchQuotes = (query: string): Quote[] => {
-  const lowercaseQuery = query.toLowerCase()
+export function getQuotesByTag(tag: string): Quote[] {
   return motivationalQuotes.filter(quote => 
-    quote.quote.toLowerCase().includes(lowercaseQuery) ||
-    quote.author.toLowerCase().includes(lowercaseQuery) ||
-    quote.tags?.some(tag => tag.toLowerCase().includes(lowercaseQuery))
+    quote.tags.some(t => t.toLowerCase().includes(tag.toLowerCase()))
   )
 }
+
+export function searchQuotes(query: string): Quote[] {
+  const lowercaseQuery = query.toLowerCase()
+  return motivationalQuotes.filter(quote =>
+    quote.text.toLowerCase().includes(lowercaseQuery) ||
+    quote.author.toLowerCase().includes(lowercaseQuery) ||
+    quote.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery))
+  )
+}
+
+export default motivationalQuotes

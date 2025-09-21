@@ -132,18 +132,18 @@ const MysteryPage = () => {
                 </div>
 
             <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-              {/* Left Column - Subtopics */}
+              {/* Left Column - Related Topics */}
               <div className="space-y-6">
                 <h3 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-                  Subtopics
+                  Related Topics
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  {currentTopic.subtopics.map((subtopic, index) => (
+                  {currentTopic.relatedTopics.map((topic: string, index: number) => (
                     <span
                       key={index}
                       className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-medium border border-secondary-foreground/20 hover:bg-secondary/80 transition-colors cursor-pointer"
                     >
-                      {subtopic}
+                      {topic}
                     </span>
                   ))}
                 </div>
@@ -155,7 +155,7 @@ const MysteryPage = () => {
                   Guiding Questions
                 </h3>
                 <div className="space-y-4">
-                  {currentTopic.questions.map((question, index) => (
+                  {currentTopic.questions.map((question: string, index: number) => (
                     <div key={index} className="flex items-start gap-3 group">
                       <div className="flex-shrink-0 mt-1">
                         <HelpCircle className="w-5 h-5 text-primary group-hover:text-primary/80 transition-colors" />
@@ -179,11 +179,11 @@ const MysteryPage = () => {
                   </div>
                   <div className="bg-muted/30 rounded-xl p-6 border border-muted">
                     <p className="text-foreground/90 leading-relaxed text-lg">
-                      {currentTopic.explanation}
+                      {currentTopic.description}
                     </p>
-                    {currentTopic.estimatedReadTime && (
+                    {currentTopic.estimatedTime && (
                       <div className="mt-4 text-sm text-muted-foreground">
-                        Estimated read time: {currentTopic.estimatedReadTime} minutes
+                        Estimated time: {currentTopic.estimatedTime} minutes
                       </div>
                     )}
                   </div>

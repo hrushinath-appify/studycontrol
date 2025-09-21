@@ -248,3 +248,11 @@ export const handleApiError = (error: unknown): string => {
 export const isApiError = (error: unknown): error is ApiError => {
   return error instanceof ApiError
 }
+
+// Check if error is a validation error (client-side validation)
+export const isValidationError = (error: unknown): boolean => {
+  return error instanceof Error && 
+    (error.message.includes('Invalid') || 
+     error.message.includes('is required') ||
+     error.message.includes('format'))
+}

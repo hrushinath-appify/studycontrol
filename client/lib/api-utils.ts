@@ -179,6 +179,20 @@ export async function fetchUserStats(): Promise<UserStats> {
     })
 
     if (!response.ok) {
+      let errorMessage = 'Failed to fetch user stats'
+      
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorData.message || errorMessage
+        
+        // Add more specific error details if available
+        if (errorData.details) {
+          errorMessage += `: ${errorData.details}`
+        }
+      } catch (parseError) {
+        console.error('Failed to parse error response:', parseError)
+      }
+      
       if (response.status === 401) {
         // Check if this is a client-side call (window is available)
         if (typeof window !== 'undefined') {
@@ -191,9 +205,9 @@ export async function fetchUserStats(): Promise<UserStats> {
         throw new Error('Access denied. Please check your authentication.')
       }
       if (response.status >= 500) {
-        throw new Error('Server error. Please try again later or contact support.')
+        throw new Error(`Server error: ${errorMessage}. Please try again later or contact support.`)
       }
-      throw new Error(`Failed to fetch user stats: ${response.status}`)
+      throw new Error(errorMessage)
     }
 
     const data = await response.json()

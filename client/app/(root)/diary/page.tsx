@@ -95,7 +95,11 @@ const DiaryPageContent = () => {
       }
       
         console.log('Entry saved successfully:', newEntry)
-      setCurrentEntry('')
+        setCurrentEntry('')
+        
+        // Dispatch event to notify other components (including settings page)
+        window.dispatchEvent(new CustomEvent('diaryEntriesUpdated'))
+        window.dispatchEvent(new CustomEvent('userStatsUpdated'))
       } catch (error) {
         console.error('Failed to save diary entry:', error)
         // You could add a toast notification here
@@ -228,7 +232,7 @@ const DiaryPageContent = () => {
               <Trophy className="w-6 h-6 md:w-8 md:h-8 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
             </div>
             <div className="text-2xl md:text-3xl font-bold text-yellow-500 mb-2">
-              {streakData?.longestStreak || 0}
+              {streakData?.diaryHighestStreak || 0}
             </div>
             <div className="text-muted-foreground text-sm mb-1">
               Longest Streak
