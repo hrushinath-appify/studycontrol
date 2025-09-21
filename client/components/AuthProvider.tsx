@@ -186,6 +186,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok) {
+        const errorMessage = result.error || 'Failed to change password'
+        setError(errorMessage)
+        toast.error('Password Change Failed', errorMessage)
+        throw new Error(errorMessage)
+      }
+      
+      toast.success('Password Changed', 'Your password has been updated successfully')
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Password change failed"
+      setError(errorMessage)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', {
@@ -257,6 +291,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     register,
     updateProfile,
+    changePassword,
     forgotPassword,
     isAuthenticated,
     error,
@@ -269,6 +304,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     register,
     updateProfile,
+    changePassword,
     forgotPassword,
     isAuthenticated,
     error,

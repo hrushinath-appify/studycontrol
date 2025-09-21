@@ -5,6 +5,7 @@ import {
   logout,
   getCurrentUser,
   updateProfile,
+  changePassword,
   forgotPassword,
   resetPassword,
   refreshAccessToken,
@@ -17,6 +18,7 @@ import {
   validateRegister,
   validateLogin,
   validateUpdateProfile,
+  validateChangePassword,
   validateForgotPassword,
   validateResetPassword
 } from '../middleware/validation';
@@ -39,5 +41,6 @@ router.use(authenticate); // Apply authentication middleware to all routes below
 router.post('/logout', logout);
 router.get('/me', getCurrentUser);
 router.put('/profile', validateUpdateProfile, updateProfile);
+router.put('/change-password', validateChangePassword, changePassword);
 
 export default router;

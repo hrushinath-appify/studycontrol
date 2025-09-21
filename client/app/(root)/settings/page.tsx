@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,16 +36,28 @@ interface UserStats {
 }
 
 const SettingsPage = () => {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, changePassword } = useAuth()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   
   // Profile form state
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
-    email: user?.email || '',
-    password: '••••••••'
+    email: user?.email || ''
   })
+  
+  // Password form state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+
+  // Form state
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({})
+  const [profileErrors, setProfileErrors] = useState<Record<string, string>>({})
   
   // User preferences state
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -108,8 +120,7 @@ const SettingsPage = () => {
     if (user) {
       setProfileData({
         name: user.name,
-        email: user.email,
-        password: '••••••••'
+        email: user.email
       })
     }
   }, [user])
@@ -137,26 +148,118 @@ const SettingsPage = () => {
     }
   }, [])
 
-  const handleProfileUpdate = async () => {
+  const handleProfileUpdate = useCallback(async () => {
+    setIsUpdatingProfile(true)
+    setProfileErrors({})
+    
     try {
+      // Basic validation
+      if (!profileData.name.trim()) {
+        setProfileErrors({ name: 'Name is required' })
+        return
+      }
+      
+      if (profileData.name.trim().length < 2) {
+        setProfileErrors({ name: 'Name must be at least 2 characters long' })
+        return
+      }
+
       await updateProfile({
-        name: profileData.name
+        name: profileData.name.trim()
       })
-      // Show success message (you could add a toast here)
     } catch (error) {
       console.error('Profile update failed:', error)
+      setProfileErrors({ general: 'Failed to update profile. Please try again.' })
+    } finally {
+      setIsUpdatingProfile(false)
     }
-  }
+  }, [profileData.name, updateProfile])
 
-  const handlePreferenceChange = (key: keyof UserPreferences, value: boolean) => {
+  const handlePasswordChange = useCallback(async () => {
+    setIsUpdatingPassword(true)
+    setPasswordErrors({})
+    
+    try {
+      // Validate password fields
+      const errors: Record<string, string> = {}
+      
+      if (!passwordData.currentPassword) {
+        errors.currentPassword = 'Current password is required'
+      }
+      
+      if (!passwordData.newPassword) {
+        errors.newPassword = 'New password is required'
+      } else if (passwordData.newPassword.length < 8) {
+        errors.newPassword = 'New password must be at least 8 characters long'
+      } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(passwordData.newPassword)) {
+        errors.newPassword = 'Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character (@$!%*?&)'
+      }
+      
+      if (!passwordData.confirmPassword) {
+        errors.confirmPassword = 'Please confirm your new password'
+      } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+        errors.confirmPassword = 'Passwords do not match'
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        setPasswordErrors(errors)
+        return
+      }
+
+      await changePassword(passwordData.currentPassword, passwordData.newPassword)
+      
+      // Clear password fields on success
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
+    } catch (error) {
+      console.error('Password change failed:', error)
+      setPasswordErrors({ general: 'Failed to change password. Please try again.' })
+    } finally {
+      setIsUpdatingPassword(false)
+    }
+  }, [passwordData, changePassword])
+
+  const handlePreferenceChange = useCallback((key: keyof UserPreferences, value: boolean) => {
     const newPreferences = { ...preferences, [key]: value }
     setPreferences(newPreferences)
     localStorage.setItem('userPreferences', JSON.stringify(newPreferences))
-  }
+  }, [preferences])
 
-  const handleThemeChange = (newTheme: string) => {
+  const handleThemeChange = useCallback((newTheme: string) => {
     setTheme(newTheme)
-  }
+  }, [setTheme])
+
+  // Create callback functions to avoid inline arrow functions
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setProfileData(prev => ({ ...prev, name: e.target.value }))
+  }, [])
+
+  const handleCurrentPasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))
+  }, [])
+
+  const handleNewPasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))
+  }, [])
+
+  const handleConfirmPasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))
+  }, [])
+
+  const handleLightThemeClick = useCallback(() => {
+    handleThemeChange('light')
+  }, [handleThemeChange])
+
+  const handleDarkThemeClick = useCallback(() => {
+    handleThemeChange('dark')
+  }, [handleThemeChange])
+
+  const handleStudyRemindersChange = useCallback((checked: boolean) => {
+    handlePreferenceChange('studyReminders', checked)
+  }, [handlePreferenceChange])
 
   const helpItems = [
     { id: 'faq', label: 'FAQ', icon: HelpCircle },
@@ -183,7 +286,7 @@ const SettingsPage = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
               <User className="h-5 w-5" />
-              Profile
+              Profile Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -193,9 +296,13 @@ const SettingsPage = () => {
                 <Input
                   id="name"
                   value={profileData.name}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={handleNameChange}
                   className="bg-background border-border"
+                  disabled={isUpdatingProfile}
                 />
+                {profileErrors.name && (
+                  <p className="text-sm text-red-500">{profileErrors.name}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
@@ -209,22 +316,84 @@ const SettingsPage = () => {
                 <p className="text-xs text-muted-foreground">Email cannot be changed for security reasons</p>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground font-medium">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={profileData.password}
-                onChange={(e) => setProfileData(prev => ({ ...prev, password: e.target.value }))}
-                className="bg-background border-border max-w-md"
-              />
-            </div>
+            {profileErrors.general && (
+              <p className="text-sm text-red-500">{profileErrors.general}</p>
+            )}
             <div className="flex justify-end pt-4">
               <Button 
                 onClick={handleProfileUpdate}
+                disabled={isUpdatingProfile}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-6"
               >
-                Update Profile
+                {isUpdatingProfile ? 'Updating...' : 'Update Profile'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Password Change Section */}
+        <Card className="mb-8 content-overlay">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Shield className="h-5 w-5" />
+              Change Password
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4 max-w-md">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword" className="text-foreground font-medium">Current Password</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={passwordData.currentPassword}
+                  onChange={handleCurrentPasswordChange}
+                  className="bg-background border-border"
+                  disabled={isUpdatingPassword}
+                />
+                {passwordErrors.currentPassword && (
+                  <p className="text-sm text-red-500">{passwordErrors.currentPassword}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword" className="text-foreground font-medium">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={handleNewPasswordChange}
+                  className="bg-background border-border"
+                  disabled={isUpdatingPassword}
+                />
+                {passwordErrors.newPassword && (
+                  <p className="text-sm text-red-500">{passwordErrors.newPassword}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-foreground font-medium">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={handleConfirmPasswordChange}
+                  className="bg-background border-border"
+                  disabled={isUpdatingPassword}
+                />
+                {passwordErrors.confirmPassword && (
+                  <p className="text-sm text-red-500">{passwordErrors.confirmPassword}</p>
+                )}
+              </div>
+            </div>
+            {passwordErrors.general && (
+              <p className="text-sm text-red-500">{passwordErrors.general}</p>
+            )}
+            <div className="flex justify-end pt-4">
+              <Button 
+                onClick={handlePasswordChange}
+                disabled={isUpdatingPassword}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-6"
+              >
+                {isUpdatingPassword ? 'Changing...' : 'Change Password'}
               </Button>
             </div>
           </CardContent>
@@ -247,7 +416,7 @@ const SettingsPage = () => {
                     ? "border-primary bg-primary/5 shadow-lg shadow-primary/20" 
                     : "border-border bg-card hover:border-primary/50"
                 )}
-                onClick={() => handleThemeChange('light')}
+                onClick={handleLightThemeClick}
               >
                 <div className="flex items-center justify-center mb-4">
                   <Flower2 className="h-12 w-12 text-pink-500" />
@@ -264,7 +433,7 @@ const SettingsPage = () => {
                     ? "border-primary bg-primary/5 shadow-lg shadow-primary/20" 
                     : "border-border bg-card hover:border-primary/50"
                 )}
-                onClick={() => handleThemeChange('dark')}
+                onClick={handleDarkThemeClick}
               >
                 <div className="flex items-center justify-center mb-4">
                   <Sparkles className="h-12 w-12 text-violet-400" />
@@ -335,7 +504,7 @@ const SettingsPage = () => {
               </div>
               <Switch
                 checked={preferences.studyReminders}
-                onCheckedChange={(checked: boolean) => handlePreferenceChange('studyReminders', checked)}
+                onCheckedChange={handleStudyRemindersChange}
               />
             </div>
           </CardContent>

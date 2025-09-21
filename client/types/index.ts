@@ -27,6 +27,7 @@ export interface AuthContextType {
   logout: () => Promise<void>
   register: (name: string, email: string, password: string) => Promise<{ email: string; requiresVerification: boolean }>
   updateProfile: (data: Partial<User>) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   forgotPassword: (email: string) => Promise<void>
   isAuthenticated: boolean
   error: string | null

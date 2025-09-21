@@ -531,3 +531,51 @@ export const resendVerificationEmail = asyncHandler(async (req: Request, res: Re
     res.status(500).json(createErrorResponse('Failed to resend verification email'));
   }
 });
+
+// Change password
+export const changePassword = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json(createErrorResponse('User not authenticated'));
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json(createErrorResponse('Current password and new password are required'));
+    }
+
+    // Get the full user document with password
+    const fullUser = await User.findById(user._id).select('+password');
+    if (!fullUser) {
+      return res.status(404).json(createErrorResponse('User not found'));
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await fullUser.comparePassword(currentPassword);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json(createErrorResponse('Current password is incorrect'));
+    }
+
+    // Check if new password is the same as current
+    const isSamePassword = await fullUser.comparePassword(newPassword);
+    if (isSamePassword) {
+      return res.status(400).json(createErrorResponse('New password must be different from current password'));
+    }
+
+    // Update password
+    fullUser.password = newPassword;
+    await fullUser.save();
+
+    res.json(createSuccessResponse(
+      null,
+      'Password changed successfully'
+    ));
+  } catch (error) {
+    console.error('Change password error:', error);
+    const apiError = handleMongooseError(error);
+    res.status(apiError.status).json(createErrorResponse(apiError.message, apiError.code));
+  }
+});

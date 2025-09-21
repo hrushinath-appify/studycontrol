@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: {
+      data: {
         id: updatedUser.id,
         email: updatedUser.email,
         name: updatedUser.name,
@@ -60,3 +60,6 @@ export async function PATCH(request: NextRequest) {
     )
   }
 }
+
+// Also support PUT method for consistency with AuthProvider
+export const PUT = PATCH
