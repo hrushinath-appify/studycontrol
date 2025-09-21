@@ -207,3 +207,22 @@ export const updateFocusStats = async (userId: string, sessionTime: number) => {
     throw error
   }
 }
+
+// Update mystery stats (called when mystery exploration happens)
+export const updateMysteryStats = async (userId: string) => {
+  try {
+    let userStats = await UserStats.findOne({ userId })
+    if (!userStats) {
+      userStats = new UserStats({ userId })
+    }
+
+    // Update mystery stats manually
+    userStats.mysteryExplorations += 1
+    await userStats.save()
+    
+    return userStats
+  } catch (error) {
+    console.error('Update mystery stats error:', error)
+    throw error
+  }
+}

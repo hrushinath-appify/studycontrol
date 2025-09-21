@@ -14,7 +14,7 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | StudyControl",
+    template: "Ammu's | StudyControl",
     default: "StudyControl — Your Study Companion",
   },
   description: "Comprehensive study management platform with diary, focus tools, and progress tracking.",

@@ -85,7 +85,9 @@ export async function apiRequest<T = unknown>(
 // =============================================================================
 
 export function buildApiUrl(endpoint: string): string {
-  return `${API_CONFIG.BASE_URL}${endpoint}`
+  const baseUrl = API_CONFIG.BASE_URL.replace(/\/$/, '') // Remove trailing slash
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}` // Ensure leading slash
+  return `${baseUrl}${cleanEndpoint}`
 }
 
 // =============================================================================

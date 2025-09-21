@@ -106,7 +106,7 @@ export default function MainSidebar() {
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-bold text-lg tracking-tight bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">StudyControl</span>
-            <span className="truncate text-xs text-muted-foreground font-medium">Study Management</span>
+            <span className="truncate text-xs text-muted-foreground font-medium">To My Only Ammu ❤️ </span>
           </div>
         </div>
       </SidebarHeader>

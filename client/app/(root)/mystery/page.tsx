@@ -34,8 +34,8 @@ const MysteryPage = () => {
   const handleGenerateNewMystery = useCallback(async () => {
     setIsGenerating(true)
     try {
-      // Increment mystery exploration count
-      incrementMysteryExploration()
+      // Increment mystery exploration count (now syncs with database)
+      await incrementMysteryExploration()
       
       // Add a small delay for better UX
       await new Promise(resolve => setTimeout(resolve, 1000))

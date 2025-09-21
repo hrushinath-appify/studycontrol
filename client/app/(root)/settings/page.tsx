@@ -25,7 +25,7 @@ import {
   Eye
 } from 'lucide-react'
 import { fetchUserStats } from '@/lib/api-utils'
-import { getMysteryExplorationCount, onMysteryExplorationUpdate } from '@/lib/mystery-tracker'
+import { getMysteryExplorationCount, onMysteryExplorationUpdate, syncMysteryStatsWithServer } from '@/lib/mystery-tracker'
 import { cn } from '@/lib/utils'
 
 interface UserPreferences {
@@ -150,6 +150,9 @@ const SettingsPage = () => {
       ...prev,
       mysteryClicks: mysteryCount
     }))
+    
+    // Sync mystery stats with server
+    syncMysteryStatsWithServer()
   }, [])
 
   // Load initial data

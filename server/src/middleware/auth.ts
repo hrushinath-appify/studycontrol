@@ -73,7 +73,10 @@ export const authenticate = async (
     next();
   } catch (error) {
     console.error('Authentication error:', error);
-    res.status(500).json(createErrorResponse('Authentication failed'));
+    // Only send response if not already sent
+    if (!res.headersSent) {
+      res.status(500).json(createErrorResponse('Authentication failed'));
+    }
   }
 };
 
@@ -161,7 +164,10 @@ export const checkResourceOwnership = (resourceUserIdField: string = 'userId') =
       next();
     } catch (error) {
       console.error('Resource ownership check error:', error);
-      res.status(500).json(createErrorResponse('Authorization check failed'));
+      // Only send response if not already sent
+      if (!res.headersSent) {
+        res.status(500).json(createErrorResponse('Authorization check failed'));
+      }
     }
   };
 };
@@ -234,7 +240,10 @@ export const refreshToken = async (
     });
   } catch (error) {
     console.error('Token refresh error:', error);
-    res.status(500).json(createErrorResponse('Token refresh failed'));
+    // Only send response if not already sent
+    if (!res.headersSent) {
+      res.status(500).json(createErrorResponse('Token refresh failed'));
+    }
   }
 };
 
@@ -318,6 +327,9 @@ export const authenticateAllowUnverified = async (
     next();
   } catch (error) {
     console.error('Authentication error:', error);
-    res.status(500).json(createErrorResponse('Authentication failed'));
+    // Only send response if not already sent
+    if (!res.headersSent) {
+      res.status(500).json(createErrorResponse('Authentication failed'));
+    }
   }
 };

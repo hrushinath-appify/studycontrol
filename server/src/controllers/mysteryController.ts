@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '@/types';
+import { updateMysteryStats } from './statsController';
 
 // For now, we'll use in-memory mock data for mystery topics
 // In production, this would fetch from a database
@@ -306,6 +307,28 @@ export const getMysteryTopicsByDifficulty = async (req: Request, res: Response):
     res.status(500).json({
       success: false,
       error: 'Failed to fetch mystery topics by difficulty'
+    });
+  }
+};
+
+// Track mystery exploration
+export const trackMysteryExploration = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    // Handle both _id and id fields for compatibility
+    const userId = req.user!._id || req.user!.id;
+
+    // Update mystery stats in database
+    await updateMysteryStats(userId);
+
+    res.json({
+      success: true,
+      message: 'Mystery exploration tracked successfully'
+    });
+  } catch (error) {
+    console.error('Error tracking mystery exploration:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to track mystery exploration'
     });
   }
 };

@@ -8,19 +8,19 @@ import { Search, Smile, Image, Mic, ChevronRight, Flame, Calendar, Trophy, Eye, 
 import { DiaryApi, type DiaryEntry as ApiDiaryEntry, type DiaryStats } from '@/lib/api/diary'
 import { generateSmartTitle } from '@/lib/utils/diary'
 import AuthGuard from '@/components/AuthGuard'
+import { useAuth } from '@/components/AuthProvider'
 
 // Use the API interface instead of local interface
 type DiaryEntry = ApiDiaryEntry
 
 
 const DiaryPageContent = () => {
+  const { user } = useAuth()
   const [currentEntry, setCurrentEntry] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [entries, setEntries] = useState<DiaryEntry[]>([])
   const [streakData, setStreakData] = useState<DiaryStats | null>(null)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
-
-  const user = { name: 'Ammu' }
 
   // Loading state
   const [loading, setLoading] = useState(true)
@@ -269,7 +269,7 @@ const DiaryPageContent = () => {
               <textarea
                 value={currentEntry}
                 onChange={handleCurrentEntryChange}
-                placeholder={`What secrets does the night hold, ${user.name}?`}
+                placeholder={`What secrets does the night hold, ${user?.name || 'friend'}?`}
                 autoComplete="off"
                 className="w-full min-h-[180px] md:min-h-[200px] bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground text-base md:text-lg leading-relaxed focus:outline-none focus:ring-0 p-0"
                 style={{ fontFamily: 'inherit' }}

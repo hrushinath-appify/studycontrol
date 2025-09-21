@@ -5,8 +5,10 @@ import {
   getMysteryCategories,
   getRandomMysteryTopic,
   searchMysteryTopics,
-  getMysteryTopicsByDifficulty
+  getMysteryTopicsByDifficulty,
+  trackMysteryExploration
 } from '@/controllers/mysteryController';
+import { authenticate } from '../middleware/auth';
 import { validatePagination, validateSearch, validateMongoId } from '@/middleware/validation';
 
 const router = Router();
@@ -28,5 +30,9 @@ router.get('/difficulty/:difficulty', getMysteryTopicsByDifficulty);
 
 // GET /api/v1/mystery/:id - Get mystery topic by ID
 router.get('/:id', getMysteryTopicById);
+
+// Protected route - requires authentication
+// POST /api/v1/mystery/track - Track mystery exploration
+router.post('/track', authenticate, trackMysteryExploration);
 
 export default router;
