@@ -1,117 +1,66 @@
-// API service for quotes
-// Handles fetching motivational quotes with fallback to mock data
+// Quotes API - Using local quotes for maximum reliability
+// No backend dependencies - quotes always work offline
 
-import { apiClient } from './index'
-import { motivationalQuotes, getRandomQuote as getMockRandomQuote, type Quote } from '../mock-data/quotes'
+import { getRandomQuote as getLocalRandomQuote, motivationalQuotes } from '@/lib/mock-data/quotes'
 
-// Re-export the Quote type for external use
-export type { Quote }
-
-export interface QuotesApiParams {
+// Our internal Quote interface
+export interface Quote {
+  id: string
+  quote: string
+  author: string
   category?: 'motivation' | 'education' | 'success' | 'learning'
-  tag?: string
-  limit?: number
-  random?: boolean
+  tags?: string[]
 }
 
-export class QuotesApi {
-  private static readonly ENDPOINT = '/quotes'
-
-  // Get all quotes with optional filtering
-  static async getQuotes(params?: QuotesApiParams): Promise<Quote[]> {
-    try {
-      const response = await apiClient.get<Quote[]>(this.ENDPOINT, params)
-      return response.data || []
-    } catch (error) {
-      console.warn('Failed to fetch quotes from API, using mock data:', error)
-      return this.getMockQuotes(params)
-    }
+// Main function to get random quote - now using local quotes only
+export async function getRandomQuote(): Promise<Quote> {
+  console.log('� Using local quotes for maximum reliability...')
+  
+  const localQuote = getLocalRandomQuote()
+  
+  // Add unique ID for each fetch to ensure freshness
+  const quote: Quote = {
+    ...localQuote,
+    id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   }
-
-  // Get a random quote
-  static async getMockRandomQuote(): Promise<Quote> {
-    try {
-      const response = await apiClient.get<Quote>(`${this.ENDPOINT}/random`)
-      return response.data || getMockRandomQuote()
-    } catch (error) {
-      console.warn('Failed to fetch random quote from API, using mock data:', error)
-      return getMockRandomQuote()
-    }
-  }
-
-  // Search quotes
-  static async searchQuotes(query: string): Promise<Quote[]> {
-    try {
-      const response = await apiClient.get<Quote[]>(`${this.ENDPOINT}/search`, { q: query })
-      return response.data || []
-    } catch (error) {
-      console.warn('Failed to search quotes from API, using mock data:', error)
-      return motivationalQuotes.filter(quote =>
-        quote.quote.toLowerCase().includes(query.toLowerCase()) ||
-        quote.author.toLowerCase().includes(query.toLowerCase()) ||
-        quote.tags?.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
-      )
-    }
-  }
-
-  // Get quotes by category
-  static async getQuotesByCategory(category: Quote['category']): Promise<Quote[]> {
-    try {
-      const response = await apiClient.get<Quote[]>(`${this.ENDPOINT}/category/${category}`)
-      return response.data || []
-    } catch (error) {
-      console.warn('Failed to fetch quotes by category from API, using mock data:', error)
-      return motivationalQuotes.filter(quote => quote.category === category)
-    }
-  }
-
-  // Get quote of the day
-  static async getQuoteOfTheDay(): Promise<Quote> {
-    try {
-      const response = await apiClient.get<Quote>(`${this.ENDPOINT}/daily`)
-      return response.data || QuotesApi.getDailyMockQuote()
-    } catch (error) {
-      console.warn('Failed to fetch quote of the day from API, using mock data:', error)
-      return QuotesApi.getDailyMockQuote()
-    }
-  }
-
-  // Private helper methods for mock data fallback
-  private static getDailyMockQuote(): Quote {
-    // Return a consistent "daily" quote based on the current date
-    const today = new Date().toDateString()
-    const hash = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    const index = hash % motivationalQuotes.length
-    return motivationalQuotes[index] ?? motivationalQuotes[0]!
-  }
-
-  private static getMockQuotes(params?: QuotesApiParams): Quote[] {
-    let quotes = [...motivationalQuotes]
-
-    // Apply filters
-    if (params?.category) {
-      quotes = quotes.filter(quote => quote.category === params.category)
-    }
-
-    if (params?.tag) {
-      quotes = quotes.filter(quote => quote.tags?.includes(params.tag!))
-    }
-
-    if (params?.random) {
-      quotes = quotes.sort(() => Math.random() - 0.5)
-    }
-
-    if (params?.limit) {
-      quotes = quotes.slice(0, params.limit)
-    }
-
-    return quotes
-  }
+  
+  console.log('✅ Local quote loaded:', quote.quote.substring(0, 50) + '...')
+  return quote
 }
 
-// Export convenience functions
-export const getQuotes = QuotesApi.getQuotes
-export const getRandomQuote = QuotesApi.getMockRandomQuote
-export const searchQuotes = QuotesApi.searchQuotes
-export const getQuotesByCategory = QuotesApi.getQuotesByCategory
-export const getQuoteOfTheDay = QuotesApi.getQuoteOfTheDay
+// Quote of the day - returns a consistent quote based on current date
+export async function getQuoteOfTheDay(): Promise<Quote> {
+  console.log('� Getting quote of the day from local collection...')
+  
+  // Use date as seed to get consistent quote for the day
+  const today = new Date().toDateString()
+  const dateHash = today.split('').reduce((hash, char) => {
+    return ((hash << 5) - hash) + char.charCodeAt(0)
+  }, 0)
+  
+  const index = Math.abs(dateHash) % motivationalQuotes.length
+  const dailyQuote = motivationalQuotes[index]!
+  
+  const quote: Quote = {
+    ...dailyQuote,
+    id: `daily-${today}-${index}`
+  }
+  
+  console.log('✅ Daily quote loaded')
+  return quote
+}
+
+// Get all available quotes
+export async function getQuotes(): Promise<Quote[]> {
+  console.log('📖 Loading all local quotes...')
+  return motivationalQuotes
+}
+
+// Export local quote utilities for direct access
+export { 
+  getRandomQuote as getRandomLocalQuote, 
+  motivationalQuotes as localQuotes,
+  getQuotesByCategory,
+  getQuotesByTag,
+  searchQuotes
+} from '@/lib/mock-data/quotes'

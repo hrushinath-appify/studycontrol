@@ -1,6 +1,6 @@
 import { Response } from 'express';
-import { DiaryEntry } from '@/models/DiaryEntry';
-import { AuthenticatedRequest, DiaryQuery, CreateDiaryEntryRequest } from '@/types';
+import { DiaryEntry } from '../models/DiaryEntry';
+import { AuthenticatedRequest, DiaryQuery, CreateDiaryEntryRequest } from '../types';
 import { 
   createSuccessResponse, 
   createErrorResponse, 
@@ -9,13 +9,36 @@ import {
   validatePaginationParams,
   buildSortObject,
   buildFilterObject
-} from '@/utils/response';
-import { asyncHandler } from '@/utils/asyncHandler';
+} from '../utils/response';
+import { asyncHandler } from '../utils/asyncHandler';
 import { validationResult } from 'express-validator';
 
 // Get all diary entries for a user
 export const getDiaryEntries = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user!._id;
+  console.log('User object:', JSON.stringify(req.user, null, 2));
+  const userId = req.user!._id || req.user!.id;
+  console.log('User ID:', userId, 'Type:', typeof userId);
+  
+  // Convert to string if it's an ObjectId
+  const userIdString = userId.toString();
+  console.log('User ID as string:', userIdString);
+  
+  // Test if it's a valid ObjectId
+  const mongoose = require('mongoose');
+  const ObjectId = mongoose.Types.ObjectId;
+  console.log('Is valid ObjectId:', ObjectId.isValid(userIdString));
+  
+  // Test the filter object
+  const filters = { userId: userIdString };
+  console.log('Filter object:', filters);
+  
+  // Test the DiaryEntry.find() call
+  try {
+    const testEntries = await DiaryEntry.find(filters);
+    console.log('Test query successful, found entries:', testEntries.length);
+  } catch (error) {
+    console.log('Test query failed:', error instanceof Error ? error.message : String(error));
+  }
   const { 
     page, 
     limit, 
@@ -32,7 +55,7 @@ export const getDiaryEntries = asyncHandler(async (req: AuthenticatedRequest, re
     const { page: validPage, limit: validLimit, skip } = validatePaginationParams(page, limit);
 
     // Build filter object
-    const filters: any = { userId };
+    const filters: any = { userId: userIdString };
     
     if (mood) filters.mood = mood;
     if (tags) filters.tags = { $in: tags.split(',').map(tag => tag.trim()) };
@@ -79,7 +102,7 @@ export const getDiaryEntries = asyncHandler(async (req: AuthenticatedRequest, re
 // Get a single diary entry
 export const getDiaryEntry = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
-  const userId = req.user!._id;
+  const userId = req.user!._id || req.user!.id;
 
   try {
     const entry = await DiaryEntry.findOne({ _id: id, userId });
@@ -110,7 +133,7 @@ export const createDiaryEntry = asyncHandler(async (req: AuthenticatedRequest, r
     ));
   }
 
-  const userId = req.user!._id;
+  const userId = req.user!._id || req.user!.id;
   const { title, content, mood, tags, date, isPrivate }: CreateDiaryEntryRequest = req.body;
 
   try {
@@ -154,7 +177,7 @@ export const updateDiaryEntry = asyncHandler(async (req: AuthenticatedRequest, r
   }
 
   const { id } = req.params;
-  const userId = req.user!._id;
+  const userId = req.user!._id || req.user!.id;
   const updateData = req.body;
 
   try {
@@ -183,7 +206,7 @@ export const updateDiaryEntry = asyncHandler(async (req: AuthenticatedRequest, r
 // Delete a diary entry
 export const deleteDiaryEntry = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
-  const userId = req.user!._id;
+  const userId = req.user!._id || req.user!.id;
 
   try {
     const entry = await DiaryEntry.findOneAndDelete({ _id: id, userId });
@@ -205,7 +228,7 @@ export const deleteDiaryEntry = asyncHandler(async (req: AuthenticatedRequest, r
 
 // Get diary statistics
 export const getDiaryStats = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user!._id;
+  const userId = req.user!._id || req.user!.id;
 
   try {
     // Get basic stats
@@ -303,7 +326,7 @@ export const getDiaryStats = asyncHandler(async (req: AuthenticatedRequest, res:
 
 // Search diary entries
 export const searchDiaryEntries = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user!._id;
+  const userId = req.user!._id || req.user!.id;
   const { search, page, limit, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
   if (!search || typeof search !== 'string') {
@@ -354,7 +377,7 @@ export const searchDiaryEntries = asyncHandler(async (req: AuthenticatedRequest,
 // Get entries by mood
 export const getEntriesByMood = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { mood } = req.params;
-  const userId = req.user!._id;
+  const userId = req.user!._id || req.user!.id;
   const { page, limit } = req.query;
 
   try {
@@ -389,7 +412,7 @@ export const getEntriesByMood = asyncHandler(async (req: AuthenticatedRequest, r
 // Get entries by tag
 export const getEntriesByTag = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { tag } = req.params;
-  const userId = req.user!._id;
+  const userId = req.user!._id || req.user!.id;
   const { page, limit } = req.query;
 
   try {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Play, Pause, RotateCcw, Timer, Coffee, Target } from 'lucide-react'
 import type { TimerSettings } from '@/types'
@@ -24,7 +24,7 @@ const FocusPage = () => {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const getCurrentDuration = () => {
+  const getCurrentDuration = useCallback(() => {
     switch (currentMode) {
       case 'work':
         return settings.workDuration * 60
@@ -33,7 +33,7 @@ const FocusPage = () => {
       case 'longBreak':
         return settings.longBreakDuration * 60
     }
-  }
+  }, [currentMode, settings.workDuration, settings.shortBreakDuration, settings.longBreakDuration])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -48,7 +48,7 @@ const FocusPage = () => {
 
   const playNotificationSound = () => {
     // Create a simple beep sound using Web Audio API
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)()
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
 
@@ -64,7 +64,7 @@ const FocusPage = () => {
     oscillator.stop(audioContext.currentTime + 0.5)
   }
 
-  const handleTimerComplete = () => {
+    const handleTimerComplete = useCallback(() => {
     playNotificationSound()
 
     if (currentMode === 'work') {
@@ -72,8 +72,8 @@ const FocusPage = () => {
       setSessionsCompleted(newSessionsCompleted)
       setTotalFocusTime(prev => prev + settings.workDuration)
 
-      // Determine next mode (every 4th session is a long break)
-      if (newSessionsCompleted % 4 === 0) {
+      // Determine next break type
+      if (newSessionsCompleted % settings.sessionsUntilLongBreak === 0) {
         setCurrentMode('longBreak')
         setTimeLeft(settings.longBreakDuration * 60)
       } else {
@@ -87,7 +87,7 @@ const FocusPage = () => {
     }
 
     setIsRunning(false)
-  }
+  }, [currentMode, sessionsCompleted, settings.workDuration, settings.longBreakDuration, settings.shortBreakDuration, settings.sessionsUntilLongBreak])
 
   useEffect(() => {
     if (isRunning && timeLeft > 0) {
@@ -111,25 +111,30 @@ const FocusPage = () => {
         clearInterval(intervalRef.current)
       }
     }
-  }, [isRunning, timeLeft])
+  }, [isRunning, timeLeft, handleTimerComplete])
 
-  const toggleTimer = () => {
+  const toggleTimer = useCallback(() => {
     setIsRunning(!isRunning)
-  }
+  }, [isRunning])
 
-  const resetTimer = () => {
+  const resetTimer = useCallback(() => {
     setIsRunning(false)
     setTimeLeft(getCurrentDuration())
-  }
+  }, [getCurrentDuration])
 
-  const switchMode = (mode: 'work' | 'shortBreak' | 'longBreak') => {
+  const switchMode = useCallback((mode: 'work' | 'shortBreak' | 'longBreak') => {
     setIsRunning(false)
     setCurrentMode(mode)
     const duration = mode === 'work' ? settings.workDuration :
       mode === 'shortBreak' ? settings.shortBreakDuration :
         settings.longBreakDuration
     setTimeLeft(duration * 60)
-  }
+  }, [settings.workDuration, settings.shortBreakDuration, settings.longBreakDuration])
+
+  // Specific handler functions for each mode
+  const handleWorkMode = useCallback(() => switchMode('work'), [switchMode])
+  const handleShortBreakMode = useCallback(() => switchMode('shortBreak'), [switchMode])
+  const handleLongBreakMode = useCallback(() => switchMode('longBreak'), [switchMode])
 
   const getModeConfig = () => {
     switch (currentMode) {
@@ -274,7 +279,7 @@ const FocusPage = () => {
           {/* Mode Selection */}
           <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
             <Button
-              onClick={() => switchMode('work')}
+              onClick={handleWorkMode}
               variant={currentMode === 'work' ? 'default' : 'outline'}
               size="sm"
               className="rounded-full"
@@ -283,7 +288,7 @@ const FocusPage = () => {
               Focus
             </Button>
             <Button
-              onClick={() => switchMode('shortBreak')}
+              onClick={handleShortBreakMode}
               variant={currentMode === 'shortBreak' ? 'default' : 'outline'}
               size="sm"
               className="rounded-full"
@@ -291,7 +296,7 @@ const FocusPage = () => {
               Short Break
             </Button>
             <Button
-              onClick={() => switchMode('longBreak')}
+              onClick={handleLongBreakMode}
               variant={currentMode === 'longBreak' ? 'default' : 'outline'}
               size="sm"
               className="rounded-full"
@@ -346,7 +351,7 @@ const FocusPage = () => {
             <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
               Forest Focus
             </h2>
-            <div className="w-16 h-1 bg-gradient-to-r from-emerald-500 to-green-600 mx-auto rounded-full"></div>
+            <div className="w-16 h-1 bg-gradient-to-r from-emerald-500 to-green-600 mx-auto rounded-full" />
           </div>
 
           <div className="flex justify-center">

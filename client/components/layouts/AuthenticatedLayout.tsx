@@ -2,7 +2,7 @@
 
 import { AuthProvider } from "@/components/AuthProvider"
 import AuthGuard from "@/components/AuthGuard"
-import MainSidebar from "@/components/custom/MainSidebar"
+import { LazyComponents } from "@/components/LazyComponents"
 import TopBar from "@/components/custom/TopBar"
 import Footer from "@/components/custom/Footer"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
@@ -17,7 +17,7 @@ export default function AuthenticatedLayout({ children }: AuthenticatedLayoutPro
     <AuthProvider>
       <AuthGuard>
         <SidebarProvider>
-          <MainSidebar />
+          <LazyComponents.MainSidebar />
           <SidebarInset>
             <TooltipProvider>
               <div className="flex min-h-screen flex-col overflow-hidden bg-background/30 backdrop-blur-sm">

@@ -21,10 +21,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Call the backend API server to handle password reset
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
     
     try {
-      const resetResponse = await fetch(`${backendUrl}/api/v1/auth/forgot-password`, {
+      const resetResponse = await fetch(`${backendUrl}/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

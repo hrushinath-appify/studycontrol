@@ -30,6 +30,14 @@ const MysteryPage = () => {
   const generateNewMystery = async () => {
     setIsGenerating(true)
     try {
+      // Track mystery click
+      const currentClicks = parseInt(localStorage.getItem('mysteryClicks') || '0')
+      const newClicks = currentClicks + 1
+      localStorage.setItem('mysteryClicks', newClicks.toString())
+      
+      // Dispatch custom event for real-time updates
+      window.dispatchEvent(new CustomEvent('mysteryClicked'))
+      
       // Add a small delay for better UX
       await new Promise(resolve => setTimeout(resolve, 1000))
       const topic = await getRandomTopic()

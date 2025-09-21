@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { User, AuthContextType } from "@/types"
 import { toast, toastMessages } from "@/lib/toast"
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth()
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true)
     setError(null)
 
@@ -84,6 +84,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error(errorMessage)
       }
       
+      // Store the auth token for API calls
+      if (data.data.token) {
+        localStorage.setItem('auth-token', data.data.token)
+      }
+      
       setUser(data.data.user)
       toast.success(toastMessages.auth.loginSuccess, `Welcome back, ${data.data.user.name}!`)
       router.push('/home')
@@ -95,9 +100,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [router])
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = useCallback(async (name: string, email: string, password: string) => {
     setIsLoading(true)
     setError(null)
 
@@ -144,9 +149,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const updateProfile = async (data: Partial<User>) => {
+  const updateProfile = useCallback(async (data: Partial<User>) => {
     setIsLoading(true)
     setError(null)
 
@@ -179,14 +184,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
       })
+      
+      // Clear auth token from localStorage
+      localStorage.removeItem('auth-token')
       
       setUser(null)
       toast.success(toastMessages.auth.logoutSuccess)
@@ -195,13 +203,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       console.error('Logout error:', error)
       // Still log out the user locally even if the server request fails
+      localStorage.removeItem('auth-token')
       setUser(null)
       toast.error(toastMessages.auth.logoutError)
       router.push('/login')
     }
-  }
+  }, [router])
 
-  const forgotPassword = async (email: string) => {
+  const forgotPassword = useCallback(async (email: string) => {
     setIsLoading(true)
     setError(null)
 
@@ -232,15 +241,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     setError(null)
-  }
+  }, [])
 
-  const isAuthenticated = !!user
+  const isAuthenticated = useMemo(() => !!user, [user])
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     user,
     isLoading,
     isInitializing,
@@ -252,7 +261,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated,
     error,
     clearError,
-  }
+  }), [
+    user,
+    isLoading,
+    isInitializing,
+    login,
+    logout,
+    register,
+    updateProfile,
+    forgotPassword,
+    isAuthenticated,
+    error,
+    clearError,
+  ])
 
   return (
     <AuthContext.Provider value={value}>

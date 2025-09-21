@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Save, X } from 'lucide-react'
-import { DiaryEntry } from '../../page'
+import { DiaryEntry } from '@/types'
 import { loadDiaryEntries, updateDiaryEntry, generateSmartTitle } from '@/lib/utils/diary'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 
@@ -87,7 +87,7 @@ const DiaryEditPage = () => {
         newTitle = title.trim()
       } else {
         // Generate smart title from content, use simple fallback if none found
-        const smartTitle = generateSmartTitle(content, originalEntry?.createdAt)
+        const smartTitle = generateSmartTitle(content, originalEntry?.createdAt ? new Date(originalEntry.createdAt) : undefined)
         newTitle = smartTitle || 'Untitled Entry'
       }
       
@@ -95,7 +95,6 @@ const DiaryEditPage = () => {
       const updatedEntry = updateDiaryEntry(entryId, {
         title: newTitle,
         content: content,
-        preview: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
       })
 
       if (!updatedEntry) {

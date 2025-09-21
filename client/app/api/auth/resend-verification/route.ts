@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { API_CONFIG } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +13,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward the request to the backend
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/auth/resend-verification`, {
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
+    const response = await fetch(`${baseUrl}/auth/resend-verification`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

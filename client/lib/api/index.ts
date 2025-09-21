@@ -27,18 +27,19 @@ export * from './news'
 export * from './quotes'
 export * from './mystery'
 
-// Re-export common types from mock data
-export type { Quote } from '../mock-data/quotes'
+// Re-export common types from API modules
+export type { Quote } from './quotes'
 export type { MysteryTopic } from '../mock-data/mystery-topics'
 export type { MockNewsArticle, MockResearchPaper } from '../mock-data/news-articles'
 
 // Base API configuration
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
+  BASE_URL: '/api/', // Use Next.js API routes instead of direct backend calls
   TIMEOUT: 10000,
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
 }
+
 
 // Common API response types
 export interface ApiResponse<T = any> {
@@ -80,30 +81,58 @@ export class ApiClient {
     
     const config: RequestInit = {
       ...options,
+      credentials: 'include', // Include cookies for authentication
       headers: {
         ...this.defaultHeaders,
         ...options.headers,
       },
     }
 
-    // Add auth token if available
-    const token = this.getAuthToken()
-    if (token) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${token}`,
-      }
-    }
-
     try {
       const response = await fetch(url, config)
-      const data = await response.json()
-
+      
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`
+        let errorCode: string | undefined
+        
+        // Try to parse as JSON for error details
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.message || errorMessage
+          errorCode = errorData.code
+        } catch (parseError) {
+          // If JSON parsing fails, it might be an HTML error page
+          console.warn('Failed to parse error response as JSON:', parseError)
+          try {
+            const textContent = await response.text()
+            if (textContent.includes('<!DOCTYPE') || textContent.includes('<html')) {
+              errorMessage = `Server returned HTML error page (${response.status})`
+            } else {
+              errorMessage = textContent || errorMessage
+            }
+          } catch {
+            // If we can't even read as text, use status text
+            errorMessage = response.statusText || errorMessage
+          }
+        }
+        
         throw new ApiError({
-          message: data.error || 'An error occurred',
+          message: errorMessage,
           status: response.status,
-          code: data.code,
+          ...(errorCode && { code: errorCode }),
+        })
+      }
+
+      // Try to parse successful response as JSON
+      let data
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        console.error('Failed to parse successful response as JSON:', parseError)
+        throw new ApiError({
+          message: 'Server returned invalid JSON response',
+          status: response.status,
         })
       }
 
@@ -113,31 +142,44 @@ export class ApiClient {
         throw error
       }
       
+      // Check if it's a network error or timeout
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('❌ Network error:', error.message)
+        throw new ApiError({
+          message: `Network connection failed`,
+          status: 0,
+        })
+      }
+      
+      console.error('❌ API Error:', error)
       throw new ApiError({
-        message: 'Network error occurred',
+        message: 'An unexpected error occurred',
         status: 0,
       })
     }
   }
 
-  private getAuthToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('auth-token')
-    }
-    return null
-  }
-
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
-    const url = new URL(endpoint, this.baseUrl)
+    // Ensure endpoint doesn't start with / to make it relative to baseUrl
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
+    
+    // Build query string if params exist
+    let queryString = ''
     if (params) {
+      const searchParams = new URLSearchParams()
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value))
+          searchParams.append(key, String(value))
         }
       })
+      queryString = searchParams.toString()
+      if (queryString) {
+        queryString = '?' + queryString
+      }
     }
     
-    return this.request<T>(url.pathname + url.search)
+    // Pass the endpoint with query string to request method
+    return this.request<T>(cleanEndpoint + queryString)
   }
 
   async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {

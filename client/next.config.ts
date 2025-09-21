@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   // Enable experimental features for better performance
   experimental: {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+    webpackMemoryOptimizations: true,
   },
   
   // Turbopack configuration
@@ -17,12 +18,13 @@ const nextConfig: NextConfig = {
     root: "/Users/rishi/studyControl/client",
   },
   
-  // Output for Docker builds
+  // Output configuration for production builds
   output: 'standalone',
   
   // Image optimization
   images: {
     formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 365, // 1 year
     remotePatterns: [
       {
         protocol: "https",
@@ -48,6 +50,35 @@ const nextConfig: NextConfig = {
   // Compiler optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
+  },
+
+  // Performance optimizations
+  poweredByHeader: false,
+  compress: true,
+  
+  // Bundle analysis
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        ...config.optimization.splitChunks,
+        chunks: 'all',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          vendor: {
+            chunks: 'all',
+            name: 'vendor',
+            test: /[\\/]node_modules[\\/]/,
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+          },
+        },
+      }
+    }
+    return config
   },
 
   // Security headers
@@ -78,10 +109,6 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-
-  // Performance optimizations
-  poweredByHeader: false,
-  compress: true,
 }
 
 export default nextConfig;

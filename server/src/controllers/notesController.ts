@@ -5,7 +5,7 @@ import { AuthenticatedRequest } from '@/types';
 // Get all notes for the authenticated user
 export const getNotes = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
     const {
       limit = 50,
       page = 1,
@@ -16,9 +16,9 @@ export const getNotes = async (req: AuthenticatedRequest, res: Response): Promis
       search
     } = req.query;
 
-    const filter: any = { userId };
 
-    // Apply filters
+    // By default, do not filter out archived notes (show all)
+    const filter: any = { userId };
     if (category) filter.category = category;
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : [tags];
@@ -68,7 +68,7 @@ export const getNotes = async (req: AuthenticatedRequest, res: Response): Promis
 export const getNoteById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
 
     const note = await Note.findOne({ _id: id, userId }).lean();
 
@@ -96,7 +96,7 @@ export const getNoteById = async (req: AuthenticatedRequest, res: Response): Pro
 // Create new note
 export const createNote = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
     const { title, content, category, tags, isPinned } = req.body;
 
     const note = new Note({
@@ -128,7 +128,7 @@ export const createNote = async (req: AuthenticatedRequest, res: Response): Prom
 export const updateNote = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
     const updateData = req.body;
 
     const note = await Note.findOneAndUpdate(
@@ -163,7 +163,7 @@ export const updateNote = async (req: AuthenticatedRequest, res: Response): Prom
 export const deleteNote = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
 
     const note = await Note.findOneAndDelete({ _id: id, userId });
 
@@ -192,7 +192,7 @@ export const deleteNote = async (req: AuthenticatedRequest, res: Response): Prom
 export const togglePin = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
 
     const note = await Note.findOne({ _id: id, userId });
 
@@ -226,7 +226,7 @@ export const togglePin = async (req: AuthenticatedRequest, res: Response): Promi
 // Search notes
 export const searchNotes = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
     const { q, category, tags } = req.query;
 
     if (!q) {
@@ -274,7 +274,7 @@ export const searchNotes = async (req: AuthenticatedRequest, res: Response): Pro
 export const getNotesByCategory = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { category } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
 
     const notes = await Note.find({ userId, category })
       .sort({ updatedAt: -1 })
@@ -296,7 +296,7 @@ export const getNotesByCategory = async (req: AuthenticatedRequest, res: Respons
 // Get pinned notes
 export const getPinnedNotes = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
 
     const notes = await Note.find({ userId, isPinned: true })
       .sort({ updatedAt: -1 })
@@ -318,7 +318,7 @@ export const getPinnedNotes = async (req: AuthenticatedRequest, res: Response): 
 // Get all unique tags for user
 export const getNoteTags = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user!._id.toString();
 
     const tags = await Note.distinct('tags', { userId });
 

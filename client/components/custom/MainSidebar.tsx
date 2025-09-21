@@ -1,7 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { useCallback } from "react"
 import { usePathname } from "next/navigation"
+import { useRoutePreloading } from "@/components/LazyRoutes"
 import {
   Sidebar,
   SidebarContent,
@@ -73,6 +75,24 @@ const mainItems = [
 export default function MainSidebar() {
   const { logout } = useAuth()
   const pathname = usePathname()
+  const { preloadRoute } = useRoutePreloading()
+
+  const createHoverHandler = useCallback((url: string) => () => {
+    // Map URL to route names for preloading
+    const routeMap: Record<string, keyof typeof import('@/components/LazyRoutes').preloadRoutes> = {
+      '/home': 'home',
+      '/diary': 'diary',
+      '/notes': 'notes',
+      '/to-do-list': 'todoList',
+      '/focus': 'focus',
+      '/settings': 'settings',
+    }
+    
+    const routeName = routeMap[url]
+    if (routeName) {
+      preloadRoute(routeName)
+    }
+  }, [preloadRoute])
 
   return (
     <Sidebar
@@ -108,7 +128,11 @@ export default function MainSidebar() {
                           : 'hover:bg-accent/50 hover:border-border/50'
                         }`}
                     >
-                      <Link href={item.url} className="flex items-center gap-4 h-full px-3">
+                      <Link 
+                        href={item.url} 
+                        className="flex items-center gap-4 h-full px-3"
+                        onMouseEnter={createHoverHandler(item.url)}
+                      >
                         <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                         <span className="group-data-[collapsible=icon]:hidden font-medium">{item.title}</span>
                       </Link>

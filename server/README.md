@@ -359,18 +359,6 @@ npm run test:watch  # Run tests in watch mode
    npm start
    ```
 
-### Docker Deployment
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY dist/ ./dist/
-EXPOSE 5000
-CMD ["npm", "start"]
-```
-
 ### MongoDB Atlas Setup
 
 1. Create a MongoDB Atlas cluster

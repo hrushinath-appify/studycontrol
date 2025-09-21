@@ -32,9 +32,20 @@ const eslintConfig = [
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-explicit-any": "warn",
       
+      // Performance specific
+      "react/jsx-no-target-blank": "error",
+      "react/jsx-key": "error",
+      "react/self-closing-comp": "warn",
+      "react/jsx-pascal-case": "warn",
+      
       // Next.js specific
       "@next/next/no-img-element": "error",
       "@next/next/no-page-custom-font": "error",
+      "@next/next/no-css-tags": "error",
+      "@next/next/no-sync-scripts": "error",
+      
+      // Bundle size optimizations
+      "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     },
   },
 ];

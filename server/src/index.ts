@@ -1,8 +1,8 @@
 import express from 'express';
-import { config, validateConfig } from '@/config/environment';
-import { database } from '@/config/database';
-import { setupMiddleware, setupErrorHandling } from '@/middleware';
-import routes from '@/routes';
+import { config, validateConfig } from './config/environment';
+import { database } from './config/database';
+import { setupMiddleware, setupErrorHandling } from './middleware';
+import routes from './routes';
 
 // Validate configuration
 validateConfig();

@@ -39,18 +39,31 @@ router.get('/overdue', getOverdueTasks);
 router.get('/category/:category', getTasksByCategory);
 
 // GET /api/v1/tasks/:id - Get task by ID
-router.get('/:id', validateTaskId, getTaskById);
+router.get('/:id', 
+  validateTaskId, 
+  getTaskById
+);
 
 // POST /api/v1/tasks - Create new task
 router.post('/', validateCreateTask, createTask);
 
 // PUT /api/v1/tasks/:id - Update task
-router.put('/:id', validateTaskId, validateUpdateTask, updateTask);
+router.put('/:id', 
+  validateTaskId, 
+  validateUpdateTask, 
+  updateTask
+);
 
 // PATCH /api/v1/tasks/:id/toggle - Toggle task completion
-router.patch('/:id/toggle', validateTaskId, toggleTask);
+router.patch('/:id/toggle', 
+  validateTaskId, 
+  toggleTask
+);
 
 // DELETE /api/v1/tasks/:id - Delete task
-router.delete('/:id', validateTaskId, deleteTask);
+router.delete('/:id', 
+  validateTaskId, 
+  deleteTask
+);
 
 export default router;

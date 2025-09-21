@@ -1,45 +1,61 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import FeatureCard from '@/components/custom/FeatureCard'
 import { useAuth } from '@/components/AuthProvider'
-import { getQuoteOfTheDay, type Quote } from '@/lib/api'
+import { getRandomQuote, type Quote } from '@/lib/api'
 import { 
   BarChart3, 
   Timer, 
   Calendar, 
   BookOpen, 
   CheckSquare, 
-  FileText 
+  FileText,
+  RefreshCw
 } from 'lucide-react'
 
 const HomePage = () => {
-  const { user } = useAuth()
+  const { user, isInitializing } = useAuth()
   const [currentQuote, setCurrentQuote] = useState<Quote | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const loadQuote = async () => {
-      try {
-        setIsLoading(true)
-        const quote = await getQuoteOfTheDay()
-        setCurrentQuote(quote)
-      } catch (error) {
-        console.error('Failed to load quote:', error)
-        // Fallback quote
-        setCurrentQuote({
-          id: 'fallback',
-          quote: "The only way to do great work is to love what you do.",
-          author: "Steve Jobs",
-          category: 'motivation'
-        })
-      } finally {
-        setIsLoading(false)
-      }
+  // Function to load a new quote (can be called manually or on mount)
+  const loadQuote = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      
+      console.log('🔄 Fetching inspirational quote from local collection...')
+      const quote = await getRandomQuote()
+      
+      setCurrentQuote(quote)
+      console.log('✅ Quote loaded:', quote)
+    } catch (error) {
+      console.error('❌ Error loading quote:', error)
+      // Note: With fallback system, this should rarely happen
+      // But if it does, we can still show a basic fallback
+      setCurrentQuote({
+        id: 'fallback-' + Date.now(),
+        quote: "The journey of a thousand miles begins with one step.",
+        author: "Lao Tzu",
+        category: 'motivation',
+        tags: ['journey', 'beginning']
+      })
+    } finally {
+      setIsLoading(false)
     }
-
-    loadQuote()
   }, [])
+
+  useEffect(() => {
+    // Load quote immediately when component mounts (regardless of auth state for quotes)
+    loadQuote()
+  }, [loadQuote])
+
+  // Also refresh quote when user logs in (but don't wait for auth to show quotes)
+  useEffect(() => {
+    if (!isInitializing && user && !currentQuote) {
+      loadQuote()
+    }
+  }, [isInitializing, user, currentQuote, loadQuote])
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-full">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -105,9 +121,17 @@ const HomePage = () => {
         </div>
         {/* Motivational Quote Section */}
         <div className="bg-gradient-to-r from-blue-50/80 to-purple-50/80 dark:from-blue-950/30 dark:to-purple-950/30 rounded-2xl p-6 border border-blue-200/50 dark:border-blue-800/30 backdrop-blur-sm">
-          <div className="text-center space-y-3">
-            <div className="flex justify-center">
+          <div className="text-center space-y-4">
+            <div className="flex justify-center items-center gap-3">
               <span className="text-4xl">💡</span>
+              <button
+                onClick={loadQuote}
+                disabled={isLoading}
+                className="p-2 rounded-full bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Get new inspirational quote from curated collection"
+              >
+                <RefreshCw className={`w-4 h-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
             </div>
             {isLoading ? (
               <div className="animate-pulse space-y-3">
@@ -122,6 +146,19 @@ const HomePage = () => {
                 <cite className="text-sm text-muted-foreground font-semibold">
                   — {currentQuote.author}
                 </cite>
+                {/* Show quote tags if available */}
+                {currentQuote.tags && currentQuote.tags.length > 0 && (
+                  <div className="flex justify-center flex-wrap gap-2 mt-2">
+                    {currentQuote.tags.slice(0, 3).map((tag, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </>
             ) : (
               <p className="text-muted-foreground">Loading inspiration...</p>

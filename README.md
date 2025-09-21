@@ -23,8 +23,9 @@ A comprehensive study management platform built with Next.js, Node.js, Express, 
    cp server/env.example server/.env
    cp client/.env.example client/.env.local
    
-   # Start MongoDB
-   docker-compose up -d mongo
+   # Start MongoDB (install locally or use MongoDB Atlas)
+   # For local installation: brew install mongodb/brew/mongodb-community
+   # mongod --dbpath /usr/local/var/mongodb
    
    # Start development servers
    cd server && npm run dev &
@@ -81,8 +82,6 @@ studyControl/
 │   │   ├── middleware/   # Custom middleware
 │   │   └── types/        # TypeScript type definitions
 │   └── uploads/          # File upload storage
-├── docker-compose.yml    # Container orchestration
-├── nginx.conf           # Reverse proxy configuration
 └── deployment scripts   # Automated setup scripts
 ```
 
@@ -119,16 +118,6 @@ NEXT_PUBLIC_APP_NAME=StudyControl
 
 ## 🚀 Production Deployment
 
-### Docker Deployment
-```bash
-# Build and deploy
-./deploy-prod.sh
-
-# Or manually:
-docker-compose build
-docker-compose up -d
-```
-
 ### Manual Deployment
 ```bash
 # Build frontend
@@ -141,6 +130,19 @@ cd server
 npm run build
 npm start
 ```
+
+### Server Deployment Options
+1. **Traditional VPS/Server**
+   - Install Node.js and MongoDB
+   - Clone repository and install dependencies
+   - Configure environment variables
+   - Use PM2 for process management
+   - Set up nginx for reverse proxy
+
+2. **Cloud Platforms**
+   - Deploy frontend to Vercel/Netlify
+   - Deploy backend to Railway/Render/Heroku
+   - Use MongoDB Atlas for database
 
 ## 📊 API Endpoints
 
@@ -208,18 +210,6 @@ npm run type-check   # TypeScript type checking
 
 # Database
 npm run seed         # Seed database with sample data
-```
-
-### Docker Commands
-```bash
-# Development with Docker
-docker-compose up -d mongo    # Start only MongoDB
-docker-compose up -d          # Start all services
-docker-compose logs -f        # View logs
-docker-compose down           # Stop all services
-
-# Production
-docker-compose -f docker-compose.yml --env-file server/.env.production up -d
 ```
 
 ## 📝 Features

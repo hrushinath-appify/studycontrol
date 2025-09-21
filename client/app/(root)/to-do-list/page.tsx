@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { 
@@ -22,27 +22,11 @@ import {
   X,
   Check
 } from 'lucide-react'
+import { TasksApi, type Task as ApiTask, type TaskStats as ApiTaskStats } from '@/lib/api/tasks'
 
-interface Task {
-  id: string
-  title: string
-  description?: string
-  completed: boolean
-  priority: 'low' | 'medium' | 'high'
-  category: 'personal' | 'work' | 'study' | 'health' | 'other'
-  createdAt: Date
-  completedAt?: Date
-  dueDate?: Date
-}
-
-interface TaskStats {
-  total: number
-  completed: number
-  pending: number
-  completionRate: number
-  todayCompleted: number
-  weekCompleted: number
-}
+// Use the API interface instead of local interface
+type Task = ApiTask
+type TaskStats = ApiTaskStats
 
 const ToDoListPage = () => {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -59,99 +43,157 @@ const ToDoListPage = () => {
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<TaskStats | null>(null)
 
-  // Load tasks from localStorage
+  // Callback handlers for form inputs
+  const handleShowAddForm = useCallback(() => setShowAddForm(true), [])
+  const handleHideAddForm = useCallback(() => setShowAddForm(false), [])
+  const handleNewTaskTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewTaskTitle(e.target.value)
+  }, [])
+  const handleNewTaskDescriptionChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewTaskDescription(e.target.value)
+  }, [])
+  const handleNewTaskDueDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewTaskDueDate(e.target.value)
+  }, [])
+  const handleNewTaskPriorityChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setNewTaskPriority(e.target.value as Task['priority'])
+  }, [])
+  const handleNewTaskCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setNewTaskCategory(e.target.value as Task['category'])
+  }, [])
+  const handleSearchQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value)
+  }, [])
+  const handleFilterCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFilterCategory(e.target.value as 'all' | Task['category'])
+  }, [])
+  const handleFilterPriorityChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFilterPriority(e.target.value as 'all' | Task['priority'])
+  }, [])
+  const handleFilterStatusChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFilterStatus(e.target.value as 'all' | 'completed' | 'pending')
+  }, [])
+  const handleEditTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditTitle(e.target.value)
+  }, [])
+  const handleEditDescriptionChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditDescription(e.target.value)
+  }, [])
+
+  // Load tasks and stats from database
+  const loadTasksAndStats = async () => {
+    try {
+      setLoading(true)
+      const [tasksData, statsData] = await Promise.all([
+        TasksApi.getTasks(),
+        TasksApi.getStats()
+      ])
+      
+      setTasks(tasksData)
+      setStats(statsData)
+    } catch (error) {
+      console.error('Failed to load tasks:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    const savedTasks = localStorage.getItem('todoTasks')
-    if (savedTasks) {
-      const parsed = JSON.parse(savedTasks)
-      const tasksWithDates = parsed.map((task: any) => ({
-        ...task,
-        createdAt: new Date(task.createdAt),
-        completedAt: task.completedAt ? new Date(task.completedAt) : undefined,
-        dueDate: task.dueDate ? new Date(task.dueDate) : undefined
-      }))
-      setTasks(tasksWithDates)
+    loadTasksAndStats()
+  }, [])
+
+  const addTask = useCallback(async () => {
+    if (!newTaskTitle.trim()) return
+
+    try {
+      const newTask = await TasksApi.createTask({
+        title: newTaskTitle.trim(),
+        description: newTaskDescription.trim() || '',
+        priority: newTaskPriority,
+        category: newTaskCategory,
+        dueDate: newTaskDueDate || ''
+      })
+
+      setTasks(prev => [newTask, ...prev])
+      
+      // Reload stats
+      const updatedStats = await TasksApi.getStats()
+      setStats(updatedStats)
+      
+      // Reset form
+      setNewTaskTitle('')
+      setNewTaskDescription('')
+      setNewTaskPriority('medium')
+      setNewTaskCategory('personal')
+      setNewTaskDueDate('')
+      setShowAddForm(false)
+    } catch (error) {
+      console.error('Failed to create task:', error)
+    }
+  }, [newTaskTitle, newTaskDescription, newTaskPriority, newTaskCategory, newTaskDueDate])
+
+  const toggleTask = useCallback(async (id: string) => {
+    try {
+      const updatedTask = await TasksApi.toggleTask(id)
+      setTasks(prev => prev.map(task => 
+        task.id === id ? updatedTask : task
+      ))
+      
+      // Reload stats
+      const updatedStats = await TasksApi.getStats()
+      setStats(updatedStats)
+    } catch (error) {
+      console.error('Failed to toggle task:', error)
     }
   }, [])
 
-  // Save tasks to localStorage
-  useEffect(() => {
-    localStorage.setItem('todoTasks', JSON.stringify(tasks))
-  }, [tasks])
-
-  const addTask = () => {
-    if (!newTaskTitle.trim()) return
-
-    const newTask: Task = {
-      id: Date.now().toString(),
-      title: newTaskTitle.trim(),
-      completed: false,
-      priority: newTaskPriority,
-      category: newTaskCategory,
-      createdAt: new Date(),
-      ...(newTaskDescription.trim() && { description: newTaskDescription.trim() }),
-      ...(newTaskDueDate && { dueDate: new Date(newTaskDueDate) })
+  const deleteTask = useCallback(async (id: string) => {
+    try {
+      await TasksApi.deleteTask(id)
+      setTasks(prev => prev.filter(task => task.id !== id))
+      
+      // Reload stats
+      const updatedStats = await TasksApi.getStats()
+      setStats(updatedStats)
+    } catch (error) {
+      console.error('Failed to delete task:', error)
     }
+  }, [])
 
-    setTasks(prev => [newTask, ...prev])
-    
-    // Reset form
-    setNewTaskTitle('')
-    setNewTaskDescription('')
-    setNewTaskPriority('medium')
-    setNewTaskCategory('personal')
-    setNewTaskDueDate('')
-    setShowAddForm(false)
-  }
-
-  const toggleTask = (id: string) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === id) {
-        const baseTask = {
-          ...task,
-          completed: !task.completed
-        }
-        return !task.completed 
-          ? { ...baseTask, completedAt: new Date() }
-          : baseTask
-      }
-      return task
-    }))
-  }
-
-  const deleteTask = (id: string) => {
-    setTasks(prev => prev.filter(task => task.id !== id))
-  }
-
-  const startEdit = (task: Task) => {
+  const startEdit = useCallback((task: Task) => {
     setEditingTask(task.id)
     setEditTitle(task.title)
     setEditDescription(task.description || '')
-  }
+  }, [])
 
-  const saveEdit = (id: string) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === id) {
-        const trimmedDescription = editDescription.trim()
-        return { 
-          ...task, 
-          title: editTitle.trim(), 
-          description: trimmedDescription || undefined 
-        } as Task
-      }
-      return task
-    }))
+  const saveEdit = useCallback(async (id: string) => {
+    try {
+      const updatedTask = await TasksApi.updateTask({
+        id,
+        title: editTitle.trim(),
+        description: editDescription.trim() || ''
+      })
+      
+      setTasks(prev => prev.map(task => 
+        task.id === id ? updatedTask : task
+      ))
+      
+      setEditingTask(null)
+      setEditTitle('')
+      setEditDescription('')
+    } catch (error) {
+      console.error('Failed to update task:', error)
+    }
+  }, [editTitle, editDescription])
+
+  const cancelEdit = useCallback(() => {
     setEditingTask(null)
     setEditTitle('')
     setEditDescription('')
-  }
-
-  const cancelEdit = () => {
-    setEditingTask(null)
-    setEditTitle('')
-    setEditDescription('')
-  }
+  }, [])
 
   // Filter and search tasks
   const filteredTasks = tasks.filter(task => {
@@ -166,22 +208,15 @@ const ToDoListPage = () => {
     return matchesSearch && matchesCategory && matchesPriority && matchesStatus
   })
 
-  // Calculate statistics
-  const stats: TaskStats = {
-    total: tasks.length,
-    completed: tasks.filter(t => t.completed).length,
-    pending: tasks.filter(t => !t.completed).length,
-    completionRate: tasks.length > 0 ? (tasks.filter(t => t.completed).length / tasks.length) * 100 : 0,
-    todayCompleted: tasks.filter(t => 
-      t.completed && t.completedAt && 
-      t.completedAt.toDateString() === new Date().toDateString()
-    ).length,
-    weekCompleted: tasks.filter(t => {
-      if (!t.completed || !t.completedAt) return false
-      const weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 7)
-      return t.completedAt >= weekAgo
-    }).length
+  // Use stats from API
+  const currentStats = stats || {
+    total: 0,
+    completed: 0,
+    pending: 0,
+    completionRate: 0,
+    todayCompleted: 0,
+    weekCompleted: 0,
+    overdue: 0
   }
 
   const getPriorityColor = (priority: Task['priority']) => {
@@ -212,6 +247,23 @@ const ToDoListPage = () => {
     }
   }
 
+  // Click handlers
+  const createToggleTaskHandler = useCallback((taskId: string) => () => {
+    toggleTask(taskId)
+  }, [toggleTask])
+  
+  const createSaveEditHandler = useCallback((taskId: string) => () => {
+    saveEdit(taskId)
+  }, [saveEdit])
+  
+  const createStartEditHandler = useCallback((task: Task) => () => {
+    startEdit(task)
+  }, [startEdit])
+  
+  const createDeleteTaskHandler = useCallback((taskId: string) => () => {
+    deleteTask(taskId)
+  }, [deleteTask])
+
   return (
     <div className="min-h-screen p-4 md:p-6 space-y-6 md:space-y-8">
       {/* Header Section */}
@@ -239,7 +291,7 @@ const ToDoListPage = () => {
               <Target className="w-6 h-6 md:w-8 md:h-8 text-primary group-hover:scale-110 transition-transform duration-200" />
             </div>
             <div className="text-2xl md:text-3xl font-bold text-primary mb-2">
-              {stats.total}
+              {currentStats.total}
             </div>
             <div className="text-muted-foreground text-sm">
               Total Tasks
@@ -251,7 +303,7 @@ const ToDoListPage = () => {
               <CheckCircle2 className="w-6 h-6 md:w-8 md:h-8 text-green-500 group-hover:scale-110 transition-transform duration-200" />
             </div>
             <div className="text-2xl md:text-3xl font-bold text-green-500 mb-2">
-              {stats.completed}
+              {currentStats.completed}
             </div>
             <div className="text-muted-foreground text-sm">
               Completed
@@ -263,7 +315,7 @@ const ToDoListPage = () => {
               <Clock className="w-6 h-6 md:w-8 md:h-8 text-orange-500 group-hover:scale-110 transition-transform duration-200" />
             </div>
             <div className="text-2xl md:text-3xl font-bold text-orange-500 mb-2">
-              {stats.pending}
+              {currentStats.pending}
             </div>
             <div className="text-muted-foreground text-sm">
               Pending
@@ -275,7 +327,7 @@ const ToDoListPage = () => {
               <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
             </div>
             <div className="text-2xl md:text-3xl font-bold text-blue-500 mb-2">
-              {Math.round(stats.completionRate)}%
+              {Math.round(currentStats.completionRate)}%
             </div>
             <div className="text-muted-foreground text-sm">
               Completion Rate
@@ -289,7 +341,7 @@ const ToDoListPage = () => {
         <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg">
           {!showAddForm ? (
             <Button
-              onClick={() => setShowAddForm(true)}
+              onClick={handleShowAddForm}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-full py-3 font-medium transition-all duration-200"
             >
               <Plus className="w-5 h-5 mr-2" />
@@ -302,7 +354,7 @@ const ToDoListPage = () => {
                   <label className="text-sm font-medium text-foreground">Task Title</label>
                   <Input
                     value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    onChange={handleNewTaskTitleChange}
                     placeholder="Enter task title..."
                     className="bg-background/50"
                   />
@@ -312,7 +364,7 @@ const ToDoListPage = () => {
                   <Input
                     type="date"
                     value={newTaskDueDate}
-                    onChange={(e) => setNewTaskDueDate(e.target.value)}
+                    onChange={handleNewTaskDueDateChange}
                     className="bg-background/50"
                   />
                 </div>
@@ -322,7 +374,7 @@ const ToDoListPage = () => {
                 <label className="text-sm font-medium text-foreground">Description (Optional)</label>
                 <textarea
                   value={newTaskDescription}
-                  onChange={(e) => setNewTaskDescription(e.target.value)}
+                  onChange={handleNewTaskDescriptionChange}
                   placeholder="Add task description..."
                   className="w-full min-h-[80px] bg-background/50 border border-border rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
@@ -333,7 +385,7 @@ const ToDoListPage = () => {
                   <label className="text-sm font-medium text-foreground">Priority</label>
                   <select
                     value={newTaskPriority}
-                    onChange={(e) => setNewTaskPriority(e.target.value as Task['priority'])}
+                    onChange={handleNewTaskPriorityChange}
                     className="w-full bg-background/50 border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
                     <option value="low">Low Priority</option>
@@ -346,7 +398,7 @@ const ToDoListPage = () => {
                   <label className="text-sm font-medium text-foreground">Category</label>
                   <select
                     value={newTaskCategory}
-                    onChange={(e) => setNewTaskCategory(e.target.value as Task['category'])}
+                    onChange={handleNewTaskCategoryChange}
                     className="w-full bg-background/50 border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
                     <option value="personal">Personal</option>
@@ -368,7 +420,7 @@ const ToDoListPage = () => {
                   Add Task
                 </Button>
                 <Button
-                  onClick={() => setShowAddForm(false)}
+                  onClick={handleHideAddForm}
                   variant="outline"
                   className="px-6 py-2 rounded-full"
                 >
@@ -389,7 +441,7 @@ const ToDoListPage = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchQueryChange}
                 placeholder="Search tasks..."
                 className="pl-10 bg-background/50"
               />
@@ -397,7 +449,7 @@ const ToDoListPage = () => {
             
             <select
               value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value as any)}
+              onChange={handleFilterCategoryChange}
               className="bg-background/50 border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="all">All Categories</option>
@@ -410,7 +462,7 @@ const ToDoListPage = () => {
             
             <select
               value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value as any)}
+              onChange={handleFilterPriorityChange}
               className="bg-background/50 border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="all">All Priorities</option>
@@ -421,7 +473,7 @@ const ToDoListPage = () => {
             
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
+              onChange={handleFilterStatusChange}
               className="bg-background/50 border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="all">All Tasks</option>
@@ -435,8 +487,12 @@ const ToDoListPage = () => {
       {/* Tasks List */}
       <div className="max-w-6xl mx-auto">
         <div className="space-y-3 md:space-y-4">
-          {filteredTasks.length === 0 ? (
-            <div className="text-center py-12">
+          {loading ? (
+            <div key="loading-state" className="text-center py-8">
+              <div className="text-muted-foreground">Loading tasks...</div>
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div key="empty-state" className="text-center py-12">
               <div className="text-muted-foreground/30 mb-4">
                 <CheckCircle2 className="h-16 w-16 mx-auto" />
               </div>
@@ -448,9 +504,9 @@ const ToDoListPage = () => {
               </p>
             </div>
           ) : (
-            filteredTasks.map((task) => (
+            filteredTasks.map((task, index) => (
               <div
-                key={task.id}
+                key={task.id || `task-${index}`}
                 className={`bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 md:p-6 hover:bg-card/50 transition-all duration-300 ${
                   task.completed ? 'opacity-75' : ''
                 }`}
@@ -458,7 +514,7 @@ const ToDoListPage = () => {
                 <div className="flex items-start gap-4">
                   {/* Completion Toggle */}
                   <button
-                    onClick={() => toggleTask(task.id)}
+                    onClick={createToggleTaskHandler(task.id)}
                     className="mt-1 text-primary hover:scale-110 transition-transform duration-200"
                   >
                     {task.completed ? (
@@ -474,18 +530,18 @@ const ToDoListPage = () => {
                       <div className="space-y-3">
                         <Input
                           value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
+                          onChange={handleEditTitleChange}
                           className="bg-background/50"
                         />
                         <textarea
                           value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
+                          onChange={handleEditDescriptionChange}
                           placeholder="Task description..."
                           className="w-full min-h-[60px] bg-background/50 border border-border rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
                         />
                         <div className="flex gap-2">
                           <Button
-                            onClick={() => saveEdit(task.id)}
+                            onClick={createSaveEditHandler(task.id)}
                             size="sm"
                             className="bg-primary hover:bg-primary/90"
                           >
@@ -527,14 +583,14 @@ const ToDoListPage = () => {
                           {task.dueDate && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-blue-500 bg-blue-500/10">
                               <Calendar className="w-3 h-3" />
-                              {task.dueDate.toLocaleDateString()}
+                              {new Date(task.dueDate).toLocaleDateString()}
                             </span>
                           )}
                         </div>
                         
                         <div className="text-xs text-muted-foreground">
-                          Created {task.createdAt.toLocaleDateString()}
-                          {task.completedAt && ` • Completed ${task.completedAt.toLocaleDateString()}`}
+                          Created {new Date(task.createdAt).toLocaleDateString()}
+                          {task.completedAt && ` • Completed ${new Date(task.completedAt).toLocaleDateString()}`}
                         </div>
                       </div>
                     )}
@@ -544,7 +600,7 @@ const ToDoListPage = () => {
                   {editingTask !== task.id && (
                     <div className="flex items-center gap-2">
                       <Button
-                        onClick={() => startEdit(task)}
+                        onClick={createStartEditHandler(task)}
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground hover:text-foreground"
@@ -552,7 +608,7 @@ const ToDoListPage = () => {
                         <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button
-                        onClick={() => deleteTask(task.id)}
+                        onClick={createDeleteTaskHandler(task.id)}
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground hover:text-red-500"

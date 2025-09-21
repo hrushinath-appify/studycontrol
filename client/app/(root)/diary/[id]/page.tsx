@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import DiaryDetailView from '@/components/custom/DiaryDetailView'
-import { DiaryEntry } from '../page'
+import { DiaryEntry } from '@/types'
 import { loadDiaryEntries, deleteDiaryEntry } from '@/lib/utils/diary'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 
@@ -43,40 +43,40 @@ The key lessons from today:
 5. End-of-day review consolidates learning
 
 I'm grateful for this productive day and excited to continue this journey of learning and growth.`,
-    preview: 'Reflections on today\'s study session and personal growth - A detailed analysis',
-    createdAt: new Date('2024-07-26')
+    createdAt: '2024-07-26T10:30:00.000Z',
+    updatedAt: '2024-07-26T10:30:00.000Z'
   },
   {
     id: '2',
     date: 'July 25, 2024',
     title: 'Thoughts on a new concept learned in physics',
     content: 'Learning about quantum mechanics was fascinating today. The wave-particle duality concept really opened my mind to how different the quantum world is from our everyday experience. I spent hours working through the double-slit experiment and understanding how particles can exist in superposition until observed.',
-    preview: 'Thoughts on a new concept learned in physics',
-    createdAt: new Date('2024-07-25')
+    createdAt: '2024-07-25T14:20:00.000Z',
+    updatedAt: '2024-07-25T14:20:00.000Z'
   },
   {
     id: '3',
     date: 'July 24, 2024',
     title: 'A summary of the day\'s events and feelings',
     content: 'What an interesting day it was. I had a great conversation with my professor about career paths in research, and it really got me thinking about my future goals. The afternoon was spent working on my research project, and I made some significant progress on the data analysis.',
-    preview: 'A summary of the day\'s events and feelings',
-    createdAt: new Date('2024-07-24')
+    createdAt: '2024-07-24T09:15:00.000Z',
+    updatedAt: '2024-07-24T09:15:00.000Z'
   },
   {
     id: '4',
     date: 'July 23, 2024',
     title: 'Notes on a challenging math problem and its solution',
     content: 'Today I tackled a difficult calculus problem that had been bothering me for days. After several hours of work, I finally found the solution using integration by parts combined with a clever substitution. The feeling of finally understanding it was incredible.',
-    preview: 'Notes on a challenging math problem and its solution',
-    createdAt: new Date('2024-07-23')
+    createdAt: '2024-07-23T16:45:00.000Z',
+    updatedAt: '2024-07-23T16:45:00.000Z'
   },
   {
     id: '5',
     date: 'July 22, 2024',
     title: 'Reflections on a successful presentation in class',
     content: 'I presented my research today and it went better than expected. The feedback from my classmates was really encouraging, and I feel more confident about my presentation skills. I\'m looking forward to the next opportunity to share my work.',
-    preview: 'Reflections on a successful presentation in class',
-    createdAt: new Date('2024-07-22')
+    createdAt: '2024-07-22T11:00:00.000Z',
+    updatedAt: '2024-07-22T11:00:00.000Z'
   }
 ]
 
@@ -219,7 +219,7 @@ const DiaryDetailPage = () => {
     if (navigator.share) {
       navigator.share({
         title: currentEntry.title,
-        text: currentEntry.preview,
+        text: currentEntry.content.substring(0, 100) + '...',
         url: window.location.href
       })
     } else {

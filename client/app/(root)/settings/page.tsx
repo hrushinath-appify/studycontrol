@@ -14,7 +14,6 @@ import {
   Trophy, 
   Flame, 
   Bell, 
-  Smartphone, 
   HelpCircle, 
   MessageSquare, 
   FileText, 
@@ -22,14 +21,18 @@ import {
   ChevronRight,
   Flower2,
   Sparkles,
-  Award,
-  Target
+  Target,
+  Eye
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface UserPreferences {
   studyReminders: boolean
-  appUpdates: boolean
+}
+
+interface UserStats {
+  diaryHighestStreak: number
+  mysteryClicks: number
 }
 
 const SettingsPage = () => {
@@ -46,38 +49,60 @@ const SettingsPage = () => {
   
   // User preferences state
   const [preferences, setPreferences] = useState<UserPreferences>({
-    studyReminders: true,
-    appUpdates: false
+    studyReminders: true
   })
 
-  // Mock achievements data
-  const [achievements] = useState([
-    {
-      id: 'knowledge-badges',
-      icon: Award,
-      title: 'Knowledge Badges',
-      description: 'Earned for mastering various subjects.',
-      count: 12,
-      color: 'text-yellow-500'
-    },
-    {
-      id: 'study-streaks',
-      icon: Flame,
-      title: 'Study Streaks',
-      description: 'Maintain a consistent study routine.',
-      count: 7,
-      color: 'text-orange-500'
-    }
-  ])
+  // User stats state
+  const [userStats, setUserStats] = useState<UserStats>({
+    diaryHighestStreak: 0,
+    mysteryClicks: 0
+  })
 
   useEffect(() => {
     setMounted(true)
     // Load preferences from localStorage
     const savedPreferences = localStorage.getItem('userPreferences')
     if (savedPreferences) {
-      setPreferences(JSON.parse(savedPreferences))
+      const parsed = JSON.parse(savedPreferences)
+      // Remove appUpdates if it exists in saved preferences
+      if (parsed.appUpdates !== undefined) {
+        delete parsed.appUpdates
+      }
+      setPreferences(parsed)
     }
+    
+    // Load user stats
+    loadUserStats()
   }, [])
+
+  const loadUserStats = () => {
+    // Load diary streak data
+    const diaryStreakData = localStorage.getItem('diaryStreakData')
+    if (diaryStreakData) {
+      try {
+        const streakData = JSON.parse(diaryStreakData)
+        setUserStats(prev => ({
+          ...prev,
+          diaryHighestStreak: streakData.longestStreak || 0
+        }))
+      } catch (error) {
+        console.error('Error loading diary streak data:', error)
+      }
+    }
+    
+    // Load mystery clicks count
+    const mysteryClicks = localStorage.getItem('mysteryClicks')
+    if (mysteryClicks) {
+      try {
+        setUserStats(prev => ({
+          ...prev,
+          mysteryClicks: parseInt(mysteryClicks) || 0
+        }))
+      } catch (error) {
+        console.error('Error loading mystery clicks:', error)
+      }
+    }
+  }
 
   useEffect(() => {
     if (user) {
@@ -89,11 +114,33 @@ const SettingsPage = () => {
     }
   }, [user])
 
+  // Listen for diary updates and mystery clicks
+  useEffect(() => {
+    const handleDiaryUpdate = () => {
+      loadUserStats()
+    }
+
+    const handleMysteryClick = () => {
+      loadUserStats()
+    }
+
+    // Listen for diary entries updates
+    window.addEventListener('diaryEntriesUpdated', handleDiaryUpdate)
+    
+    // Listen for mystery clicks (custom event)
+    window.addEventListener('mysteryClicked', handleMysteryClick)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('diaryEntriesUpdated', handleDiaryUpdate)
+      window.removeEventListener('mysteryClicked', handleMysteryClick)
+    }
+  }, [])
+
   const handleProfileUpdate = async () => {
     try {
       await updateProfile({
-        name: profileData.name,
-        email: profileData.email
+        name: profileData.name
       })
       // Show success message (you could add a toast here)
     } catch (error) {
@@ -156,9 +203,10 @@ const SettingsPage = () => {
                   id="email"
                   type="email"
                   value={profileData.email}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                  className="bg-background border-border"
+                  disabled
+                  className="bg-muted border-border text-muted-foreground cursor-not-allowed"
                 />
+                <p className="text-xs text-muted-foreground">Email cannot be changed for security reasons</p>
               </div>
             </div>
             <div className="space-y-2">
@@ -229,30 +277,42 @@ const SettingsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Achievements Section */}
+        {/* User Stats Section */}
         <Card className="mb-8 content-overlay">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
               <Trophy className="h-5 w-5" />
-              Achievements
+              Your Statistics
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {achievements.map((achievement) => (
-              <div key={achievement.id} className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className={cn("p-3 rounded-full bg-background shadow-sm", achievement.color)}>
-                  <achievement.icon className="h-6 w-6" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-foreground">{achievement.title}</h4>
-                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">{achievement.count}</div>
-                  <div className="text-xs text-muted-foreground">earned</div>
-                </div>
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+              <div className="p-3 rounded-full bg-background shadow-sm text-orange-500">
+                <Flame className="h-6 w-6" />
               </div>
-            ))}
+              <div className="flex-1">
+                <h4 className="font-semibold text-foreground">Diary Highest Streak</h4>
+                <p className="text-sm text-muted-foreground">Your longest consecutive diary entry streak.</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-primary">{userStats.diaryHighestStreak}</div>
+                <div className="text-xs text-muted-foreground">days</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+              <div className="p-3 rounded-full bg-background shadow-sm text-purple-500">
+                <Eye className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-foreground">Mystery Explorations</h4>
+                <p className="text-sm text-muted-foreground">Number of mystery topics you&apos;ve discovered.</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-primary">{userStats.mysteryClicks}</div>
+                <div className="text-xs text-muted-foreground">explorations</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -276,20 +336,6 @@ const SettingsPage = () => {
               <Switch
                 checked={preferences.studyReminders}
                 onCheckedChange={(checked: boolean) => handlePreferenceChange('studyReminders', checked)}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <Smartphone className="h-5 w-5 text-primary" />
-                <div>
-                  <h4 className="font-medium text-foreground">App Updates</h4>
-                  <p className="text-sm text-muted-foreground">Get updates on new features.</p>
-                </div>
-              </div>
-              <Switch
-                checked={preferences.appUpdates}
-                onCheckedChange={(checked: boolean) => handlePreferenceChange('appUpdates', checked)}
               />
             </div>
           </CardContent>

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { createErrorResponse, handleMongooseError } from '@/utils/response';
-import { config } from '@/config/environment';
+import { createErrorResponse, handleMongooseError } from '../utils/response';
+import { config } from '../config/environment';
 
 // Global error handler middleware
 export const errorHandler = (

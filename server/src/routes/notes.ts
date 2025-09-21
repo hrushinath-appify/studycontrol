@@ -39,18 +39,31 @@ router.get('/tags', getNoteTags);
 router.get('/category/:category', getNotesByCategory);
 
 // GET /api/v1/notes/:id - Get note by ID
-router.get('/:id', validateNoteId, getNoteById);
+router.get('/:id', 
+  validateNoteId, 
+  getNoteById
+);
 
 // POST /api/v1/notes - Create new note
 router.post('/', validateCreateNote, createNote);
 
 // PUT /api/v1/notes/:id - Update note
-router.put('/:id', validateNoteId, validateUpdateNote, updateNote);
+router.put('/:id', 
+  validateNoteId, 
+  validateUpdateNote, 
+  updateNote
+);
 
 // PATCH /api/v1/notes/:id/pin - Toggle note pin status
-router.patch('/:id/pin', validateNoteId, togglePin);
+router.patch('/:id/pin', 
+  validateNoteId, 
+  togglePin
+);
 
 // DELETE /api/v1/notes/:id - Delete note
-router.delete('/:id', validateNoteId, deleteNote);
+router.delete('/:id', 
+  validateNoteId, 
+  deleteNote
+);
 
 export default router;

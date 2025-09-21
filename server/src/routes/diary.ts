@@ -9,15 +9,15 @@ import {
   searchDiaryEntries,
   getEntriesByMood,
   getEntriesByTag
-} from '@/controllers/diaryController';
-import { authenticate } from '@/middleware/auth';
+} from '../controllers/diaryController';
+import { authenticate } from '../middleware/auth';
 import {
   validateCreateDiaryEntry,
   validateUpdateDiaryEntry,
   validateMongoId,
   validatePagination,
   validateSearch
-} from '@/middleware/validation';
+} from '../middleware/validation';
 
 const router = Router();
 
@@ -31,8 +31,19 @@ router.get('/stats', getDiaryStats);
 router.get('/search', validateSearch, validatePagination, searchDiaryEntries);
 router.get('/mood/:mood', validatePagination, getEntriesByMood);
 router.get('/tag/:tag', validatePagination, getEntriesByTag);
-router.get('/:id', validateMongoId, getDiaryEntry);
-router.put('/:id', validateUpdateDiaryEntry, updateDiaryEntry);
-router.delete('/:id', validateMongoId, deleteDiaryEntry);
+
+// Routes with ID validation
+router.get('/:id', 
+  validateMongoId, 
+  getDiaryEntry
+);
+router.put('/:id', 
+  validateUpdateDiaryEntry, 
+  updateDiaryEntry
+);
+router.delete('/:id', 
+  validateMongoId, 
+  deleteDiaryEntry
+);
 
 export default router;

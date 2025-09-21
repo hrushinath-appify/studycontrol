@@ -134,7 +134,3 @@ public/uploads/
 
 # PM2
 .pm2/
-
-# Docker
-Dockerfile.prod
-docker-compose.prod.yml

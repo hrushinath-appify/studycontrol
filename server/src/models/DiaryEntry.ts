@@ -1,5 +1,5 @@
 import mongoose, { Schema, model } from 'mongoose';
-import { IDiaryEntry } from '@/types';
+import { IDiaryEntry } from '../types';
 
 const diaryEntrySchema = new Schema<IDiaryEntry>(
   {

@@ -21,7 +21,7 @@ export default function VerifyEmailPage() {
   const emailParam = searchParams.get('email');
 
   // Handler functions to avoid arrow functions in JSX
-  const handleBackToRegister = useCallback(() => router.push('/register'), [router]);
+  const handleBackToRegister = useCallback(() => router.push('/signup'), [router]);
   const handleContinueToLogin = useCallback(() => router.push('/login'), [router]);
   const handleBackToLogin = useCallback(() => router.push('/login'), [router]);
 

@@ -1,4 +1,4 @@
-import { DiaryEntry } from '@/app/(root)/diary/page'
+import { DiaryEntry } from '@/types'
 import { diaryCache, CACHE_KEYS } from './cache'
 
 export interface StreakData {
@@ -19,12 +19,12 @@ export const calculateStreak = (entries: DiaryEntry[]): StreakData => {
   }
 
   // Sort entries by date (most recent first)
-  const sortedEntries = entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  const sortedEntries = entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   
   // Group entries by date (in case multiple entries per day)
   const entriesByDate = new Map<string, DiaryEntry[]>()
   sortedEntries.forEach(entry => {
-    const dateKey = entry.createdAt.toISOString().split('T')[0]!
+    const dateKey = new Date(entry.createdAt).toISOString().split('T')[0]!
     if (!entriesByDate.has(dateKey)) {
       entriesByDate.set(dateKey, [])
     }

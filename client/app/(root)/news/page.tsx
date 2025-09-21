@@ -20,19 +20,17 @@ import {
 } from 'lucide-react'
 import { 
   getArticles, 
-  getPapers, 
-  type MockNewsArticle,
-  type MockResearchPaper 
+  type MockNewsArticle
 } from '@/lib/api'
 
 const NewsPage = () => {
   const [articles, setArticles] = useState<MockNewsArticle[]>([])
-  const [researchPapers, setResearchPapers] = useState<MockResearchPaper[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'news' | 'research'>('all')
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'general' | 'medical' | 'education' | 'research'>('all')
   const [selectedSource, setSelectedSource] = useState<string>('all')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [showAllArticles, setShowAllArticles] = useState(false)
 
   // Load data on component mount
   useEffect(() => {
@@ -42,12 +40,8 @@ const NewsPage = () => {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [articlesData, papersData] = await Promise.all([
-        getArticles(),
-        getPapers()
-      ])
+      const articlesData = await getArticles()
       setArticles(articlesData)
-      setResearchPapers(papersData)
       setLastUpdated(new Date())
     } catch (error) {
       console.error('Failed to load news data:', error)
@@ -56,46 +50,38 @@ const NewsPage = () => {
     }
   }
 
-  // Filter articles and papers based on search and category
+  // Filter articles based on search and category
   const filteredArticles = React.useMemo(() => {
+    let filtered = articles
+
+    // Apply search filter
     if (searchQuery) {
-      return articles.filter(article => 
+      filtered = filtered.filter(article => 
         article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         article.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         article.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
         article.author?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
-    
-    let filtered = articles
-    
-    if (selectedCategory !== 'all' && selectedCategory !== 'news') {
-      filtered = []
+
+    // Apply category filter
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(article => article.category === selectedCategory)
     }
-    
+
+    // Apply source filter
     if (selectedSource !== 'all') {
       filtered = filtered.filter(article => article.source.name === selectedSource)
     }
-    
+
     return filtered
   }, [articles, searchQuery, selectedCategory, selectedSource])
 
-  const filteredResearch = React.useMemo(() => {
-    if (searchQuery) {
-      return researchPapers.filter(paper =>
-        paper.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        paper.abstract.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        paper.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        paper.authors.some(author => author.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    }
-    
-    if (selectedCategory === 'all' || selectedCategory === 'research') {
-      return researchPapers
-    }
-    
-    return []
-  }, [researchPapers, searchQuery, selectedCategory])
+  // Get articles to display (limited to 3 unless showAllArticles is true)
+  const displayedArticles = React.useMemo(() => {
+    return showAllArticles ? filteredArticles : filteredArticles.slice(0, 3)
+  }, [filteredArticles, showAllArticles])
+
 
   const refreshNews = async () => {
     await loadData()
@@ -141,7 +127,7 @@ const NewsPage = () => {
               MBBS News Hub
             </h1>
             <p className="text-muted-foreground text-base md:text-lg">
-              Stay updated with the latest medical education news and research.
+              Stay updated with the latest medical education news.
             </p>
           </div>
           <div className="text-primary flex-shrink-0">
@@ -168,7 +154,7 @@ const NewsPage = () => {
 
       {/* Statistics */}
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 md:p-6 text-center hover:bg-card/50 transition-all duration-300">
             <div className="flex items-center justify-center mb-3">
               <Newspaper className="w-6 h-6 md:w-8 md:h-8 text-primary" />
@@ -183,22 +169,10 @@ const NewsPage = () => {
 
           <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 md:p-6 text-center hover:bg-card/50 transition-all duration-300">
             <div className="flex items-center justify-center mb-3">
-              <BookOpen className="w-6 h-6 md:w-8 md:h-8 text-purple-500" />
-            </div>
-            <div className="text-2xl md:text-3xl font-bold text-purple-500 mb-2">
-              {researchPapers.length}
-            </div>
-            <div className="text-muted-foreground text-sm">
-              Research Papers
-            </div>
-          </div>
-
-          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 md:p-6 text-center hover:bg-card/50 transition-all duration-300">
-            <div className="flex items-center justify-center mb-3">
               <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
             </div>
             <div className="text-2xl md:text-3xl font-bold text-green-500 mb-2">
-              {Math.round(articles.reduce((acc, article) => acc + (article.relevanceScore || 0), 0) / articles.length)}%
+              {articles.length > 0 ? Math.round(articles.reduce((acc, article) => acc + (article.relevanceScore || 0), 0) / articles.length) : 0}%
             </div>
             <div className="text-muted-foreground text-sm">
               Avg Relevance
@@ -228,7 +202,7 @@ const NewsPage = () => {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search MBBS news and research..."
+                placeholder="Search MBBS news..."
                 className="pl-10 bg-background/50"
               />
             </div>
@@ -239,8 +213,10 @@ const NewsPage = () => {
               className="bg-background/50 border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="all">All Content</option>
-              <option value="news">News Only</option>
-              <option value="research">Research Only</option>
+              <option value="general">General</option>
+              <option value="medical">Medical</option>
+              <option value="education">Education</option>
+              <option value="research">Research</option>
             </select>
             
             <select
@@ -257,18 +233,22 @@ const NewsPage = () => {
 
           {/* Category Tabs */}
           <div className="flex flex-wrap gap-2">
-            {['all', 'news', 'research'].map(category => (
+            {[
+              { value: 'all', label: 'All', icon: Globe },
+              { value: 'general', label: 'General', icon: Newspaper },
+              { value: 'medical', label: 'Medical', icon: Stethoscope },
+              { value: 'education', label: 'Education', icon: GraduationCap },
+              { value: 'research', label: 'Research', icon: BookOpen }
+            ].map(category => (
               <Button
-                key={category}
-                onClick={() => setSelectedCategory(category as any)}
-                variant={selectedCategory === category ? 'default' : 'outline'}
+                key={category.value}
+                onClick={() => setSelectedCategory(category.value as any)}
+                variant={selectedCategory === category.value ? 'default' : 'outline'}
                 size="sm"
                 className="rounded-full"
               >
-                {category === 'all' && <Globe className="w-4 h-4 mr-2" />}
-                {category === 'news' && <Newspaper className="w-4 h-4 mr-2" />}
-                {category === 'research' && <BookOpen className="w-4 h-4 mr-2" />}
-                {category.charAt(0).toUpperCase() + category.slice(1)}
+                <category.icon className="w-4 h-4 mr-2" />
+                {category.label}
               </Button>
             ))}
           </div>
@@ -285,14 +265,13 @@ const NewsPage = () => {
         ) : (
           <div className="space-y-6">
             {/* News Articles */}
-            {(selectedCategory === 'all' || selectedCategory === 'news') && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-                  <Newspaper className="w-6 h-6" />
-                  Latest News
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredArticles.map((article) => (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+                <Newspaper className="w-6 h-6" />
+                Latest News
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayedArticles.map((article) => (
                     <div
                       key={article.id}
                       className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl overflow-hidden hover:bg-card/50 transition-all duration-300 group"
@@ -364,104 +343,22 @@ const NewsPage = () => {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Research Papers */}
-            {(selectedCategory === 'all' || selectedCategory === 'research') && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-                  <BookOpen className="w-6 h-6" />
-                  Research Papers
-                </h2>
-                <div className="space-y-4">
-                  {filteredResearch.map((paper) => (
-                    <div
-                      key={paper.id}
-                      className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 md:p-6 hover:bg-card/50 transition-all duration-300"
+                
+                {/* View More Button */}
+                {filteredArticles.length > 3 && (
+                  <div className="text-center mt-6">
+                    <Button
+                      onClick={() => setShowAllArticles(!showAllArticles)}
+                      variant="outline"
+                      size="lg"
+                      className="px-8"
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center">
-                          <BookOpen className="w-6 h-6 text-purple-500" />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-foreground mb-2">
-                            {paper.title}
-                          </h3>
-                          
-                          <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
-                            {paper.abstract}
-                          </p>
-                          
-                          <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mb-4">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(paper.publishedAt).toLocaleDateString()}
-                            </span>
-                            {paper.journal && (
-                              <span className="flex items-center gap-1">
-                                <BookOpen className="w-3 h-3" />
-                                {paper.journal}
-                              </span>
-                            )}
-                            <span>
-                              Authors: {paper.authors.join(', ')}
-                            </span>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {paper.keywords.map(keyword => (
-                              <span
-                                key={keyword}
-                                className="px-2 py-1 rounded-full text-xs bg-purple-500/10 text-purple-500"
-                              >
-                                {keyword}
-                              </span>
-                            ))}
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Button
-                              onClick={() => window.open(paper.url, '_blank')}
-                              size="sm"
-                              variant="outline"
-                            >
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              Read Paper
-                            </Button>
-                            {paper.doi && (
-                              <Button
-                                onClick={() => window.open(`https://doi.org/${paper.doi}`, '_blank')}
-                                size="sm"
-                                variant="ghost"
-                              >
-                                DOI: {paper.doi}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      {showAllArticles ? 'Show Less' : `View More (${filteredArticles.length - 3} more)`}
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* Empty State */}
-            {filteredArticles.length === 0 && filteredResearch.length === 0 && !loading && (
-              <div className="text-center py-12">
-                <div className="text-muted-foreground/30 mb-4">
-                  <Search className="h-16 w-16 mx-auto" />
-                </div>
-                <p className="text-muted-foreground text-lg">
-                  No content found matching your search
-                </p>
-                <p className="text-muted-foreground/70 text-sm mt-2">
-                  Try adjusting your search terms or filters
-                </p>
-              </div>
-            )}
+          
           </div>
         )}
       </div>

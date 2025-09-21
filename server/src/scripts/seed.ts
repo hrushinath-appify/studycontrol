@@ -1,132 +1,9 @@
 import { database } from '@/config/database';
-import { User, Quote } from '@/models';
+import { User } from '@/models';
 
-// Sample quotes data (matching the frontend mock data)
-const sampleQuotes = [
-  {
-    quote: "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-    author: "Winston Churchill",
-    category: 'motivation',
-    tags: ['success', 'failure', 'courage']
-  },
-  {
-    quote: "The expert in anything was once a beginner.",
-    author: "Helen Hayes",
-    category: 'learning',
-    tags: ['expertise', 'learning', 'growth']
-  },
-  {
-    quote: "Education is the most powerful weapon which you can use to change the world.",
-    author: "Nelson Mandela",
-    category: 'education',
-    tags: ['education', 'power', 'change']
-  },
-  {
-    quote: "The beautiful thing about learning is that no one can take it away from you.",
-    author: "B.B. King",
-    category: 'learning',
-    tags: ['learning', 'knowledge', 'permanent']
-  },
-  {
-    quote: "Study hard, for the well is deep, and our brains are shallow.",
-    author: "Richard Baxter",
-    category: 'education',
-    tags: ['study', 'knowledge', 'depth']
-  },
-  {
-    quote: "The more that you read, the more things you will know. The more that you learn, the more places you'll go.",
-    author: "Dr. Seuss",
-    category: 'learning',
-    tags: ['reading', 'knowledge', 'opportunities']
-  },
-  {
-    quote: "Learning never exhausts the mind.",
-    author: "Leonardo da Vinci",
-    category: 'learning',
-    tags: ['learning', 'mind', 'endless']
-  },
-  {
-    quote: "The only impossible journey is the one you never begin.",
-    author: "Tony Robbins",
-    category: 'motivation',
-    tags: ['journey', 'beginning', 'action']
-  },
-  {
-    quote: "Your limitation—it's only your imagination.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['limitations', 'imagination', 'potential']
-  },
-  {
-    quote: "Dream it. Wish it. Do it.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['dreams', 'action', 'achievement']
-  },
-  {
-    quote: "Great things never come from comfort zones.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['comfort zone', 'growth', 'achievement']
-  },
-  {
-    quote: "Success doesn't just find you. You have to go out and get it.",
-    author: "Anonymous",
-    category: 'success',
-    tags: ['success', 'action', 'initiative']
-  },
-  {
-    quote: "The harder you work for something, the greater you'll feel when you achieve it.",
-    author: "Anonymous",
-    category: 'success',
-    tags: ['hard work', 'achievement', 'satisfaction']
-  },
-  {
-    quote: "Don't stop when you're tired. Stop when you're done.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['perseverance', 'completion', 'endurance']
-  },
-  {
-    quote: "Wake up with determination. Go to bed with satisfaction.",
-    author: "Anonymous",
-    category: 'motivation',
-    tags: ['determination', 'satisfaction', 'daily']
-  },
-  {
-    quote: "A goal without a plan is just a wish.",
-    author: "Antoine de Saint-Exupéry",
-    category: 'success',
-    tags: ['goals', 'planning', 'strategy']
-  },
-  {
-    quote: "The future belongs to those who believe in the beauty of their dreams.",
-    author: "Eleanor Roosevelt",
-    category: 'motivation',
-    tags: ['future', 'dreams', 'belief']
-  },
-  {
-    quote: "It is during our darkest moments that we must focus to see the light.",
-    author: "Aristotle",
-    category: 'motivation',
-    tags: ['darkness', 'focus', 'hope']
-  },
-  {
-    quote: "Believe you can and you're halfway there.",
-    author: "Theodore Roosevelt",
-    category: 'motivation',
-    tags: ['belief', 'confidence', 'achievement']
-  },
-  {
-    quote: "The only way to do great work is to love what you do.",
-    author: "Steve Jobs",
-    category: 'success',
-    tags: ['great work', 'passion', 'love']
-  }
-];
 
 // Optional admin user (remove/comment out if not needed)
-const createAdminUser = false; // Set to true only if you need an admin user
+const createAdminUser = true; // Set to true only if you need an admin user
 
 const adminUser = {
   name: 'Admin User',
@@ -157,7 +34,6 @@ const seedDatabase = async (): Promise<void> => {
 
     // Clear existing data
     console.log('🧹 Clearing existing data...');
-    await Quote.deleteMany({});
     
     let adminId;
     
@@ -182,20 +58,10 @@ const seedDatabase = async (): Promise<void> => {
       adminId = null;
     }
 
-    // Seed quotes
-    console.log('💬 Seeding quotes...');
-    const quotes = sampleQuotes.map(quote => ({
-      ...quote,
-      isActive: true,
-      likes: Math.floor(Math.random() * 50),
-      addedBy: adminId // Will be null if no admin user created
-    }));
-
-    await Quote.insertMany(quotes);
-    console.log(`✅ ${quotes.length} quotes seeded successfully`);
+    // Quotes are now handled by external Quotable API
+    console.log('💬 Quotes are now provided by external Quotable API - no seeding needed');
 
     // Display statistics
-    const quoteCount = await Quote.countDocuments();
     const userCount = await User.countDocuments();
 
     console.log(`
@@ -203,7 +69,7 @@ const seedDatabase = async (): Promise<void> => {
 
 Statistics:
 • Users: ${userCount}
-• Quotes: ${quoteCount}
+• Quotes: External API (Quotable)
 
 ${createAdminUser ? `
 ⚠️  Admin User Created:

@@ -200,23 +200,6 @@ export interface IResearchPaper extends Document {
   updatedAt: Date;
 }
 
-// =============================================================================
-// QUOTES TYPES
-// =============================================================================
-
-export interface IQuote extends Document {
-  _id: string;
-  quote: string;
-  author: string;
-  category: 'motivation' | 'education' | 'success' | 'learning' | 'life';
-  tags: string[];
-  source?: string;
-  isActive: boolean;
-  addedBy?: string; // user ID
-  likes: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 // =============================================================================
 // MYSTERY TOPICS TYPES

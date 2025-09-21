@@ -11,15 +11,15 @@ import {
   validateToken,
   verifyEmail,
   resendVerificationEmail
-} from '@/controllers/authController';
-import { authenticate } from '@/middleware/auth';
+} from '../controllers/authController';
+import { authenticate } from '../middleware/auth';
 import {
   validateRegister,
   validateLogin,
   validateUpdateProfile,
   validateForgotPassword,
   validateResetPassword
-} from '@/middleware/validation';
+} from '../middleware/validation';
 
 const router = Router();
 

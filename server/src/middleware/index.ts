@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import { config } from '@/config/environment';
+import { config } from '../config/environment';
 import { errorHandler, notFoundHandler } from './errorHandler';
 
 // Rate limiting configuration
@@ -36,14 +36,22 @@ const authLimiter = rateLimit({
 // CORS configuration
 const corsOptions = {
   origin: function (origin: string | undefined, callback: Function) {
+    // In development, allow all origins
+    if (config.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
     const allowedOrigins = config.CORS_ORIGIN.split(',').map(origin => origin.trim());
     
+    console.log('🔍 CORS Check:', { origin, allowedOrigins });
+    
     if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       callback(null, true);
     } else {
+      console.log('❌ CORS Rejected:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },

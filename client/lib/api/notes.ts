@@ -83,7 +83,18 @@ export class NotesApi {
   static async createNote(data: CreateNoteData): Promise<Note> {
     try {
       const response = await apiClient.post<Note>(this.ENDPOINT, data)
-      return response.data!
+      const newNote = response.data!
+      
+      // Sync to localStorage when API succeeds
+      try {
+        const localNotes = this.getLocalNotes({ archived: true })
+        const updatedNotes = [newNote, ...localNotes.filter(note => note.id !== newNote.id)]
+        this.saveLocalNotes(updatedNotes)
+      } catch (localError) {
+        console.warn('Failed to sync new note to localStorage:', localError)
+      }
+      
+      return newNote
     } catch (error) {
       console.warn('Failed to create note via API, using localStorage:', error)
       return this.createLocalNote(data)
@@ -94,7 +105,26 @@ export class NotesApi {
   static async updateNote(data: UpdateNoteData): Promise<Note> {
     try {
       const response = await apiClient.put<Note>(`${this.ENDPOINT}/${data.id}`, data)
-      return response.data!
+      const updatedNote = response.data!
+      
+      // Sync to localStorage when API succeeds
+      try {
+        const localNotes = this.getLocalNotes({ archived: true })
+        const noteIndex = localNotes.findIndex(note => note.id === data.id)
+        
+        if (noteIndex !== -1) {
+          localNotes[noteIndex] = updatedNote
+          this.saveLocalNotes(localNotes)
+        } else {
+          // If note doesn't exist in localStorage, add it
+          const updatedNotes = [updatedNote, ...localNotes]
+          this.saveLocalNotes(updatedNotes)
+        }
+      } catch (localError) {
+        console.warn('Failed to sync updated note to localStorage:', localError)
+      }
+      
+      return updatedNote
     } catch (error) {
       console.warn('Failed to update note via API, using localStorage:', error)
       return this.updateLocalNote(data)
@@ -319,7 +349,25 @@ export class NotesApi {
     const noteIndex = notes.findIndex(note => note.id === data.id)
     
     if (noteIndex === -1) {
-      throw new Error('Note not found')
+      // If note not found in localStorage, create a basic note structure
+      console.warn(`Note ${data.id} not found in localStorage, creating basic structure`)
+      
+      const basicNote: Note = {
+        id: data.id,
+        title: data.title || 'Untitled',
+        content: data.content || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isPinned: data.isPinned || false,
+        isArchived: false,
+        tags: data.tags || [],
+        wordCount: data.content ? data.content.split(/\s+/).filter(word => word !== '').length : 0
+      }
+      
+      const updatedNotes = [basicNote, ...notes]
+      this.saveLocalNotes(updatedNotes)
+      
+      return basicNote
     }
 
     const existingNote = notes[noteIndex]!

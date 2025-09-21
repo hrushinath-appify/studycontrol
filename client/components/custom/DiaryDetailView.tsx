@@ -4,7 +4,8 @@ import React from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, Clock, FileText, ChevronLeft, ChevronRight, Share2, Edit3, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DiaryEntry } from '@/app/(root)/diary/page'
+import { DiaryEntry } from '@/types'
+import { formatDate } from '@/lib/date-utils'
 
 interface DiaryDetailViewProps {
   entry: DiaryEntry
@@ -33,22 +34,15 @@ const DiaryDetailView: React.FC<DiaryDetailViewProps> = ({
   backHref = '/diary',
   className = ''
 }) => {
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
+  const formatTime = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date
+    return d.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     })
   }
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
 
   const handleShare = () => {
     if (onShare) {
@@ -56,7 +50,7 @@ const DiaryDetailView: React.FC<DiaryDetailViewProps> = ({
     } else if (navigator.share) {
       navigator.share({
         title: entry.title,
-        text: entry.preview,
+        text: entry.content.substring(0, 100) + '...',
         url: window.location.href
       })
     } else {

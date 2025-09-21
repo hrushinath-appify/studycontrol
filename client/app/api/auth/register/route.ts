@@ -14,10 +14,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Register user against the backend API server
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
     
     try {
-      const registerResponse = await fetch(`${backendUrl}/api/v1/auth/register`, {
+      const registerResponse = await fetch(`${backendUrl}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
