@@ -199,10 +199,8 @@ export const validateCreateTask = [
     .withMessage('Maximum 10 tags allowed'),
   
   body('category')
-    .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('Category cannot exceed 50 characters'),
+    .isIn(['personal', 'work', 'study', 'health', 'other'])
+    .withMessage('Category must be personal, work, study, health, or other'),
   
   body('estimatedTime')
     .optional()

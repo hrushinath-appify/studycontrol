@@ -97,7 +97,7 @@ export interface ITask extends Document {
   dueDate?: Date;
   completedAt?: Date;
   tags: string[];
-  category?: string;
+  category: 'personal' | 'work' | 'study' | 'health' | 'other';
   estimatedTime?: number; // in minutes
   actualTime?: number; // in minutes
   subtasks: Array<{

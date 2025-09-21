@@ -73,8 +73,9 @@ const taskSchema = new Schema<ITask>(
     }],
     category: {
       type: String,
-      trim: true,
-      maxlength: [50, 'Category cannot exceed 50 characters'],
+      enum: ['personal', 'work', 'study', 'health', 'other'],
+      default: 'personal',
+      required: [true, 'Category is required'],
     },
     estimatedTime: {
       type: Number,

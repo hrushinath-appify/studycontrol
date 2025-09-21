@@ -91,8 +91,44 @@ export class TasksApi {
 
   // Toggle task completion
   static async toggleTask(id: string): Promise<Task> {
-    const response = await apiClient.patch<Task>(`${this.ENDPOINT}/${id}/toggle`)
-    return response.data!
+    // Call backend API directly with auth token
+    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1').replace(/\/+$/, '')
+    
+    // Get auth token from localStorage (set by AuthProvider)
+    const token = localStorage.getItem('auth-token')
+    if (!token) {
+      throw new Error('Authentication required. Please log in.')
+    }
+
+    try {
+      const response = await fetch(`${backendUrl}/tasks/${id}/toggle`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to toggle task'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.message || errorMessage
+        } catch {
+          // If we can't parse error, use default message
+        }
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
+      return data.data // Return the task data from the backend response
+    } catch (error) {
+      console.error('Toggle task error:', error)
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error('Failed to toggle task')
+    }
   }
 
   // Search tasks

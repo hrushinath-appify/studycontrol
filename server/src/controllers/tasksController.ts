@@ -35,7 +35,7 @@ export const getTasks = async (req: AuthenticatedRequest, res: Response): Promis
 
     const skip = (Number(page) - 1) * Number(limit);
 
-    const [tasks, total] = await Promise.all([
+    const [tasksRaw, total] = await Promise.all([
       Task.find(filter)
         .sort(sortOptions)
         .skip(skip)
@@ -43,6 +43,13 @@ export const getTasks = async (req: AuthenticatedRequest, res: Response): Promis
         .lean(),
       Task.countDocuments(filter)
     ]);
+
+    // Transform _id to id for all tasks
+    const tasks = tasksRaw.map((task: any) => ({
+      ...task,
+      id: task._id.toString(),
+      _id: undefined
+    }));
 
     res.json({
       success: true,
@@ -69,15 +76,22 @@ export const getTaskById = async (req: AuthenticatedRequest, res: Response): Pro
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const task = await Task.findOne({ _id: id, userId }).lean();
+    const taskRaw = await Task.findOne({ _id: id, userId }).lean();
 
-    if (!task) {
+    if (!taskRaw) {
       res.status(404).json({
         success: false,
         error: 'Task not found'
       });
       return;
     }
+
+    // Transform _id to id
+    const task = {
+      ...taskRaw,
+      id: taskRaw._id.toString(),
+      _id: undefined
+    };
 
     res.json({
       success: true,
@@ -110,9 +124,12 @@ export const createTask = async (req: AuthenticatedRequest, res: Response): Prom
 
     await task.save();
 
+    // Convert to JSON to apply transformations
+    const taskData = task.toJSON();
+
     res.status(201).json({
       success: true,
-      data: task,
+      data: taskData,
       message: 'Task created successfully'
     });
   } catch (error) {
@@ -140,19 +157,26 @@ export const updateTask = async (req: AuthenticatedRequest, res: Response): Prom
       }
     }
 
-    const task = await Task.findOneAndUpdate(
+    const taskRaw = await Task.findOneAndUpdate(
       { _id: id, userId },
       updateData,
       { new: true, runValidators: true }
     ).lean();
 
-    if (!task) {
+    if (!taskRaw) {
       res.status(404).json({
         success: false,
         error: 'Task not found'
       });
       return;
     }
+
+    // Transform _id to id
+    const task = {
+      ...taskRaw,
+      id: taskRaw._id.toString(),
+      _id: undefined
+    };
 
     res.json({
       success: true,
@@ -218,17 +242,36 @@ export const toggleTask = async (req: AuthenticatedRequest, res: Response): Prom
 
     await task.save();
 
+    // Manual transformation to avoid toJSON issues
+    const taskResponse = {
+      id: task._id.toString(),
+      title: task.title,
+      description: task.description,
+      completed: task.completed,
+      priority: task.priority,
+      category: task.category,
+      dueDate: task.dueDate,
+      completedAt: task.completedAt,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      tags: task.tags,
+      status: task.status
+    };
+
     res.json({
       success: true,
-      data: task,
+      data: taskResponse,
       message: 'Task toggled successfully'
     });
   } catch (error) {
     console.error('Error toggling task:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to toggle task'
-    });
+    // Check if response was already sent
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to toggle task'
+      });
+    }
   }
 };
 
@@ -260,9 +303,16 @@ export const searchTasks = async (req: AuthenticatedRequest, res: Response): Pro
     if (priority) filter.priority = priority;
     if (completed !== undefined) filter.completed = completed === 'true';
 
-    const tasks = await Task.find(filter)
+    const tasksRaw = await Task.find(filter)
       .sort({ createdAt: -1 })
       .lean();
+
+    // Transform _id to id for all tasks
+    const tasks = tasksRaw.map((task: any) => ({
+      ...task,
+      id: task._id.toString(),
+      _id: undefined
+    }));
 
     res.json({
       success: true,
@@ -336,9 +386,16 @@ export const getTasksByCategory = async (req: AuthenticatedRequest, res: Respons
     const { category } = req.params;
     const userId = req.user!.id;
 
-    const tasks = await Task.find({ userId, category })
+    const tasksRaw = await Task.find({ userId, category })
       .sort({ createdAt: -1 })
       .lean();
+
+    // Transform _id to id for all tasks
+    const tasks = tasksRaw.map((task: any) => ({
+      ...task,
+      id: task._id.toString(),
+      _id: undefined
+    }));
 
     res.json({
       success: true,
@@ -358,13 +415,20 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response):
   try {
     const userId = req.user!.id;
 
-    const tasks = await Task.find({
+    const tasksRaw = await Task.find({
       userId,
       completed: false,
       dueDate: { $lt: new Date() }
     })
       .sort({ dueDate: 1 })
       .lean();
+
+    // Transform _id to id for all tasks
+    const tasks = tasksRaw.map((task: any) => ({
+      ...task,
+      id: task._id.toString(),
+      _id: undefined
+    }));
 
     res.json({
       success: true,
