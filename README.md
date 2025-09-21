@@ -60,7 +60,7 @@ A comprehensive study management platform built with Next.js, Node.js, Express, 
 - **User Management**: Authentication, profiles, preferences
 - **Diary Entries**: Rich text content with mood tracking
 - **Task Management**: Full CRUD with priorities and categories
-- **Notes System**: Pinned, archived, and categorized notes
+- **Notes System**: Archived and categorized notes
 - **Quotes Collection**: Curated motivational content
 - **Focus Sessions**: Pomodoro timer tracking
 - **Mystery Topics**: Educational content exploration

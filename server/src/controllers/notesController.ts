@@ -97,15 +97,14 @@ export const getNoteById = async (req: AuthenticatedRequest, res: Response): Pro
 export const createNote = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!._id.toString();
-    const { title, content, category, tags, isPinned } = req.body;
+    const { title, content, category, tags } = req.body;
 
     const note = new Note({
       userId,
       title,
       content,
       category: category || 'general',
-      tags: tags || [],
-      isPinned: isPinned || false
+      tags: tags || []
     });
 
     await note.save();
@@ -188,40 +187,7 @@ export const deleteNote = async (req: AuthenticatedRequest, res: Response): Prom
   }
 };
 
-// Toggle note pin status
-export const togglePin = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = req.user!._id.toString();
 
-    const note = await Note.findOne({ _id: id, userId });
-
-    if (!note) {
-      res.status(404).json({
-        success: false,
-        error: 'Note not found'
-      });
-      return;
-    }
-
-    note.isPinned = !note.isPinned;
-    note.updatedAt = new Date();
-
-    await note.save();
-
-    res.json({
-      success: true,
-      data: note,
-      message: 'Note pin status updated successfully'
-    });
-  } catch (error) {
-    console.error('Error toggling note pin:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to toggle note pin'
-    });
-  }
-};
 
 // Search notes
 export const searchNotes = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -293,27 +259,7 @@ export const getNotesByCategory = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
-// Get pinned notes
-export const getPinnedNotes = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!._id.toString();
 
-    const notes = await Note.find({ userId, isPinned: true })
-      .sort({ updatedAt: -1 })
-      .lean();
-
-    res.json({
-      success: true,
-      data: notes
-    });
-  } catch (error) {
-    console.error('Error fetching pinned notes:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch pinned notes'
-    });
-  }
-};
 
 // Get all unique tags for user
 export const getNoteTags = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -331,6 +277,142 @@ export const getNoteTags = async (req: AuthenticatedRequest, res: Response): Pro
     res.status(500).json({
       success: false,
       error: 'Failed to fetch note tags'
+    });
+  }
+};
+
+// Get note statistics for user
+export const getNoteStats = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!._id.toString();
+
+    // Get all notes for the user
+    const allNotes = await Note.find({ userId }).lean();
+    const activeNotes = allNotes.filter(note => !note.isArchived);
+    const archivedNotes = allNotes.filter(note => note.isArchived);
+
+    // Calculate word counts
+    const totalWords = activeNotes.reduce((total, note) => {
+      const wordCount = note.content.trim().split(/\s+/).filter(word => word.length > 0).length;
+      return total + wordCount;
+    }, 0);
+
+    const averageWordsPerNote = activeNotes.length > 0 ? Math.round(totalWords / activeNotes.length) : 0;
+
+    // Get unique tags and categories
+    const allTags = Array.from(new Set(activeNotes.flatMap(note => note.tags || [])));
+    const allCategories = Array.from(new Set(activeNotes.map(note => note.category).filter(Boolean)));
+
+    // Calculate time-based stats
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const notesThisWeek = activeNotes.filter(note => 
+      new Date(note.createdAt) >= oneWeekAgo
+    ).length;
+
+    const notesThisMonth = activeNotes.filter(note => 
+      new Date(note.createdAt) >= oneMonthAgo
+    ).length;
+
+    const stats = {
+      total: activeNotes.length,
+      archived: archivedNotes.length,
+      totalWords,
+      averageWordsPerNote,
+      tagsCount: allTags.length,
+      categoriesCount: allCategories.length,
+      notesThisWeek,
+      notesThisMonth
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error fetching note stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch note stats'
+    });
+  }
+};
+
+// Toggle archive status of a note
+export const toggleArchive = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!._id.toString();
+
+    const note = await Note.findOne({ _id: id, userId });
+
+    if (!note) {
+      res.status(404).json({
+        success: false,
+        error: 'Note not found'
+      });
+      return;
+    }
+
+    note.isArchived = !note.isArchived;
+    note.updatedAt = new Date();
+    await note.save();
+
+    res.json({
+      success: true,
+      data: note,
+      message: `Note ${note.isArchived ? 'archived' : 'unarchived'} successfully`
+    });
+  } catch (error) {
+    console.error('Error toggling archive status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to toggle archive status'
+    });
+  }
+};
+
+// Duplicate a note
+export const duplicateNote = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!._id.toString();
+
+    const originalNote = await Note.findOne({ _id: id, userId });
+
+    if (!originalNote) {
+      res.status(404).json({
+        success: false,
+        error: 'Note not found'
+      });
+      return;
+    }
+
+    const duplicatedNote = new Note({
+      userId,
+      title: `${originalNote.title} (Copy)`,
+      content: originalNote.content,
+      tags: [...originalNote.tags],
+      category: originalNote.category,
+      color: originalNote.color,
+      isArchived: false, // New duplicates should not be archived
+      attachments: originalNote.attachments ? [...originalNote.attachments] : undefined
+    });
+
+    await duplicatedNote.save();
+
+    res.json({
+      success: true,
+      data: duplicatedNote,
+      message: 'Note duplicated successfully'
+    });
+  } catch (error) {
+    console.error('Error duplicating note:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to duplicate note'
     });
   }
 };

@@ -7,7 +7,7 @@ import { getRandomQuote, type Quote } from '@/lib/api'
 import { 
   BarChart3, 
   Timer, 
-  Calendar, 
+  // Calendar, 
   BookOpen, 
   CheckSquare, 
   FileText,
@@ -93,13 +93,13 @@ const HomePage = () => {
             href="/focus"
             icon={<Timer className="w-6 h-6" />}
           />
-          <FeatureCard
+          {/* <FeatureCard
             title="News Feed"
             description="Discover thes news in the world of medicine."
             href="/news"
             colSpan="2"
             icon={<Calendar className="w-6 h-6" />}
-          />
+          /> */}
           <FeatureCard
             title="Diary"
             description="Record your daily study reflections."

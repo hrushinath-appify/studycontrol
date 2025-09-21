@@ -24,6 +24,8 @@ import {
   Target,
   Eye
 } from 'lucide-react'
+import { fetchUserStats } from '@/lib/api-utils'
+import { getMysteryExplorationCount, onMysteryExplorationUpdate } from '@/lib/mystery-tracker'
 import { cn } from '@/lib/utils'
 
 interface UserPreferences {
@@ -33,6 +35,11 @@ interface UserPreferences {
 interface UserStats {
   diaryHighestStreak: number
   mysteryClicks: number
+  totalNotes: number
+  totalTasks: number
+  completedTasks: number
+  focusSessionsTotal: number
+  averageFocusTime: number
 }
 
 const SettingsPage = () => {
@@ -67,54 +74,84 @@ const SettingsPage = () => {
   // User stats state
   const [userStats, setUserStats] = useState<UserStats>({
     diaryHighestStreak: 0,
-    mysteryClicks: 0
+    mysteryClicks: 0,
+    totalNotes: 0,
+    totalTasks: 0,
+    completedTasks: 0,
+    focusSessionsTotal: 0,
+    averageFocusTime: 0
   })
+  
+  // Stats loading state
+  const [statsError, setStatsError] = useState<string | null>(null)
+
+  const loadUserStats = useCallback(async () => {
+    try {
+      setStatsError(null) // Clear any previous errors
+      const stats = await fetchUserStats()
+      
+      // Always use localStorage for mystery count to ensure consistency
+      const mysteryCount = getMysteryExplorationCount()
+      
+      setUserStats({
+        ...stats,
+        mysteryClicks: mysteryCount
+      })
+    } catch (error) {
+      console.error('Error loading user stats:', error)
+      
+      // Set user-friendly error message
+      if (error instanceof Error) {
+        setStatsError(error.message)
+      } else {
+        setStatsError('Failed to load statistics. Please try refreshing the page.')
+      }
+      
+      // Fallback to localStorage for backward compatibility
+      const diaryStreakData = localStorage.getItem('diaryStreakData')
+      
+      // Create fresh fallback stats
+      const fallbackStats = {
+        diaryHighestStreak: 0,
+        mysteryClicks: 0,
+        totalNotes: 0,
+        totalTasks: 0,
+        completedTasks: 0,
+        focusSessionsTotal: 0,
+        averageFocusTime: 0
+      }
+      
+      if (diaryStreakData) {
+        try {
+          const streakData = JSON.parse(diaryStreakData)
+          fallbackStats.diaryHighestStreak = streakData.longestStreak || 0
+        } catch (parseError) {
+          console.error('Error parsing diary streak data:', parseError)
+        }
+      }
+      
+      // Get mystery explorations from new tracking system
+      fallbackStats.mysteryClicks = getMysteryExplorationCount()
+      
+      setUserStats(fallbackStats)
+    }
+  }, [setStatsError])
 
   useEffect(() => {
     setMounted(true)
-    // Load preferences from localStorage
-    const savedPreferences = localStorage.getItem('userPreferences')
-    if (savedPreferences) {
-      const parsed = JSON.parse(savedPreferences)
-      // Remove appUpdates if it exists in saved preferences
-      if (parsed.appUpdates !== undefined) {
-        delete parsed.appUpdates
-      }
-      setPreferences(parsed)
-    }
     
-    // Load user stats
-    loadUserStats()
+    // Sync mystery count from localStorage on mount
+    const mysteryCount = getMysteryExplorationCount()
+    setUserStats(prev => ({
+      ...prev,
+      mysteryClicks: mysteryCount
+    }))
   }, [])
 
-  const loadUserStats = () => {
-    // Load diary streak data
-    const diaryStreakData = localStorage.getItem('diaryStreakData')
-    if (diaryStreakData) {
-      try {
-        const streakData = JSON.parse(diaryStreakData)
-        setUserStats(prev => ({
-          ...prev,
-          diaryHighestStreak: streakData.longestStreak || 0
-        }))
-      } catch (error) {
-        console.error('Error loading diary streak data:', error)
-      }
-    }
-    
-    // Load mystery clicks count
-    const mysteryClicks = localStorage.getItem('mysteryClicks')
-    if (mysteryClicks) {
-      try {
-        setUserStats(prev => ({
-          ...prev,
-          mysteryClicks: parseInt(mysteryClicks) || 0
-        }))
-      } catch (error) {
-        console.error('Error loading mystery clicks:', error)
-      }
-    }
-  }
+  // Load initial data
+  useEffect(() => {
+    loadUserStats()
+  }, [loadUserStats])
 
   useEffect(() => {
     if (user) {
@@ -125,28 +162,30 @@ const SettingsPage = () => {
     }
   }, [user])
 
-  // Listen for diary updates and mystery clicks
+  // Listen for mystery exploration updates
+  useEffect(() => {
+    const cleanup = onMysteryExplorationUpdate((stats) => {
+      setUserStats(prev => ({
+        ...prev,
+        mysteryClicks: stats.count
+      }))
+    })
+    
+    return cleanup
+  }, [])
+
+  // Listen for other events
   useEffect(() => {
     const handleDiaryUpdate = () => {
       loadUserStats()
     }
 
-    const handleMysteryClick = () => {
-      loadUserStats()
-    }
-
-    // Listen for diary entries updates
     window.addEventListener('diaryEntriesUpdated', handleDiaryUpdate)
-    
-    // Listen for mystery clicks (custom event)
-    window.addEventListener('mysteryClicked', handleMysteryClick)
 
-    // Cleanup
     return () => {
       window.removeEventListener('diaryEntriesUpdated', handleDiaryUpdate)
-      window.removeEventListener('mysteryClicked', handleMysteryClick)
     }
-  }, [])
+  }, [loadUserStats])
 
   const handleProfileUpdate = useCallback(async () => {
     setIsUpdatingProfile(true)
@@ -247,6 +286,10 @@ const SettingsPage = () => {
 
   const handleConfirmPasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))
+  }, [])
+
+  const handleLoginRedirect = useCallback(() => {
+    window.location.href = '/login'
   }, [])
 
   const handleLightThemeClick = useCallback(() => {
@@ -455,6 +498,28 @@ const SettingsPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {statsError && (
+              <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                <p className="text-yellow-800 dark:text-yellow-200 text-sm">
+                  ⚠️ {statsError}
+                </p>
+                {statsError.includes('Authentication required') && (
+                  <div className="mt-3">
+                    <p className="text-yellow-700 dark:text-yellow-300 text-xs mb-2">
+                      Please log in again to view your statistics.
+                    </p>
+                    <Button 
+                      onClick={handleLoginRedirect}
+                      size="sm"
+                      variant="outline"
+                      className="bg-yellow-100 dark:bg-yellow-800 hover:bg-yellow-200 dark:hover:bg-yellow-700 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-600"
+                    >
+                      Go to Login
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
               <div className="p-3 rounded-full bg-background shadow-sm text-orange-500">
                 <Flame className="h-6 w-6" />

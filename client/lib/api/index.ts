@@ -25,7 +25,6 @@ export { getStats as getUserStats } from './user'
 
 export * from './news'
 export * from './quotes'
-export * from './mystery'
 
 // Re-export common types from API modules
 export type { Quote } from './quotes'
@@ -96,6 +95,11 @@ export class ApiClient {
         let errorMessage = `HTTP error! status: ${response.status}`
         let errorCode: string | undefined
         
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          errorMessage = 'Authentication required. Please log in to continue.'
+        }
+        
         // Try to parse as JSON for error details
         try {
           const errorData = await response.json()
@@ -146,7 +150,7 @@ export class ApiClient {
       if (error instanceof TypeError && error.message.includes('fetch')) {
         console.error('❌ Network error:', error.message)
         throw new ApiError({
-          message: `Network connection failed`,
+          message: `Network connection failed. Please check if you're logged in and try again.`,
           status: 0,
         })
       }

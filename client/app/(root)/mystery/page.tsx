@@ -1,10 +1,13 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Sparkles, HelpCircle, Lightbulb } from 'lucide-react'
-import { getRandomTopic, type MysteryTopic } from '@/lib/api'
+import { getRandomTopic as getMockRandomTopic, type MysteryTopic } from '@/lib/mock-data/mystery-topics'
+import { 
+  incrementMysteryExploration
+} from '@/lib/mystery-tracker'
 
 const MysteryPage = () => {
   const [currentTopic, setCurrentTopic] = useState<MysteryTopic | null>(null)
@@ -15,7 +18,8 @@ const MysteryPage = () => {
     const loadInitialTopic = async () => {
       try {
         setIsInitialLoading(true)
-        const topic = await getRandomTopic()
+        // Use mock data directly instead of API
+        const topic = getMockRandomTopic()
         setCurrentTopic(topic)
       } catch (error) {
         console.error('Failed to load initial topic:', error)
@@ -27,27 +31,28 @@ const MysteryPage = () => {
     loadInitialTopic()
   }, [])
 
-  const generateNewMystery = async () => {
+  const handleGenerateNewMystery = useCallback(async () => {
     setIsGenerating(true)
     try {
-      // Track mystery click
-      const currentClicks = parseInt(localStorage.getItem('mysteryClicks') || '0')
-      const newClicks = currentClicks + 1
-      localStorage.setItem('mysteryClicks', newClicks.toString())
-      
-      // Dispatch custom event for real-time updates
-      window.dispatchEvent(new CustomEvent('mysteryClicked'))
+      // Increment mystery exploration count
+      incrementMysteryExploration()
       
       // Add a small delay for better UX
       await new Promise(resolve => setTimeout(resolve, 1000))
-      const topic = await getRandomTopic()
+      
+      // Get a random topic from mock data
+      const topic = getMockRandomTopic()
       setCurrentTopic(topic)
     } catch (error) {
       console.error('Failed to generate new mystery:', error)
     } finally {
       setIsGenerating(false)
     }
-  }
+  }, [])
+
+  const handleButtonClick = useCallback(() => {
+    handleGenerateNewMystery()
+  }, [handleGenerateNewMystery])
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -69,7 +74,7 @@ const MysteryPage = () => {
           
           {/* Generate Button */}
           <Button 
-            onClick={generateNewMystery}
+            onClick={handleButtonClick}
             disabled={isGenerating || isInitialLoading}
             size="lg"
             className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-3 rounded-full shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
@@ -85,26 +90,26 @@ const MysteryPage = () => {
             {isInitialLoading ? (
               <div className="animate-pulse space-y-8">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-muted"></div>
+                  <div className="w-12 h-12 rounded-full bg-muted" />
                   <div className="flex-1 space-y-3">
-                    <div className="h-8 bg-muted rounded max-w-md"></div>
-                    <div className="h-px bg-muted"></div>
+                    <div className="h-8 bg-muted rounded max-w-md" />
+                    <div className="h-px bg-muted" />
                   </div>
                 </div>
                 <div className="grid md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <div className="h-6 bg-muted rounded max-w-xs"></div>
+                    <div className="h-6 bg-muted rounded max-w-xs" />
                     <div className="space-y-2">
-                      <div className="h-4 bg-muted rounded max-w-sm"></div>
-                      <div className="h-4 bg-muted rounded max-w-xs"></div>
+                      <div className="h-4 bg-muted rounded max-w-sm" />
+                      <div className="h-4 bg-muted rounded max-w-xs" />
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <div className="h-6 bg-muted rounded max-w-xs"></div>
+                    <div className="h-6 bg-muted rounded max-w-xs" />
                     <div className="space-y-3">
-                      <div className="h-4 bg-muted rounded"></div>
-                      <div className="h-4 bg-muted rounded"></div>
-                      <div className="h-4 bg-muted rounded max-w-md"></div>
+                      <div className="h-4 bg-muted rounded" />
+                      <div className="h-4 bg-muted rounded" />
+                      <div className="h-4 bg-muted rounded max-w-md" />
                     </div>
                   </div>
                 </div>
@@ -191,7 +196,7 @@ const MysteryPage = () => {
                   Failed to load mystery topic
                 </p>
                 <Button 
-                  onClick={generateNewMystery}
+                  onClick={handleButtonClick}
                   className="mt-4"
                   variant="outline"
                 >

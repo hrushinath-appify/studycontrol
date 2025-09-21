@@ -283,11 +283,6 @@ export const validateUpdateNote = [
     .isLength({ min: 1, max: 100000 })
     .withMessage('Content must be between 1 and 100,000 characters'),
   
-  body('isPinned')
-    .optional()
-    .isBoolean()
-    .withMessage('isPinned must be a boolean'),
-  
   body('isArchived')
     .optional()
     .isBoolean()

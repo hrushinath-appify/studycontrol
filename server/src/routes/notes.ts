@@ -5,11 +5,12 @@ import {
   createNote,
   updateNote,
   deleteNote,
-  togglePin,
   searchNotes,
   getNotesByCategory,
-  getPinnedNotes,
-  getNoteTags
+  getNoteTags,
+  getNoteStats,
+  toggleArchive,
+  duplicateNote
 } from '@/controllers/notesController';
 import { authenticate } from '@/middleware/auth';
 import {
@@ -29,8 +30,8 @@ router.get('/', getNotes);
 // GET /api/v1/notes/search - Search notes
 router.get('/search', searchNotes);
 
-// GET /api/v1/notes/pinned - Get pinned notes
-router.get('/pinned', getPinnedNotes);
+// GET /api/v1/notes/stats - Get note statistics
+router.get('/stats', getNoteStats);
 
 // GET /api/v1/notes/tags - Get all unique tags
 router.get('/tags', getNoteTags);
@@ -54,10 +55,16 @@ router.put('/:id',
   updateNote
 );
 
-// PATCH /api/v1/notes/:id/pin - Toggle note pin status
-router.patch('/:id/pin', 
-  validateNoteId, 
-  togglePin
+// PATCH /api/v1/notes/:id/archive - Toggle archive status
+router.patch('/:id/archive',
+  validateNoteId,
+  toggleArchive
+);
+
+// POST /api/v1/notes/:id/duplicate - Duplicate note
+router.post('/:id/duplicate',
+  validateNoteId,
+  duplicateNote
 );
 
 // DELETE /api/v1/notes/:id - Delete note

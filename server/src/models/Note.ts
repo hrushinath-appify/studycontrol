@@ -32,10 +32,7 @@ const noteSchema = new Schema<INote>(
       trim: true,
       maxlength: [50, 'Category cannot exceed 50 characters'],
     },
-    isPinned: {
-      type: Boolean,
-      default: false,
-    },
+
     isArchived: {
       type: Boolean,
       default: false,
@@ -88,7 +85,6 @@ const noteSchema = new Schema<INote>(
 
 // Indexes for better query performance
 noteSchema.index({ userId: 1, createdAt: -1 });
-noteSchema.index({ userId: 1, isPinned: -1, createdAt: -1 });
 noteSchema.index({ userId: 1, isArchived: 1 });
 noteSchema.index({ userId: 1, category: 1 });
 noteSchema.index({ userId: 1, tags: 1 });
@@ -106,11 +102,6 @@ noteSchema.pre('save', function (next) {
     this.tags = [...new Set(this.tags.map(tag => tag.toLowerCase().trim()))];
   }
   
-  // If archived, unpin the note
-  if (this.isModified('isArchived') && this.isArchived) {
-    this.isPinned = false;
-  }
-  
   next();
 });
 
@@ -126,15 +117,9 @@ noteSchema.statics.findByUserPaginated = function(
   const skip = (page - 1) * limit;
   const query = { userId, ...filters };
   
-  // Custom sort for pinned notes (pinned first, then by sort criteria)
+  // Sort by specified criteria
   const sort: any = {};
-  if (sortBy === 'pinned') {
-    sort.isPinned = -1;
-    sort.updatedAt = -1;
-  } else {
-    sort.isPinned = -1; // Always show pinned first
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-  }
+  sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
   
   return this.find(query)
     .sort(sort)
@@ -167,7 +152,7 @@ noteSchema.statics.searchNotes = function(
   }
   
   return this.find(baseQuery)
-    .sort({ isPinned: -1, updatedAt: -1 })
+    .sort({ updatedAt: -1 })
     .skip(skip)
     .limit(limit)
     .lean();
@@ -180,7 +165,7 @@ noteSchema.statics.getNotesByCategory = function(userId: string, category: strin
     category,
     isArchived: { $ne: true }
   })
-  .sort({ isPinned: -1, updatedAt: -1 })
+  .sort({ updatedAt: -1 })
   .lean();
 };
 
@@ -191,20 +176,11 @@ noteSchema.statics.getNotesByTag = function(userId: string, tag: string) {
     tags: tag,
     isArchived: { $ne: true }
   })
-  .sort({ isPinned: -1, updatedAt: -1 })
-  .lean();
-};
-
-// Static method to get pinned notes
-noteSchema.statics.getPinnedNotes = function(userId: string) {
-  return this.find({
-    userId,
-    isPinned: true,
-    isArchived: { $ne: true }
-  })
   .sort({ updatedAt: -1 })
   .lean();
 };
+
+
 
 // Static method to get archived notes
 noteSchema.statics.getArchivedNotes = function(userId: string, page: number = 1, limit: number = 10) {
@@ -228,9 +204,6 @@ noteSchema.statics.getUserNoteStats = async function(userId: string) {
       $group: {
         _id: null,
         totalNotes: { $sum: 1 },
-        pinnedNotes: {
-          $sum: { $cond: [{ $eq: ['$isPinned', true] }, 1, 0] }
-        },
         archivedNotes: {
           $sum: { $cond: [{ $eq: ['$isArchived', true] }, 1, 0] }
         },
@@ -245,7 +218,6 @@ noteSchema.statics.getUserNoteStats = async function(userId: string) {
     {
       $project: {
         totalNotes: 1,
-        pinnedNotes: 1,
         archivedNotes: 1,
         activeNotes: { $subtract: ['$totalNotes', '$archivedNotes'] },
         categories: { $filter: { input: '$categories', cond: { $ne: ['$$this', null] } } },
@@ -262,7 +234,6 @@ noteSchema.statics.getUserNoteStats = async function(userId: string) {
   
   const result = stats[0] || {
     totalNotes: 0,
-    pinnedNotes: 0,
     archivedNotes: 0,
     activeNotes: 0,
     categories: [],

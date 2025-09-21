@@ -149,7 +149,6 @@ export interface INote extends Document {
   content: string;
   tags: string[];
   category?: string;
-  isPinned: boolean;
   isArchived: boolean;
   color?: string;
   attachments?: string[];
@@ -280,7 +279,6 @@ export interface TaskQuery extends PaginationQuery {
 export interface NotesQuery extends PaginationQuery {
   category?: string;
   tags?: string;
-  isPinned?: string;
   isArchived?: string;
   search?: string;
 }

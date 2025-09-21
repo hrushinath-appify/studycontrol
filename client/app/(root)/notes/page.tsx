@@ -14,7 +14,6 @@ import {
   Tag,
   StickyNote,
   BookOpen,
-  Star,
   X,
   Check,
   Copy
@@ -285,45 +284,7 @@ const NotesPage = React.memo(() => {
     }
   }, [selectedNote?.id, refreshStats, isOnline])
 
-  const togglePin = useCallback(async (noteId: string) => {
-    try {
-      setOperationLoading(prev => ({ ...prev, toggle: true }))
-      setError(null)
-      
-      const updatedNote = await NotesApi.togglePin(noteId)
-      setNotes(prev => prev.map(note => 
-        note.id === noteId ? updatedNote : note
-      ))
-      
-      if (selectedNote?.id === noteId) {
-        setSelectedNote(updatedNote)
-      }
-      
-      // Refresh stats
-      await refreshStats()
-    } catch (error) {
-      console.error('Failed to toggle pin:', error)
-      
-      // Optimistically update UI even if API fails
-      setNotes(prev => prev.map(note => 
-        note.id === noteId ? { ...note, isPinned: !note.isPinned } : note
-      ))
-      
-      if (selectedNote?.id === noteId) {
-        setSelectedNote(prev => prev ? { ...prev, isPinned: !prev.isPinned } : null)
-      }
-      
-      if (!isOnline) {
-        setHasOfflineChanges(true)
-        setError('Pin status updated locally. Changes will sync when connection is restored.')
-      } else {
-        setError('Pin status updated locally, but may not be synced to server. Changes will sync when connection is restored.')
-      }
-      await refreshStats()
-    } finally {
-      setOperationLoading(prev => ({ ...prev, toggle: false }))
-    }
-  }, [selectedNote?.id, refreshStats, isOnline])
+
 
   const duplicateNote = useCallback(async (note: Note) => {
     try {
@@ -423,10 +384,7 @@ const NotesPage = React.memo(() => {
     setNewNoteContent(e.target.value)
   }, [])
 
-  const handleTogglePin = useCallback((e: React.MouseEvent, noteId: string) => {
-    e.stopPropagation()
-    togglePin(noteId)
-  }, [togglePin])
+
 
   const handleDeleteNote = useCallback((e: React.MouseEvent, noteId: string) => {
     e.stopPropagation()
@@ -445,9 +403,7 @@ const NotesPage = React.memo(() => {
     }
   }, [selectedNote, deleteNote])
 
-  const createTogglePinHandler = useCallback((noteId: string) => {
-    return (e: React.MouseEvent) => handleTogglePin(e, noteId)
-  }, [handleTogglePin])
+
 
   const createDeleteNoteHandler = useCallback((noteId: string) => {
     return (e: React.MouseEvent) => handleDeleteNote(e, noteId)
@@ -477,17 +433,13 @@ const NotesPage = React.memo(() => {
         // Ensure note has valid id
         if (!note || !note.id) return false
 
-        // If filtering by tag or pinned, apply those filters
-        if (filterTag === 'pinned') return note.isPinned;
+        // If filtering by tag, apply tag filter
         if (filterTag !== 'all') return note.tags && note.tags.includes(filterTag);
 
         // Otherwise, show all notes (including archived)
         return true;
       })
-      .sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1
-        if (!a.isPinned && b.isPinned) return 1
-        
+      .sort((a, b) => {        
         switch (sortBy) {
           case 'created':
             return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
@@ -584,7 +536,7 @@ const NotesPage = React.memo(() => {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" role="region" aria-label="Notes statistics">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6" role="region" aria-label="Notes statistics">
           <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 text-center hover:bg-card/50 transition-all duration-300">
             <div className="flex items-center justify-center mb-2" aria-hidden="true">
               <FileText className="w-6 h-6 text-primary" />
@@ -593,16 +545,6 @@ const NotesPage = React.memo(() => {
               {stats?.total || 0}
             </div>
             <div className="text-muted-foreground text-sm">Total Notes</div>
-          </div>
-          
-          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 text-center hover:bg-card/50 transition-all duration-300">
-            <div className="flex items-center justify-center mb-2" aria-hidden="true">
-              <Star className="w-6 h-6 text-yellow-500" />
-            </div>
-            <div className="text-2xl font-bold text-yellow-500 mb-1" aria-label={`${stats?.pinned || 0} pinned notes`}>
-              {stats?.pinned || 0}
-            </div>
-            <div className="text-muted-foreground text-sm">Pinned</div>
           </div>
           
           <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 text-center hover:bg-card/50 transition-all duration-300">
@@ -651,7 +593,6 @@ const NotesPage = React.memo(() => {
                     aria-label="Filter by tag"
                   >
                     <option value="all">All Notes</option>
-                    <option value="pinned">Pinned</option>
                     {allTags.map(tag => (
                       <option key={tag} value={tag}>{tag}</option>
                     ))}
@@ -690,7 +631,7 @@ const NotesPage = React.memo(() => {
             >
               {loading ? (
                 <div className="text-center py-8" role="status" aria-live="polite">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
                   <div className="text-muted-foreground">Loading notes...</div>
                 </div>
               ) : filteredNotes.length === 0 ? (
@@ -717,27 +658,14 @@ const NotesPage = React.memo(() => {
                     } ${operationLoading.delete || operationLoading.toggle ? 'opacity-50 pointer-events-none' : ''}`}
                     role="listitem"
                     tabIndex={0}
-                    aria-label={`Note: ${note.title || 'Untitled'}. ${note.isPinned ? 'Pinned. ' : ''}${note.wordCount || 0} words. Updated ${formatDate(note.updatedAt || new Date().toISOString())}.`}
+                    aria-label={`Note: ${note.title || 'Untitled'}. ${note.wordCount || 0} words. Updated ${formatDate(note.updatedAt || new Date().toISOString())}.`}
                     onKeyDown={createNoteKeyDownHandler(note)}
                   >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      {note.isPinned && <Star className="w-4 h-4 text-yellow-500 fill-current" aria-label="Pinned note" />}
                       <h3 className="font-semibold text-foreground truncate">{note.title || 'Untitled'}</h3>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={createTogglePinHandler(note.id)}
-                        className="p-1 hover:bg-accent/50 rounded focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        disabled={operationLoading.toggle}
-                        aria-label={note.isPinned ? 'Unpin note' : 'Pin note'}
-                      >
-                        {operationLoading.toggle ? (
-                          <div className="w-4 h-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-                        ) : (
-                          <Star className={`w-4 h-4 ${note.isPinned ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} />
-                        )}
-                      </button>
                       <button
                         onClick={createDeleteNoteHandler(note.id)}
                         className="p-1 hover:bg-accent/50 rounded text-muted-foreground hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -879,7 +807,6 @@ const NotesPage = React.memo(() => {
                     ) : (
                       <h2 className="text-xl font-semibold text-foreground">{selectedNote.title}</h2>
                     )}
-                    {selectedNote.isPinned && <Star className="w-5 h-5 text-yellow-500 fill-current" />}
                   </div>
                   
                   <div className="flex items-center gap-2">

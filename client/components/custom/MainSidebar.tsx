@@ -27,7 +27,7 @@ import {
   Sparkles,
   Heart,
   List,
-  Newspaper
+  // Newspaper,
 } from "lucide-react"
 import { useAuth } from "@/components/AuthProvider"
 
@@ -43,11 +43,11 @@ const mainItems = [
     url: "/mystery",
     icon: Sparkles,
   },
-  {
-    title: "MBBS News",
-    url: "/news",
-    icon: Newspaper,
-  },
+  // {
+  //   title: "MBBS News",
+  //   url: "/news",
+  //   icon: Newspaper,
+  // },
   {
     title: "Focus",
     url: "/focus",

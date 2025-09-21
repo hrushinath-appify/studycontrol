@@ -158,6 +158,67 @@ export async function parseRequestBody(request: Request): Promise<Record<string,
 }
 
 // =============================================================================
+// USER STATS API FUNCTIONS
+// =============================================================================
+
+export interface UserStats {
+  diaryHighestStreak: number
+  mysteryClicks: number
+  totalNotes: number
+  totalTasks: number
+  completedTasks: number
+  focusSessionsTotal: number
+  averageFocusTime: number
+}
+
+export async function fetchUserStats(): Promise<UserStats> {
+  try {
+    const response = await fetch('/api/stats', {
+      method: 'GET',
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Check if this is a client-side call (window is available)
+        if (typeof window !== 'undefined') {
+          // User is not authenticated - could redirect automatically
+          // For now, just throw the error to let the component handle it
+        }
+        throw new Error('Authentication required. Please log in to view your statistics.')
+      }
+      if (response.status === 403) {
+        throw new Error('Access denied. Please check your authentication.')
+      }
+      if (response.status >= 500) {
+        throw new Error('Server error. Please try again later or contact support.')
+      }
+      throw new Error(`Failed to fetch user stats: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.data
+  } catch (error) {
+    console.error('Error fetching user stats:', error)
+    
+    if (error instanceof Error) {
+      throw error // Re-throw with the specific error message
+    }
+    
+    // Return default stats if API fails for unknown reasons
+    return {
+      diaryHighestStreak: 0,
+      mysteryClicks: 0,
+      totalNotes: 0,
+      totalTasks: 0,
+      completedTasks: 0,
+      focusSessionsTotal: 0,
+      averageFocusTime: 0
+    }
+  }
+}
+
+// =============================================================================
 // AUTHENTICATION HELPERS
 // =============================================================================
 
