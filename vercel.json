@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "monorepo": false,
   "buildCommand": "cd client && npm install && npm run build",
   "outputDirectory": "client/.next",
   "installCommand": "npm install && cd client && npm install && cd ../server && npm install",
