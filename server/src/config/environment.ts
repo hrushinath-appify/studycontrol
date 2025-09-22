@@ -75,9 +75,9 @@ export const config: Config = {
   
   // JWT Configuration
   JWT_SECRET: process.env.JWT_SECRET!,
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1h',
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET!,
-  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   
   // Email Configuration
   EMAIL_FROM: process.env.EMAIL_FROM || 'noreply@studycontrol.com',

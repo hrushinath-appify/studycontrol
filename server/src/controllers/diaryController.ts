@@ -16,30 +16,10 @@ import { calculateDiaryStreaks } from '../utils/streakCalculator';
 
 // Get all diary entries for a user
 export const getDiaryEntries = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  console.log('User object:', JSON.stringify(req.user, null, 2));
   const userId = req.user!._id || req.user!.id;
-  console.log('User ID:', userId, 'Type:', typeof userId);
   
   // Convert to string if it's an ObjectId
   const userIdString = userId.toString();
-  console.log('User ID as string:', userIdString);
-  
-  // Test if it's a valid ObjectId
-  const mongoose = require('mongoose');
-  const ObjectId = mongoose.Types.ObjectId;
-  console.log('Is valid ObjectId:', ObjectId.isValid(userIdString));
-  
-  // Test the filter object
-  const filters = { userId: userIdString };
-  console.log('Filter object:', filters);
-  
-  // Test the DiaryEntry.find() call
-  try {
-    const testEntries = await DiaryEntry.find(filters);
-    console.log('Test query successful, found entries:', testEntries.length);
-  } catch (error) {
-    console.log('Test query failed:', error instanceof Error ? error.message : String(error));
-  }
   const { 
     page, 
     limit, 
@@ -132,11 +112,6 @@ export const getDiaryEntry = asyncHandler(async (req: AuthenticatedRequest, res:
       id: entry._id.toString(),
       _id: undefined // Remove the _id field
     };
-
-    console.log('=== Single Entry Response Debug ===');
-    console.log('Entry ID:', entryWithStringId.id);
-    console.log('Entry ID type:', typeof entryWithStringId.id);
-    console.log('Entry ID length:', entryWithStringId.id?.length);
 
     res.json(createSuccessResponse(
       entryWithStringId,

@@ -59,7 +59,9 @@ async function fetchQuoteFromAPI(): Promise<Quote> {
 
 // Function to handle successful quote response
 function sendQuoteResponse(res: Response, quote: Quote, logMessage: string) {
-  console.log(logMessage);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(logMessage);
+  }
   res.json({
     success: true,
     data: quote,
@@ -69,7 +71,9 @@ function sendQuoteResponse(res: Response, quote: Quote, logMessage: string) {
 
 // Function to handle service unavailable response
 function sendServiceUnavailableResponse(res: Response, error: Error, logMessage: string) {
-  console.error(logMessage, error.message);
+  if (process.env.NODE_ENV === 'development') {
+    console.error(logMessage, error.message);
+  }
   res.status(503).json({
     success: false,
     error: 'Quote service temporarily unavailable',

@@ -90,6 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       setUser(data.data.user)
+      
       toast.success(toastMessages.auth.loginSuccess, `Welcome back, ${data.data.user.name}!`)
       router.push('/home')
       
@@ -238,6 +239,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Logout error:', error)
       // Still log out the user locally even if the server request fails
       localStorage.removeItem('auth-token')
+      
       setUser(null)
       toast.error(toastMessages.auth.logoutError)
       router.push('/login')

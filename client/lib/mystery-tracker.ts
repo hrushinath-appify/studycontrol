@@ -1,149 +1,137 @@
 // Mystery exploration tracking utility
-// Tracks user clicks on the "Unleash Mystery" button using local storage and database sync
-
-import { apiRequest, buildApiUrl } from './api-utils'
-import { AuthApi } from './api/auth'
+// Tracks user clicks on the "Unleash Mystery" button using database storage
 
 // Constants
-const MYSTERY_STORAGE_KEY = 'mystery-exploration-stats'
 const MYSTERY_EVENT = 'mysteryExplorationUpdated'
 
 export interface MysteryStats {
   count: number
 }
 
-// Get current mystery exploration count
-export function getMysteryExplorationCount(): number {
-  if (typeof window === 'undefined') return 0
-  
+// Get current mystery exploration count from server
+export async function getMysteryExplorationCount(): Promise<number> {
   try {
-    const stored = localStorage.getItem(MYSTERY_STORAGE_KEY)
-    if (!stored) return 0
-    
-    const data = JSON.parse(stored) as MysteryStats
-    return data.count || 0
+    const response = await fetch('/api/stats', {
+      method: 'GET',
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      console.error('Failed to fetch mystery count from server')
+      return 0
+    }
+
+    const data = await response.json()
+    return data.data?.mysteryClicks || 0
   } catch (error) {
-    console.error('Error reading mystery exploration count:', error)
+    console.error('Error reading mystery exploration count from server:', error)
     return 0
   }
 }
 
-// Get full mystery stats
-export function getMysteryStats(): MysteryStats {
-  if (typeof window === 'undefined') {
-    return { count: 0 }
-  }
-  
+// Get full mystery stats from server
+export async function getMysteryStats(): Promise<MysteryStats> {
   try {
-    const stored = localStorage.getItem(MYSTERY_STORAGE_KEY)
-    if (!stored) {
-      return { count: 0 }
-    }
-    
-    const data = JSON.parse(stored) as MysteryStats
-    return {
-      count: data.count || 0
-    }
+    const count = await getMysteryExplorationCount()
+    return { count }
   } catch (error) {
-    console.error('Error reading mystery stats:', error)
+    console.error('Error reading mystery stats from server:', error)
     return { count: 0 }
   }
 }
 
 // Track mystery exploration on server
 async function trackMysteryExplorationOnServer(): Promise<void> {
-  // Only attempt server tracking if user is authenticated
-  if (!AuthApi.isAuthenticated()) {
-    console.log('User not authenticated, skipping server tracking')
-    return
-  }
-
   try {
-    await apiRequest(buildApiUrl('/mystery/track'), {
+    console.log('Attempting to track mystery exploration...')
+    
+    // Use the Next.js API route instead of direct backend call
+    const response = await fetch('/api/mystery/track', {
       method: 'POST',
-      body: JSON.stringify({}) // Send empty JSON object to satisfy server's JSON validation
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({})
     })
+
+    console.log('Mystery tracking response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Mystery tracking error response:', errorText)
+      
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = { error: errorText || `HTTP ${response.status}` }
+      }
+      
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    console.log('Mystery tracking success:', data)
   } catch (error) {
     console.error('Failed to track mystery exploration on server:', error)
-    // Don't throw here - we want localStorage tracking to still work even if server is down
+    throw error // Throw error so caller knows it failed
   }
 }
 
 // Increment mystery exploration count
 export async function incrementMysteryExploration(): Promise<number> {
-  if (typeof window === 'undefined') return 0
-  
   try {
-    const currentStats = getMysteryStats()
-    const newStats: MysteryStats = {
-      count: currentStats.count + 1
-    }
+    // Track on server first
+    await trackMysteryExplorationOnServer()
     
-    // Update localStorage immediately for responsive UI
-    localStorage.setItem(MYSTERY_STORAGE_KEY, JSON.stringify(newStats))
+    // Get updated count from server
+    const newCount = await getMysteryExplorationCount()
     
     // Dispatch custom event for real-time updates
-    window.dispatchEvent(new CustomEvent(MYSTERY_EVENT, {
-      detail: newStats
-    }))
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(MYSTERY_EVENT, {
+        detail: { count: newCount }
+      }))
+    }
     
-    // Sync with server in background
-    trackMysteryExplorationOnServer()
-    
-    return newStats.count
+    return newCount
   } catch (error) {
     console.error('Error incrementing mystery exploration:', error)
-    return getMysteryExplorationCount()
+    // Return current count as fallback
+    return await getMysteryExplorationCount()
   }
 }
 
-// Reset mystery exploration count (for testing/debugging)
+// No longer needed - stats are in database
 export function resetMysteryExplorations(): void {
-  if (typeof window === 'undefined') return
-  
-  try {
-    localStorage.removeItem(MYSTERY_STORAGE_KEY)
-    
-    // Dispatch reset event
-    window.dispatchEvent(new CustomEvent(MYSTERY_EVENT, {
-      detail: { count: 0 }
-    }))
-  } catch (error) {
-    console.error('Error resetting mystery explorations:', error)
-  }
+  console.warn('resetMysteryExplorations is deprecated - mystery stats are now stored in database')
 }
 
-// Sync localStorage count with server count
+// No longer needed - stats are in database  
+export function initializeMysteryStatsForUser(_userId?: string): void {
+  console.warn('initializeMysteryStatsForUser is deprecated - mystery stats are now stored in database')
+}
+
+// No longer needed - stats are in database
+export function clearAllMysteryStats(): void {
+  console.warn('clearAllMysteryStats is deprecated - mystery stats are now stored in database')
+}
+
+// Sync with server (now just fetches latest data)
 export async function syncMysteryStatsWithServer(): Promise<void> {
-  if (typeof window === 'undefined') return
-  
   try {
-    // Fetch current stats from server
-    const response = await fetch('/api/stats', {
-      method: 'GET',
-      credentials: 'include',
-    })
+    // Get latest count from server and dispatch update event
+    const count = await getMysteryExplorationCount()
     
-    if (response.ok) {
-      const data = await response.json()
-      const serverMysteryCount = data.data?.mysteryClicks || 0
-      const localCount = getMysteryExplorationCount()
-      
-      // If server has more clicks than local, update local to match server
-      // This helps with cross-device sync
-      if (serverMysteryCount > localCount) {
-        const newStats: MysteryStats = { count: serverMysteryCount }
-        localStorage.setItem(MYSTERY_STORAGE_KEY, JSON.stringify(newStats))
-        
-        // Dispatch update event
-        window.dispatchEvent(new CustomEvent(MYSTERY_EVENT, {
-          detail: newStats
-        }))
-      }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(MYSTERY_EVENT, {
+        detail: { count }
+      }))
     }
   } catch (error) {
     console.error('Failed to sync mystery stats with server:', error)
-    // Don't throw - sync is optional
+    // Don't throw - sync is optional for UI updates
   }
 }
 

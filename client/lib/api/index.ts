@@ -28,7 +28,7 @@ export * from './quotes'
 
 // Re-export common types from API modules
 export type { Quote } from './quotes'
-export type { MysteryTopic } from '../mock-data/mystery-topics'
+export type { MysteryTopic } from '../mock-data/medicine'
 export type { MockNewsArticle, MockResearchPaper } from '../mock-data/news-articles'
 
 // Base API configuration

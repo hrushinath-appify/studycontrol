@@ -23,8 +23,8 @@ export async function getRandomQuote(): Promise<Quote> {
     id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     quote: localQuote.text,
     author: localQuote.author,
-    category: localQuote.category as Quote['category'],
-    tags: localQuote.tags
+    category: (localQuote.category as Quote['category']) || 'motivation',
+    tags: localQuote.tags || []
   }
   
   console.log('✅ Local quote loaded:', quote.quote.substring(0, 50) + '...')
@@ -48,8 +48,8 @@ export async function getQuoteOfTheDay(): Promise<Quote> {
     id: `daily-${today}-${index}`,
     quote: dailyQuote.text,
     author: dailyQuote.author,
-    category: dailyQuote.category as Quote['category'],
-    tags: dailyQuote.tags
+    category: (dailyQuote.category as Quote['category']) || 'motivation',
+    tags: dailyQuote.tags || []
   }
   
   console.log('✅ Daily quote loaded')
@@ -63,8 +63,8 @@ export async function getQuotes(): Promise<Quote[]> {
     id: q.id,
     quote: q.text,
     author: q.author,
-    category: q.category as Quote['category'],
-    tags: q.tags
+    category: (q.category as Quote['category']) || 'motivation',
+    tags: q.tags || []
   }))
 }
 

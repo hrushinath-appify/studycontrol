@@ -1,6 +1,8 @@
 // Mock data for user-related functionality
 // This provides sample data for development and testing
 
+import type { Goal } from '../api/user'
+
 export interface MockStudyStats {
   totalStudyTime: number // in minutes
   sessionsToday: number
@@ -21,6 +23,11 @@ export interface MockAppSettings {
     achievements: boolean
     dailyGoals: boolean
     email: boolean
+  }
+  appearance: {
+    theme: 'light' | 'dark' | 'system'
+    fontSize: 'small' | 'medium' | 'large'
+    compactMode: boolean
   }
   study: {
     defaultSessionLength: number
@@ -46,7 +53,8 @@ export interface MockGoal {
   unit: string
   category: 'study' | 'health' | 'personal' | 'academic'
   deadline: string
-  isCompleted: boolean
+  priority: 'low' | 'medium' | 'high'
+  status: 'active' | 'completed' | 'paused'
   createdAt: string
 }
 
@@ -82,7 +90,23 @@ export const mockUser = {
   preferences: {
     theme: 'system' as const,
     language: 'en',
-    timezone: 'America/New_York'
+    notifications: true,
+    studyReminders: true
+  },
+  profile: {
+    institution: 'Example University',
+    course: 'Computer Science',
+    year: 3,
+    specialization: 'Software Engineering',
+    goals: ['Graduate with honors', 'Learn machine learning', 'Build apps']
+  },
+  stats: {
+    studyStreak: 7,
+    totalStudyHours: 47.5,
+    completedTasks: 89,
+    notesCreated: 156,
+    averageStudyTime: 45,
+    productivityScore: 85
   }
 }
 
@@ -109,6 +133,11 @@ export const defaultAppSettings: MockAppSettings = {
     dailyGoals: true,
     email: false
   },
+  appearance: {
+    theme: 'system',
+    fontSize: 'medium',
+    compactMode: false
+  },
   study: {
     defaultSessionLength: 25, // minutes
     shortBreakLength: 5, // minutes
@@ -125,7 +154,7 @@ export const defaultAppSettings: MockAppSettings = {
 }
 
 // Mock goals
-export const mockGoals: MockGoal[] = [
+export const mockGoals: Goal[] = [
   {
     id: 'goal-1',
     title: 'Study 20 hours this week',
@@ -135,7 +164,8 @@ export const mockGoals: MockGoal[] = [
     unit: 'minutes',
     category: 'study',
     deadline: '2025-09-28T23:59:59Z',
-    isCompleted: false,
+    priority: 'high',
+    status: 'active',
     createdAt: '2025-09-16T09:00:00Z'
   },
   {
@@ -147,7 +177,8 @@ export const mockGoals: MockGoal[] = [
     unit: 'days',
     category: 'study',
     deadline: '2025-10-22T23:59:59Z',
-    isCompleted: false,
+    priority: 'medium',
+    status: 'active',
     createdAt: '2025-09-15T10:00:00Z'
   },
   {
@@ -159,7 +190,8 @@ export const mockGoals: MockGoal[] = [
     unit: 'percent',
     category: 'academic',
     deadline: '2025-12-15T23:59:59Z',
-    isCompleted: false,
+    priority: 'high',
+    status: 'active',
     createdAt: '2025-08-01T12:00:00Z'
   },
   {
@@ -171,7 +203,8 @@ export const mockGoals: MockGoal[] = [
     unit: 'papers',
     category: 'academic',
     deadline: '2025-09-30T23:59:59Z',
-    isCompleted: true,
+    priority: 'medium',
+    status: 'completed',
     createdAt: '2025-09-01T14:00:00Z'
   }
 ]

@@ -7,7 +7,6 @@ import mysteryRoutes from './mystery';
 import focusRoutes from './focus';
 import quotesRoutes from './quotes';
 import statsRoutes from './statsRoutes';
-import testRoutes from './test';
 
 const router = Router();
 
@@ -30,7 +29,6 @@ router.use('/mystery', mysteryRoutes);
 router.use('/focus', focusRoutes);
 router.use('/quotes', quotesRoutes);
 router.use('/stats', statsRoutes);
-router.use('/test', testRoutes);
 
 // 404 handler for undefined routes
 router.use('*', (req, res) => {

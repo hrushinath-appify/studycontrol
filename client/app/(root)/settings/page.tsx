@@ -92,8 +92,8 @@ const SettingsPage = () => {
       setStatsError(null) // Clear any previous errors
       const stats = await fetchUserStats()
       
-      // Always use localStorage for mystery count to ensure consistency
-      const mysteryCount = getMysteryExplorationCount()
+      // Get mystery count from server (now async)
+      const mysteryCount = await getMysteryExplorationCount()
       
       setUserStats({
         ...stats,
@@ -132,8 +132,12 @@ const SettingsPage = () => {
         }
       }
       
-      // Get mystery explorations from new tracking system
-      fallbackStats.mysteryClicks = getMysteryExplorationCount()
+      // Get mystery explorations from server (async)
+      try {
+        fallbackStats.mysteryClicks = await getMysteryExplorationCount()
+      } catch {
+        fallbackStats.mysteryClicks = 0 // Fallback to 0 if server fails
+      }
       
       setUserStats(fallbackStats)
     } finally {
@@ -144,15 +148,32 @@ const SettingsPage = () => {
   useEffect(() => {
     setMounted(true)
     
-    // Sync mystery count from localStorage on mount
-    const mysteryCount = getMysteryExplorationCount()
-    setUserStats(prev => ({
-      ...prev,
-      mysteryClicks: mysteryCount
-    }))
+    // Load initial mystery count from server
+    const loadInitialMysteryCount = async () => {
+      try {
+        const mysteryCount = await getMysteryExplorationCount()
+        setUserStats(prev => ({
+          ...prev,
+          mysteryClicks: mysteryCount
+        }))
+      } catch (error) {
+        console.error('Error loading initial mystery count:', error)
+        // Fallback to 0 if server fails
+        setUserStats(prev => ({
+          ...prev,
+          mysteryClicks: 0
+        }))
+      }
+    }
     
-    // Sync mystery stats with server
-    syncMysteryStatsWithServer()
+    loadInitialMysteryCount()
+    
+    // Sync mystery stats with server after a short delay to ensure initialization is complete
+    const syncTimer = setTimeout(() => {
+      syncMysteryStatsWithServer()
+    }, 500)
+
+    return () => clearTimeout(syncTimer)
   }, [])
 
   // Load initial data
@@ -573,7 +594,9 @@ const SettingsPage = () => {
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-primary">{userStats.mysteryClicks}</div>
-                <div className="text-xs text-muted-foreground">explorations</div>
+                <div className="text-xs text-muted-foreground">
+                  {userStats.mysteryClicks === 0 ? 'none yet' : userStats.mysteryClicks === 1 ? 'exploration' : 'explorations'}
+                </div>
               </div>
             </div>
           </CardContent>
