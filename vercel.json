@@ -6,26 +6,18 @@
       "use": "@vercel/next"
     },
     {
-      "src": "server/src/vercel.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["server/src/**", "server/package.json"],
-        "maxLambdaSize": "50mb"
-      }
+      "src": "api/health.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/v1/(.*)",
-      "dest": "server/src/vercel.ts"
-    },
-    {
       "src": "/health",
-      "dest": "server/src/vercel.ts"
+      "dest": "api/health.js"
     },
     {
       "src": "/api/debug",
-      "dest": "server/src/vercel.ts"
+      "dest": "api/health.js"
     },
     {
       "src": "/api/(.*)",
@@ -35,8 +27,5 @@
       "src": "/(.*)",
       "dest": "client/$1"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
