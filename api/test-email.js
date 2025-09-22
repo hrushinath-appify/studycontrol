@@ -1,11 +1,4 @@
-// Simple email test endpoint
-try {
-  const nodemailer = require('nodemailer');
-  console.log('✅ Nodemailer loaded:', typeof nodemailer);
-} catch (error) {
-  console.error('❌ Failed to load nodemailer:', error);
-}
-
+// Simple email test endpoint to check dependencies
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -15,55 +8,52 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    console.log('🔧 Starting email test...');
+    // Check what's available in require.cache
+    const availableModules = Object.keys(require.cache);
     
-    const nodemailer = require('nodemailer');
-    console.log('🔧 Nodemailer type:', typeof nodemailer);
-    console.log('🔧 Nodemailer keys:', Object.keys(nodemailer));
+    // Try to require nodemailer
+    let nodemailerStatus = 'not-available';
+    let nodemailerError = null;
     
-    // Create transporter
-    const transporter = nodemailer.createTransporter({
-      service: 'gmail',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+    try {
+      const nodemailer = require('nodemailer');
+      nodemailerStatus = typeof nodemailer;
+      console.log('Nodemailer object:', nodemailer);
+    } catch (error) {
+      nodemailerError = error.message;
+    }
 
-    console.log('🔧 Transporter created, testing...');
-    
-    // Verify connection
-    await transporter.verify();
-    console.log('✅ Transporter verified');
-
-    // Send test email
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: 'hrushinath29@gmail.com',
-      subject: 'Test Email from StudyControl',
-      text: 'This is a test email from your StudyControl application.',
-      html: '<p>This is a test email from your StudyControl application.</p>'
-    });
-
-    console.log('✅ Email sent:', info.messageId);
+    // Check if bcrypt is available
+    let bcryptStatus = 'not-available';
+    try {
+      const bcrypt = require('bcryptjs');
+      bcryptStatus = typeof bcrypt;
+    } catch (error) {
+      bcryptStatus = 'error: ' + error.message;
+    }
 
     return res.json({
       success: true,
-      messageId: info.messageId,
-      message: 'Email sent successfully'
+      dependencies: {
+        nodemailer: nodemailerStatus,
+        nodemailerError,
+        bcrypt: bcryptStatus
+      },
+      environment: {
+        nodeVersion: process.version,
+        platform: process.platform,
+        cwd: process.cwd(),
+        moduleLoadPath: require.resolve.paths('nodemailer')
+      },
+      availableModulesCount: availableModules.length,
+      sampleModules: availableModules.slice(0, 10)
     });
 
   } catch (error) {
-    console.error('❌ Email test failed:', error);
     return res.status(500).json({
       success: false,
-      error: error.message,
-      details: error.toString()
+      error: error.message
     });
   }
 };
