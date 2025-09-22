@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "monorepo": false,
+  "buildCommand": "cd client && npm install && npm run build",
+  "outputDirectory": "client/.next",
+  "installCommand": "npm install && cd client && npm install && cd ../server && npm install",
+  "builds": [
+    {
+      "src": "client/next.config.ts",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "server/src/vercel.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server/src/vercel.ts"
+    },
+    {
+      "src": "/health",
+      "dest": "server/src/vercel.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "client/$1"
+    }
+  ],
+  "functions": {
+    "server/src/vercel.ts": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

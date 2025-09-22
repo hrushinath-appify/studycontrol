@@ -15,7 +15,6 @@ const nextConfig: NextConfig = {
         as: "*.js",
       },
     },
-    root: "/Users/rishi/studyControl/client",
   },
   
   // Output configuration for production builds
@@ -103,7 +102,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: process.env.NODE_ENV === "development" 
               ? "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' http://localhost:5000 ws: wss: localhost:*;"
-              : "default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self';",
+              : "default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https: wss:;",
           },
         ],
       },
