@@ -16,6 +16,10 @@
     {
       "src": "api/debug-env.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/test-email.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -34,6 +38,10 @@
     {
       "src": "/debug-env",
       "dest": "api/debug-env.js"
+    },
+    {
+      "src": "/test-email",
+      "dest": "api/test-email.js"
     },
     {
       "src": "/(.*)",
