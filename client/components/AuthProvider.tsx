@@ -104,6 +104,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('auth-token', data.data.accessToken)
       }
       
+      // Create server-side session cookie by calling a session endpoint
+      try {
+        await fetch('/api/auth/create-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ user: data.data.user }),
+        });
+      } catch (error) {
+        console.warn('Failed to create session cookie:', error);
+      }
+      
       setUser(data.data.user)
       
       toast.success(toastMessages.auth.loginSuccess, `Welcome back, ${data.data.user.name}!`)
