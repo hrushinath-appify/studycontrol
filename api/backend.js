@@ -17,7 +17,7 @@ function createEmailTransporter() {
 
   if (process.env.SMTP_HOST === 'smtp.gmail.com') {
     // Gmail specific configuration
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.SMTP_USER,
@@ -26,7 +26,7 @@ function createEmailTransporter() {
     });
   } else {
     // Generic SMTP configuration
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
