@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     await connectToDatabase()
 
     // Find user
-    const user = await User.findById(decoded.userId)
+    const user = await User.findById(decoded.userId).exec()
     if (!user || !user.isActive) {
       return NextResponse.json({
         success: false,
