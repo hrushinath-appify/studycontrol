@@ -8,41 +8,43 @@ const users = new Map();
 
 // Create email transporter
 function createEmailTransporter() {
-  return nodemailer.createTransporter({
+  console.log('🔧 Creating email transporter with config:', {
     host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
+    port: process.env.SMTP_PORT,
+    user: process.env.SMTP_USER ? process.env.SMTP_USER : 'missing',
+    pass: process.env.SMTP_PASS ? '***' : 'missing'
   });
+
+  if (process.env.SMTP_HOST === 'smtp.gmail.com') {
+    // Gmail specific configuration
+    return nodemailer.createTransporter({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  } else {
+    // Generic SMTP configuration
+    return nodemailer.createTransporter({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  }
 }
 
 // Send verification email
 async function sendVerificationEmail(email, name, token) {
   try {
     console.log('🔧 Attempting to send email to:', email);
-    console.log('🔧 SMTP Config:', {
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      user: process.env.SMTP_USER ? '***' : 'missing',
-      pass: process.env.SMTP_PASS ? '***' : 'missing'
-    });
-
-    const transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      // Add debug options
-      debug: true,
-      logger: true
-    });
-
+    
+    const transporter = createEmailTransporter();
+    
     // Verify transporter configuration
     console.log('🔧 Verifying transporter...');
     await transporter.verify();
@@ -51,7 +53,7 @@ async function sendVerificationEmail(email, name, token) {
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${token}`;
     
     const mailOptions = {
-      from: `"${process.env.EMAIL_FROM_NAME || 'StudyControl'}" <${process.env.EMAIL_FROM}>`,
+      from: process.env.EMAIL_FROM,
       to: email,
       subject: 'Verify Your StudyControl Account',
       html: `
@@ -81,14 +83,7 @@ async function sendVerificationEmail(email, name, token) {
     console.log('✅ Email sent successfully:', result.messageId);
     return true;
   } catch (error) {
-    console.error('❌ Email sending failed with error:', error);
-    console.error('❌ Error details:', {
-      message: error.message,
-      code: error.code,
-      command: error.command,
-      response: error.response,
-      responseCode: error.responseCode
-    });
+    console.error('❌ Email sending failed with error:', error.message);
     return false;
   }
 }
