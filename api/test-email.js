@@ -1,5 +1,10 @@
 // Simple email test endpoint
-const nodemailer = require('nodemailer');
+try {
+  const nodemailer = require('nodemailer');
+  console.log('✅ Nodemailer loaded:', typeof nodemailer);
+} catch (error) {
+  console.error('❌ Failed to load nodemailer:', error);
+}
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,6 +21,10 @@ module.exports = async function handler(req, res) {
 
   try {
     console.log('🔧 Starting email test...');
+    
+    const nodemailer = require('nodemailer');
+    console.log('🔧 Nodemailer type:', typeof nodemailer);
+    console.log('🔧 Nodemailer keys:', Object.keys(nodemailer));
     
     // Create transporter
     const transporter = nodemailer.createTransporter({
