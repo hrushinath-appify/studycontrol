@@ -5,6 +5,8 @@ export async function POST(request: NextRequest) {
   try {
     const { user } = await request.json()
     
+    console.log('Creating session for user:', { id: user?.id, email: user?.email })
+    
     if (!user || !user.id) {
       return NextResponse.json(
         { success: false, error: 'User data required' },
@@ -13,7 +15,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Create the session cookie
-    await createSecureSession(user)
+    const sessionToken = await createSecureSession(user)
+    
+    console.log('Session created successfully, token length:', sessionToken.length)
     
     return NextResponse.json({ 
       success: true, 

@@ -106,7 +106,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       // Create server-side session cookie by calling a session endpoint
       try {
-        await fetch('/api/auth/create-session', {
+        console.log('Creating session for user:', data.data.user.email)
+        const sessionResponse = await fetch('/api/auth/create-session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -114,14 +115,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
           credentials: 'include',
           body: JSON.stringify({ user: data.data.user }),
         });
+        
+        const sessionResult = await sessionResponse.json()
+        console.log('Session creation result:', sessionResult)
+        
+        if (!sessionResponse.ok) {
+          console.error('Session creation failed:', sessionResult)
+          throw new Error('Failed to create session')
+        }
       } catch (error) {
-        console.warn('Failed to create session cookie:', error);
+        console.error('Failed to create session cookie:', error);
+        // Don't fail the login, but warn the user
+        toast.error('Session Error', 'Login successful but session creation failed. Please refresh the page.');
+        return
       }
       
       setUser(data.data.user)
       
       toast.success(toastMessages.auth.loginSuccess, `Welcome back, ${data.data.user.name}!`)
-      router.push('/home')
+      
+      // Small delay to ensure session cookie is properly set before redirect
+      setTimeout(() => {
+        router.push('/home')
+      }, 100)
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Login failed"

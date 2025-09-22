@@ -50,7 +50,10 @@ export async function verifySecureSession(): Promise<Session | null> {
     const cookieStore = await cookies()
     const token = cookieStore.get('session-token')?.value
 
+    console.log('Verifying session, token exists:', !!token, 'token length:', token?.length || 0)
+
     if (!token) {
+      console.log('No session token found')
       return null
     }
 
@@ -58,17 +61,23 @@ export async function verifySecureSession(): Promise<Session | null> {
       algorithms: ['HS256'],
     })
 
+    console.log('JWT verification successful, payload:', { userId: payload.userId, email: payload.email })
+
     // Reconstruct session from JWT payload
     const sessionData = payload as unknown as SessionJWTPayload
     
     if (!sessionData.userId || !sessionData.expires) {
+      console.log('Missing required session data:', { userId: !!sessionData.userId, expires: !!sessionData.expires })
       return null
     }
 
     // Check if session is expired
     if (new Date(sessionData.expires) < new Date()) {
+      console.log('Session expired:', sessionData.expires)
       return null
     }
+
+    console.log('Session verified successfully for user:', sessionData.email)
 
     const session: Session = {
       user: {
