@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import fetch from 'node-fetch';
 
 const router = Router();
 
@@ -34,15 +33,23 @@ function convertZenQuoteToQuote(zenQuote: ZenQuoteResponse): Quote {
 
 // Fetch quote from external API (no fallback - throws error if API fails)
 async function fetchQuoteFromAPI(): Promise<Quote> {
-  const response = await fetch('https://zenquotes.io/api/random', {
+  const url = 'https://zenquotes.io/api/random';
+  
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
       'User-Agent': 'StudyControl-Backend/1.0'
     },
-    timeout: 6000
+    signal: controller.signal
   });
+
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     throw new Error(`ZenQuotes API returned ${response.status}: ${response.statusText}`);
