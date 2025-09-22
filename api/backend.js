@@ -1,10 +1,122 @@
-// Backend API with real database and email functionality
+// Backend API with MongoDB and email functionality
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
-// Simple user storage for now (you can replace with MongoDB later)
-const users = new Map();
+// MongoDB connection singleton
+let isConnected = false;
+
+async function connectToDatabase() {
+  if (isConnected) {
+    return;
+  }
+
+  try {
+    mongoose.set('strictQuery', true);
+    await mongoose.connect(process.env.MONGODB_URI, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      bufferCommands: false,
+    });
+    isConnected = true;
+    console.log('✅ Connected to MongoDB');
+  } catch (error) {
+    console.error('❌ Failed to connect to MongoDB:', error);
+    throw error;
+  }
+}
+
+// User Schema
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  avatar: {
+    type: String,
+    default: null,
+  },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user',
+  },
+  preferences: {
+    theme: {
+      type: String,
+      enum: ['light', 'dark', 'system'],
+      default: 'system',
+    },
+    studyReminders: {
+      type: Boolean,
+      default: true,
+    },
+    appUpdates: {
+      type: Boolean,
+      default: true,
+    },
+    emailNotifications: {
+      type: Boolean,
+      default: true,
+    },
+    soundEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    language: {
+      type: String,
+      default: 'en',
+    },
+  },
+  profile: {
+    timezone: {
+      type: String,
+      default: 'UTC',
+    },
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  emailVerificationToken: {
+    type: String,
+  },
+  emailVerificationExpires: {
+    type: Date,
+  },
+  lastLoginAt: {
+    type: Date,
+  },
+}, {
+  timestamps: true,
+  toJSON: {
+    transform: function(doc, ret) {
+      ret.id = ret._id.toString();
+      delete ret._id;
+      delete ret.__v;
+      delete ret.password;
+      delete ret.emailVerificationToken;
+      return ret;
+    },
+  },
+});
+
+// Get User model (create if doesn't exist)
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Create email transporter
 function createEmailTransporter() {
@@ -127,8 +239,12 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      // Connect to database
+      await connectToDatabase();
+
       // Check if user already exists
-      if (users.has(email.toLowerCase())) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
         return res.status(409).json({
           success: false,
           error: 'User already exists with this email'
@@ -143,8 +259,7 @@ module.exports = async function handler(req, res) {
       const hashedVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
 
       // Create user
-      const user = {
-        id: crypto.randomUUID(),
+      const user = new User({
         name: name.trim(),
         email: email.toLowerCase().trim(),
         password: hashedPassword,
@@ -152,23 +267,10 @@ module.exports = async function handler(req, res) {
         isEmailVerified: false,
         emailVerificationToken: hashedVerificationToken,
         emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        role: 'user',
-        preferences: {
-          theme: 'system',
-          studyReminders: true,
-          appUpdates: true,
-          emailNotifications: true,
-          soundEnabled: true,
-          language: 'en',
-        },
-        profile: {
-          timezone: 'UTC',
-        },
-        createdAt: new Date(),
-      };
+      });
 
-      // Store user
-      users.set(email.toLowerCase(), user);
+      // Save user to database
+      await user.save();
 
       // Send verification email
       let emailSent = false;
@@ -178,13 +280,11 @@ module.exports = async function handler(req, res) {
         console.error('Failed to send verification email:', error);
       }
 
-      // Return success response (without password)
-      const { password: _, emailVerificationToken: __, ...safeUser } = user;
-      
+      // Return success response (password is automatically excluded by toJSON transform)
       return res.status(201).json({
         success: true,
         data: {
-          user: safeUser,
+          user: user.toJSON(),
           emailSent,
         },
         message: emailSent 
@@ -204,8 +304,11 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      // Find user
-      const user = users.get(email.toLowerCase());
+      // Connect to database
+      await connectToDatabase();
+
+      // Find user and include password for comparison
+      const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
       if (!user) {
         return res.status(401).json({
           success: false,
@@ -231,21 +334,20 @@ module.exports = async function handler(req, res) {
       }
 
       // Generate tokens (mock for now)
-      const accessToken = `jwt-${Date.now()}-${user.id}`;
-      const refreshToken = `refresh-${Date.now()}-${user.id}`;
+      const accessToken = `jwt-${Date.now()}-${user._id}`;
+      const refreshToken = `refresh-${Date.now()}-${user._id}`;
 
       // Update last login
       user.lastLoginAt = new Date();
+      await user.save();
 
-      // Return success response
-      const { password: _, emailVerificationToken: __, ...safeUser } = user;
-      
+      // Return success response (password is excluded by toJSON transform)
       return res.json({
         success: true,
         data: {
           accessToken,
           refreshToken,
-          user: safeUser
+          user: user.toJSON()
         },
         message: 'Login successful'
       });
@@ -262,20 +364,19 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      // Connect to database
+      await connectToDatabase();
+
       // Hash the token to compare
       const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
       // Find user with this token
-      let userToVerify = null;
-      for (const user of users.values()) {
-        if (user.emailVerificationToken === hashedToken && 
-            user.emailVerificationExpires > new Date()) {
-          userToVerify = user;
-          break;
-        }
-      }
+      const user = await User.findOne({
+        emailVerificationToken: hashedToken,
+        emailVerificationExpires: { $gt: new Date() }
+      });
 
-      if (!userToVerify) {
+      if (!user) {
         return res.status(400).json({
           success: false,
           error: 'Invalid or expired verification token'
@@ -283,15 +384,14 @@ module.exports = async function handler(req, res) {
       }
 
       // Update user as verified
-      userToVerify.isEmailVerified = true;
-      userToVerify.emailVerificationToken = undefined;
-      userToVerify.emailVerificationExpires = undefined;
-
-      const { password: _, emailVerificationToken: __, ...safeUser } = userToVerify;
+      user.isEmailVerified = true;
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpires = undefined;
+      await user.save();
 
       return res.json({
         success: true,
-        data: { user: safeUser },
+        data: { user: user.toJSON() },
         message: 'Email verified successfully! You can now log in to your account.'
       });
     }
@@ -307,8 +407,11 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      // Connect to database
+      await connectToDatabase();
+
       // Find user
-      const user = users.get(email.toLowerCase());
+      const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -330,6 +433,7 @@ module.exports = async function handler(req, res) {
       // Update user with new token
       user.emailVerificationToken = hashedVerificationToken;
       user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      await user.save();
 
       // Send verification email
       let emailSent = false;
@@ -363,14 +467,11 @@ module.exports = async function handler(req, res) {
       const token = authHeader.substring(7);
       const userId = token.split('-')[2]; // Extract user ID from token
       
-      let user = null;
-      for (const u of users.values()) {
-        if (u.id === userId) {
-          user = u;
-          break;
-        }
-      }
-
+      // Connect to database
+      await connectToDatabase();
+      
+      // Find user by ID
+      const user = await User.findById(userId);
       if (!user) {
         return res.status(401).json({
           success: false,
@@ -378,11 +479,9 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      const { password: _, emailVerificationToken: __, ...safeUser } = user;
-
       return res.json({
         success: true,
-        data: safeUser,
+        data: user.toJSON(),
         message: 'User data retrieved successfully'
       });
     }
@@ -397,6 +496,17 @@ module.exports = async function handler(req, res) {
 
     // Health check
     if (path === '/health' && method === 'GET') {
+      let dbStats = { totalUsers: 0, verifiedUsers: 0, dbConnected: false };
+      
+      try {
+        await connectToDatabase();
+        const totalUsers = await User.countDocuments();
+        const verifiedUsers = await User.countDocuments({ isEmailVerified: true });
+        dbStats = { totalUsers, verifiedUsers, dbConnected: true };
+      } catch (error) {
+        console.error('Database stats error:', error);
+      }
+
       return res.json({
         success: true,
         message: 'Backend API is healthy',
@@ -406,10 +516,7 @@ module.exports = async function handler(req, res) {
           email: !!(process.env.SMTP_USER && process.env.SMTP_PASS),
           database: !!process.env.MONGODB_URI,
         },
-        stats: {
-          totalUsers: users.size,
-          verifiedUsers: Array.from(users.values()).filter(u => u.isEmailVerified).length
-        }
+        stats: dbStats
       });
     }
 
