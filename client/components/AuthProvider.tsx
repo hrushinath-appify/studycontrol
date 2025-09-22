@@ -89,8 +89,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
+      // Use relative API URL for production to avoid cross-origin issues
+      const apiUrl = '/api/v1'
       console.log('[AuthProvider] Login API URL:', apiUrl)
+      console.log('[AuthProvider] Current hostname:', window.location.hostname)
       
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',

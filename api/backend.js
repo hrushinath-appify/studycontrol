@@ -212,19 +212,28 @@ function generateAvatarUrl(name) {
 }
 
 module.exports = async function handler(req, res) {
-  // Set CORS headers - Allow multiple origins for Vercel deployments
+  // Set CORS headers - Be specific about origins when using credentials
   const allowedOrigins = [
     'https://rishi4ammu.vercel.app',
     'https://rishi4ammu-m1qkemgox-hrushinath-appifys-projects.vercel.app',
+    'https://rishi4ammu-9tcc3w65q-hrushinath-appifys-projects.vercel.app',
     'http://localhost:3000',
     'http://localhost:3001'
   ];
   
   const origin = req.headers.origin;
+  console.log('[Backend] Request origin:', origin);
+  console.log('[Backend] Request method:', req.method);
+  console.log('[Backend] Request URL:', req.url);
+  
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    // Same-origin requests (no origin header) - allow them
+    res.setHeader('Access-Control-Allow-Origin', req.headers.host ? `https://${req.headers.host}` : '*');
   } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    console.log('[Backend] Origin not in allowed list:', origin);
+    res.setHeader('Access-Control-Allow-Origin', origin); // Allow for now during debugging
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -232,6 +241,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
+    console.log('[Backend] Handling OPTIONS preflight request');
     return res.status(200).end();
   }
 
