@@ -9,7 +9,7 @@
       "src": "server/src/vercel.ts",
       "use": "@vercel/node",
       "config": {
-        "maxDuration": 30
+        "includeFiles": ["server/src/**", "server/package.json"]
       }
     }
   ],
@@ -29,5 +29,10 @@
   ],
   "env": {
     "NODE_ENV": "production"
+  },
+  "functions": {
+    "server/src/vercel.ts": {
+      "maxDuration": 30
+    }
   }
 }

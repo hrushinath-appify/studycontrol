@@ -1,16 +1,18 @@
 import express from 'express';
-import { config, validateConfig } from './config/environment';
+import { config } from './config/environment';
 import { database } from './config/database';
 import { setupMiddleware, setupErrorHandling } from './middleware';
 import routes from './routes';
 
-// Validate configuration
-validateConfig();
-
 const app = express();
 
-// Setup middleware
-setupMiddleware(app);
+try {
+  // Setup middleware
+  setupMiddleware(app);
+  console.log('✅ Middleware setup complete');
+} catch (error) {
+  console.error('❌ Middleware setup error:', error);
+}
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -24,10 +26,20 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use(config.API_PREFIX, routes);
+try {
+  app.use(config.API_PREFIX, routes);
+  console.log('✅ Routes setup complete');
+} catch (error) {
+  console.error('❌ Routes setup error:', error);
+}
 
 // Setup error handling
-setupErrorHandling(app);
+try {
+  setupErrorHandling(app);
+  console.log('✅ Error handling setup complete');
+} catch (error) {
+  console.error('❌ Error handling setup error:', error);
+}
 
 // Connect to database on first request (Vercel serverless pattern)
 let isConnected = false;
@@ -48,14 +60,17 @@ const connectDatabase = async () => {
 // Wrap app with database connection for Vercel
 const handler = async (req: any, res: any) => {
   try {
+    console.log('🔍 Handler called for:', req.method, req.url);
     await connectDatabase();
+    console.log('✅ Database connected, proceeding with request');
     return app(req, res);
   } catch (error) {
-    console.error('❌ Database connection error:', error);
+    console.error('❌ Handler error:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return res.status(500).json({
       success: false,
-      message: 'Database connection failed',
-      error: config.NODE_ENV === 'development' ? error : 'Internal server error'
+      message: 'Server error',
+      error: config.NODE_ENV === 'development' ? String(error) : 'Internal server error'
     });
   }
 };
