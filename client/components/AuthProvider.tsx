@@ -39,6 +39,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('[AuthProvider] Starting auth check...')
       
       try {
+        // Check for token in localStorage first
         const token = localStorage.getItem('auth-token')
         console.log('[AuthProvider] Token exists:', !!token)
         
@@ -49,10 +50,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return
         }
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
-        console.log('[AuthProvider] Using API URL:', apiUrl)
-        
-        const response = await fetch(`${apiUrl}/auth/me`, {
+        // Verify token with the new API structure
+        const response = await fetch('/api/auth/me', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -89,12 +88,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null)
 
     try {
-      // Use relative API URL for production to avoid cross-origin issues
-      const apiUrl = '/api/v1'
-      console.log('[AuthProvider] Login API URL:', apiUrl)
+      // Use the new API structure
+      console.log('[AuthProvider] Login API URL: /api/auth/login')
       console.log('[AuthProvider] Current hostname:', window.location.hostname)
       
-      const response = await fetch(`${apiUrl}/auth/login`, {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,29 +112,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error(errorMessage)
       }
       
-      // Store token
+      // Store token in localStorage (the cookie is set by the API)
       if (data.data.accessToken) {
         localStorage.setItem('auth-token', data.data.accessToken)
-        console.log('[AuthProvider] Token stored')
-      }
-      
-      // Create session - but don't fail if this fails
-      console.log('[AuthProvider] Creating session...')
-      try {
-        const sessionResponse = await fetch('/api/auth/create-session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ user: data.data.user }),
-        })
-        
-        const sessionResult = await sessionResponse.json()
-        console.log('[AuthProvider] Session creation result:', sessionResult.success)
-      } catch (sessionError) {
-        console.warn('[AuthProvider] Session creation failed:', sessionError)
-        // Continue anyway - the token-based auth should work
+        console.log('[AuthProvider] Token stored in localStorage')
       }
       
       // Set user immediately

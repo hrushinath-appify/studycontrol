@@ -1,59 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { connectToDatabase, User } from '@/lib/database'
+import jwt from 'jsonwebtoken'
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const accessToken = cookieStore.get('access-token')?.value
-
-    if (!accessToken) {
-      return NextResponse.json(
-        { success: false, error: 'Access token not found' },
-        { status: 401 }
-      )
-    }
-
-    // Verify token with backend API
-    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
+    // Get token from Authorization header or cookies
+    const authHeader = request.headers.get('authorization')
+    const cookieToken = request.cookies.get('auth-token')?.value
     
-    try {
-      const response = await fetch(`${backendUrl}/auth/me`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      })
+    const token = authHeader?.replace('Bearer ', '') || cookieToken
 
-      if (!response.ok) {
-        // Token is invalid or expired
-        const errorData = await response.json().catch(() => ({ error: 'Token validation failed' }))
-        return NextResponse.json(
-          { success: false, error: errorData.error || 'Authentication failed' },
-          { status: response.status }
-        )
-      }
-
-      const userData = await response.json()
-      
+    if (!token) {
       return NextResponse.json({
-        success: true,
-        data: userData.data
-      })
-
-    } catch (fetchError) {
-      console.error('Backend /auth/me request failed:', fetchError)
-      return NextResponse.json(
-        { success: false, error: 'Authentication service unavailable' },
-        { status: 503 }
-      )
+        success: false,
+        error: 'No token provided'
+      }, { status: 401 })
     }
+
+    // Verify token
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development')
+    } catch (error) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid token'
+      }, { status: 401 })
+    }
+
+    // Connect to database
+    await connectToDatabase()
+
+    // Find user
+    const user = await User.findById(decoded.userId)
+    if (!user || !user.isActive) {
+      return NextResponse.json({
+        success: false,
+        error: 'User not found'
+      }, { status: 401 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: user.toJSON()
+    })
 
   } catch (error) {
-    console.error('Get user error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('Auth verification error:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
+    }, { status: 500 })
   }
 }
