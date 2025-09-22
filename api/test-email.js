@@ -1,4 +1,4 @@
-// Simple email test endpoint to check dependencies
+// Simple email test endpoint to check nodemailer methods
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -9,45 +9,15 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Check what's available in require.cache
-    const availableModules = Object.keys(require.cache);
+    const nodemailer = require('nodemailer');
     
-    // Try to require nodemailer
-    let nodemailerStatus = 'not-available';
-    let nodemailerError = null;
-    
-    try {
-      const nodemailer = require('nodemailer');
-      nodemailerStatus = typeof nodemailer;
-      console.log('Nodemailer object:', nodemailer);
-    } catch (error) {
-      nodemailerError = error.message;
-    }
-
-    // Check if bcrypt is available
-    let bcryptStatus = 'not-available';
-    try {
-      const bcrypt = require('bcryptjs');
-      bcryptStatus = typeof bcrypt;
-    } catch (error) {
-      bcryptStatus = 'error: ' + error.message;
-    }
-
     return res.json({
       success: true,
-      dependencies: {
-        nodemailer: nodemailerStatus,
-        nodemailerError,
-        bcrypt: bcryptStatus
-      },
-      environment: {
-        nodeVersion: process.version,
-        platform: process.platform,
-        cwd: process.cwd(),
-        moduleLoadPath: require.resolve.paths('nodemailer')
-      },
-      availableModulesCount: availableModules.length,
-      sampleModules: availableModules.slice(0, 10)
+      nodemailerType: typeof nodemailer,
+      nodemailerKeys: Object.keys(nodemailer),
+      hasCreateTransporter: typeof nodemailer.createTransporter,
+      nodemailerMethods: Object.getOwnPropertyNames(nodemailer),
+      nodemailerProto: Object.getPrototypeOf(nodemailer)
     });
 
   } catch (error) {
