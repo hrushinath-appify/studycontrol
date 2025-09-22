@@ -1,6 +1,4 @@
 import mongoose from 'mongoose'
-import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
 
 // MongoDB connection singleton
 let isConnected = false
@@ -80,7 +78,7 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   toJSON: {
-    transform: function(doc, ret) {
+    transform: function(doc: any, ret: any) {
       // Remove sensitive fields from JSON output
       delete ret.password
       delete ret.emailVerificationToken

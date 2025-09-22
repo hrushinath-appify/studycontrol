@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify token
-    let decoded: any
+    let decoded: { userId: string; email: string }
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development')
-    } catch (error) {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development') as { userId: string; email: string }
+    } catch {
       return NextResponse.json({
         success: false,
         error: 'Invalid token'
