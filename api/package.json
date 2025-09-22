@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "API functions for StudyControl",
   "main": "backend.js",
-  "type": "module",
   "dependencies": {
     "nodemailer": "^6.9.8",
     "bcryptjs": "^2.4.3"

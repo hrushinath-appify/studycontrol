@@ -1,7 +1,7 @@
 // Backend API with real database and email functionality
-import nodemailer from 'nodemailer';
-import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 // Simple user storage for now (you can replace with MongoDB later)
 const users = new Map();
@@ -66,7 +66,7 @@ function generateAvatarUrl(name) {
   return `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff&size=200`;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
