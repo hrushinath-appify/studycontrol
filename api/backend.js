@@ -22,7 +22,32 @@ function createEmailTransporter() {
 // Send verification email
 async function sendVerificationEmail(email, name, token) {
   try {
-    const transporter = createEmailTransporter();
+    console.log('🔧 Attempting to send email to:', email);
+    console.log('🔧 SMTP Config:', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER ? '***' : 'missing',
+      pass: process.env.SMTP_PASS ? '***' : 'missing'
+    });
+
+    const transporter = nodemailer.createTransporter({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      // Add debug options
+      debug: true,
+      logger: true
+    });
+
+    // Verify transporter configuration
+    console.log('🔧 Verifying transporter...');
+    await transporter.verify();
+    console.log('✅ Transporter verified successfully');
+    
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${token}`;
     
     const mailOptions = {
@@ -46,11 +71,24 @@ async function sendVerificationEmail(email, name, token) {
       `
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Verification email sent to ${email}`);
+    console.log('🔧 Sending email with options:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject
+    });
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ Email sent successfully:', result.messageId);
     return true;
   } catch (error) {
-    console.error('❌ Email sending failed:', error);
+    console.error('❌ Email sending failed with error:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode
+    });
     return false;
   }
 }
