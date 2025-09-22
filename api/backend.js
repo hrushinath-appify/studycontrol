@@ -1,57 +1,5 @@
-// Backend API proxy for authentication
-const mongoose = require('mongoose');
-
-// User schema (simplified)
-const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, default: 'user' },
-  avatar: String,
-  isEmailVerified: { type: Boolean, default: false },
-  preferences: {
-    theme: { type: String, default: 'system' },
-    studyReminders: { type: Boolean, default: true },
-    appUpdates: { type: Boolean, default: true },
-    emailNotifications: { type: Boolean, default: true },
-    soundEnabled: { type: Boolean, default: true },
-    language: { type: String, default: 'en' }
-  },
-  profile: {
-    timezone: { type: String, default: 'UTC' }
-  },
-  refreshTokens: [String],
-  lastLoginAt: Date,
-  createdAt: { type: Date, default: Date.now }
-});
-
-// Connect to MongoDB
-let isConnected = false;
-
-async function connectDB() {
-  if (isConnected) return;
-  
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      bufferCommands: false,
-    });
-    isConnected = true;
-    console.log('✅ Connected to MongoDB');
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    throw error;
-  }
-}
-
-// Get or create User model
-function getUserModel() {
-  return mongoose.models.User || mongoose.model('User', userSchema);
-}
-
-export default async function handler(req, res) {
+// Simple backend API for authentication
+export default function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -63,8 +11,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    await connectDB();
-    
     const { url, method } = req;
     const path = url.replace('/api/v1', '');
 
@@ -81,7 +27,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // For now, return a mock user (you can implement JWT verification later)
+      // Return mock user for now
       return res.json({
         success: true,
         data: {
@@ -113,7 +59,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // Mock login response (you can implement real authentication later)
+      // Mock login response
       return res.json({
         success: true,
         data: {
@@ -170,7 +116,8 @@ export default async function handler(req, res) {
         success: true,
         message: 'Backend API is healthy',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV
+        environment: process.env.NODE_ENV,
+        mongoConnected: !!process.env.MONGODB_URI
       });
     }
 
