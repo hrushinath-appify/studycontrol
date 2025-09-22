@@ -12,6 +12,10 @@
     {
       "src": "api/backend.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/debug-env.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -26,6 +30,10 @@
     {
       "src": "/api/debug",
       "dest": "api/health.js"
+    },
+    {
+      "src": "/debug-env",
+      "dest": "api/debug-env.js"
     },
     {
       "src": "/(.*)",
