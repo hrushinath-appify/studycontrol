@@ -20,6 +20,10 @@
     {
       "src": "api/test-email.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/manual-verify.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -42,6 +46,10 @@
     {
       "src": "/test-email",
       "dest": "api/test-email.js"
+    },
+    {
+      "src": "/manual-verify",
+      "dest": "api/manual-verify.js"
     },
     {
       "src": "/(.*)",
