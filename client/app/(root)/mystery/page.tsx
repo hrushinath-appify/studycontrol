@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Sparkles, HelpCircle, Lightbulb } from 'lucide-react'
-import { getRandomTopic as getMockRandomTopic, type MysteryTopic } from '@/lib/mock-data/mystery-topics'
+import { getRandomTopic as getMockRandomTopic } from '@/lib/mock-data/mystery-topics'
+import type { MysteryTopic } from '@/lib/mock-data/medicine'
 import { 
   incrementMysteryExploration
 } from '@/lib/mystery-tracker'
@@ -13,6 +14,23 @@ const MysteryPage = () => {
   const [currentTopic, setCurrentTopic] = useState<MysteryTopic | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
+
+  // Handler for Google search for topic title
+  const handleTopicTitleClick = useCallback(() => {
+    if (currentTopic?.title) {
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(currentTopic.title)}`, '_blank')
+    }
+  }, [currentTopic])
+
+  // Handler for Google search for related topics
+  const handleRelatedTopicClick = useCallback((topic: string) => {
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(topic)}`, '_blank')
+  }, [])
+
+  // Handler for Google search for guiding questions
+  const handleQuestionClick = useCallback((question: string) => {
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(question)}`, '_blank')
+  }, [])
 
   useEffect(() => {
     const loadInitialTopic = async () => {
@@ -124,9 +142,25 @@ const MysteryPage = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+                    <h2
+                      className="text-3xl md:text-4xl font-bold text-foreground mb-2 cursor-pointer hover:underline"
+                      onClick={handleTopicTitleClick}
+                      title={`Search Google for ${currentTopic.title}`}
+                    >
                       Topic: {currentTopic.title}
                     </h2>
+                    <div className="flex flex-wrap gap-3 mb-2">
+                      {currentTopic.category && (
+                        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold border border-blue-200">
+                          Subject: {currentTopic.category}
+                        </span>
+                      )}
+                      {currentTopic.tags && currentTopic.tags.length > 0 && (
+                        <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold border border-green-200">
+                          Chapter: {currentTopic.tags.join(', ')}
+                        </span>
+                      )}
+                    </div>
                     <div className="w-full h-px bg-gradient-to-r from-primary via-primary/50 to-transparent" />
                   </div>
                 </div>
@@ -142,6 +176,8 @@ const MysteryPage = () => {
                     <span
                       key={index}
                       className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-medium border border-secondary-foreground/20 hover:bg-secondary/80 transition-colors cursor-pointer"
+                      onClick={() => handleRelatedTopicClick(topic)}
+                      title={`Search Google for ${topic}`}
                     >
                       {topic}
                     </span>
@@ -156,7 +192,12 @@ const MysteryPage = () => {
                 </h3>
                 <div className="space-y-4">
                   {currentTopic.questions.map((question: string, index: number) => (
-                    <div key={index} className="flex items-start gap-3 group">
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 group cursor-pointer"
+                      onClick={() => handleQuestionClick(question)}
+                      title={`Search Google for ${question}`}
+                    >
                       <div className="flex-shrink-0 mt-1">
                         <HelpCircle className="w-5 h-5 text-primary group-hover:text-primary/80 transition-colors" />
                       </div>
@@ -169,53 +210,48 @@ const MysteryPage = () => {
               </div>
             </div>
 
-                {/* AI Explanation Section */}
-                <div className="mt-12 pt-8 border-t border-border">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Sparkles className="w-6 h-6 text-primary" />
-                    <h3 className="text-2xl font-semibold text-foreground">
-                      AI Explanation
-                    </h3>
-                  </div>
-                  <div className="bg-muted/30 rounded-xl p-6 border border-muted">
-                    <p className="text-foreground/90 leading-relaxed text-lg">
-                      {currentTopic.description}
-                    </p>
-                    {currentTopic.estimatedTime && (
-                      <div className="mt-4 text-sm text-muted-foreground">
-                        Estimated time: {currentTopic.estimatedTime} minutes
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-12">
-                <Lightbulb className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground text-lg">
-                  Failed to load mystery topic
-                </p>
-                <Button 
-                  onClick={handleButtonClick}
-                  className="mt-4"
-                  variant="outline"
-                >
-                  Try Again
-                </Button>
+            {/* AI Explanation Section */}
+            <div className="mt-12 pt-8 border-t border-border">
+              <div className="flex items-center gap-3 mb-6">
+                <Sparkles className="w-6 h-6 text-primary" />
+                <h3 className="text-2xl font-semibold text-foreground">
+                  Glimpse
+                </h3>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="bg-muted/30 rounded-xl p-6 border border-muted">
+                <p className="text-foreground/90 leading-relaxed text-lg">
+                  {currentTopic.description}
+                </p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <Lightbulb className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">
+              Failed to load mystery topic
+            </p>
+            <Button 
+              onClick={handleButtonClick}
+              className="mt-4"
+              variant="outline"
+            >
+              Try Again
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
 
-        {/* Decorative Elements */}
-        <div className="fixed top-20 right-10 opacity-20 pointer-events-none">
-          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 animate-pulse" />
-        </div>
-        <div className="fixed bottom-20 left-10 opacity-20 pointer-events-none">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-tl from-primary/20 to-primary/5 animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-      </div>
+    {/* Decorative Elements */}
+    <div className="fixed top-20 right-10 opacity-20 pointer-events-none">
+      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 animate-pulse" />
     </div>
+    <div className="fixed bottom-20 left-10 opacity-20 pointer-events-none">
+      <div className="w-24 h-24 rounded-full bg-gradient-to-tl from-primary/20 to-primary/5 animate-pulse" style={{ animationDelay: '1s' }} />
+    </div>
+  </div>
+</div>
   )
 }
 
