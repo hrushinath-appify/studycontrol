@@ -9,7 +9,8 @@
       "src": "server/src/vercel.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["server/src/**", "server/package.json"]
+        "includeFiles": ["server/src/**", "server/package.json"],
+        "maxLambdaSize": "50mb"
       }
     }
   ],
@@ -37,10 +38,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "server/src/vercel.ts": {
-      "maxDuration": 30
-    }
   }
 }
