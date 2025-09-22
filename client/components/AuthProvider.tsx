@@ -30,27 +30,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // First check if we have a token in localStorage for API calls
         const token = localStorage.getItem('auth-token');
-        if (!token) {
-          setUser(null);
-          setIsInitializing(false);
-          return;
-        }
-
-        const response = await fetch('/api/v1/auth/me', {
+        
+        // Use the correct API URL from environment variables
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
+        
+        // Try to get user data from the server (this will work with session cookies)
+        const response = await fetch(`${apiUrl}/auth/me`, {
           method: 'GET',
-          headers: {
+          headers: token ? {
             'Authorization': `Bearer ${token}`,
-          },
-          credentials: 'include',
+          } : {},
+          credentials: 'include', // This ensures session cookies are sent
         })
 
         if (response.ok) {
           const data = await response.json()
           setUser(data.data)
+          
+          // If we don't have a token but the session works, store a placeholder
+          if (!token && data.data) {
+            console.log('Session-based auth working, but no token in localStorage')
+          }
         } else {
+          // If the auth check fails, clear everything
           setUser(null)
-          // Clear invalid token
           localStorage.removeItem('auth-token');
         }
       } catch (error) {
@@ -70,7 +75,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null)
 
     try {
-      const response = await fetch('/api/v1/auth/login', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
+      
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +160,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null)
 
     try {
-      const response = await fetch('/api/v1/auth/register', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
+      
+      const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -268,7 +277,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch('/api/v1/auth/logout', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
+      
+      await fetch(`${apiUrl}/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       })
