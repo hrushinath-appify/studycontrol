@@ -15,12 +15,20 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/api/v1/(.*)",
       "dest": "server/src/vercel.ts"
     },
     {
       "src": "/health",
       "dest": "server/src/vercel.ts"
+    },
+    {
+      "src": "/api/debug",
+      "dest": "server/src/vercel.ts"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "client/$1"
     },
     {
       "src": "/(.*)",
