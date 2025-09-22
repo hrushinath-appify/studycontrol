@@ -29,34 +29,39 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const sessionToken = request.cookies.get('session-token')?.value
 
+  console.log('[Middleware] Checking path:', pathname, 'has session:', !!sessionToken)
+
+  // TEMPORARILY DISABLE PROTECTION TO TEST REDIRECT
   // Check if user has a valid session
-  const isAuthenticated = sessionToken ? await isValidSession(sessionToken) : false
+  // const isAuthenticated = sessionToken ? await isValidSession(sessionToken) : false
 
-  // Handle protected routes
-  if (protectedRoutes.some(route => pathname.startsWith(route))) {
-    if (!isAuthenticated) {
-      const loginUrl = new URL('/login', request.url)
-      loginUrl.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(loginUrl)
-    }
-  }
+  // console.log('[Middleware] Authentication status:', isAuthenticated)
 
-  // Handle auth routes (redirect authenticated users away)
-  if (authRoutes.some(route => pathname.startsWith(route))) {
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL('/home', request.url))
-    }
-  }
+  // Handle protected routes - TEMPORARILY DISABLED
+  // if (protectedRoutes.some(route => pathname.startsWith(route))) {
+  //   if (!isAuthenticated) {
+  //     console.log('[Middleware] Redirecting to login - no valid session')
+  //     const loginUrl = new URL('/login', request.url)
+  //     loginUrl.searchParams.set('redirect', pathname)
+  //     return NextResponse.redirect(loginUrl)
+  //   }
+  // }
+
+  // Handle auth routes (redirect authenticated users away) - ALSO DISABLED FOR NOW
+  // if (authRoutes.some(route => pathname.startsWith(route))) {
+  //   if (isAuthenticated) {
+  //     console.log('[Middleware] Redirecting authenticated user to home')
+  //     return NextResponse.redirect(new URL('/home', request.url))
+  //   }
+  // }
 
   // Handle root route
   if (pathname === '/') {
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL('/home', request.url))
-    } else {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
+    console.log('[Middleware] Root route - redirecting to login')
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  console.log('[Middleware] Allowing request to proceed')
   return NextResponse.next()
 }
 
