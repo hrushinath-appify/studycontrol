@@ -57,41 +57,41 @@ const HomePage = () => {
     }
   }, [isInitializing, user, currentQuote, loadQuote])
   return (
-    <div className="p-4 sm:p-6 lg:p-8 min-h-full">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="p-2 sm:p-4 md:p-6 lg:p-8 min-h-full">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         <div className="space-y-2">
           <p className="text-muted-foreground text-sm sm:text-base max-w-2xl">
             Hey! {user?.name || 'Student'}
           </p>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">            Your &quot;Study Control&quot; Hub</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold">            Your &quot;Study Control&quot; Hub</h1>
           <p className="text-muted-foreground text-sm sm:text-base max-w-2xl">
-            This is your personal companion for your studies, especially curated for you. <br /> Now, lets get started!
+            This is your personal companion for your studies, especially curated for you. <br className="hidden sm:block" /> Now, lets get started!
           </p>
         </div>
 
         {/* Goal Highlight Section */}
-        <div className="flex justify-center mt-8">
+        <div className="flex justify-center mt-6 sm:mt-8">
           <div className="relative inline-block">
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-200/50 via-yellow-300/60 to-yellow-200/50 dark:from-yellow-400/30 dark:via-yellow-300/40 dark:to-yellow-400/30 rounded-lg transform -skew-x-1"></div>
-            <h2 className="relative px-4 py-2 text-base sm:text-lg font-semibold text-foreground/90">
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-200/50 via-yellow-300/60 to-yellow-200/50 dark:from-yellow-400/30 dark:via-yellow-300/40 dark:to-yellow-400/30 rounded-lg transform -skew-x-1" />
+            <h2 className="relative px-3 sm:px-4 py-2 text-sm sm:text-base md:text-lg font-semibold text-foreground/90 text-center">
               🎯 Goal: Kakatiya Medical College, below 3,000 rank in NEET PG
             </h2>
           </div>
         </div>
 
 
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
           <FeatureCard
             title="Unleash the Mystery"
             description="Discover the mystery of your studies."
             href="/mystery"
-            icon={<BarChart3 className="w-6 h-6" />}
+            icon={<BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
           <FeatureCard
             title="Focus Mode"
             description="Track your study time and progress."
             href="/focus"
-            icon={<Timer className="w-6 h-6" />}
+            icon={<Timer className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
           {/* <FeatureCard
             title="News Feed"
@@ -104,51 +104,51 @@ const HomePage = () => {
             title="Diary"
             description="Record your daily study reflections."
             href="/diary"
-            icon={<BookOpen className="w-6 h-6" />}
+            icon={<BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
           <FeatureCard
             title="To-Do List"
             description="Keep track of your tasks and assignments."
             href="/to-do-list"
-            icon={<CheckSquare className="w-6 h-6" />}
+            icon={<CheckSquare className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
           <FeatureCard
             title="Notes"
             description="Organize and review your study notes."
             href="/notes"
-            icon={<FileText className="w-6 h-6" />}
+            icon={<FileText className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
         </div>
         {/* Motivational Quote Section */}
-        <div className="bg-gradient-to-r from-blue-50/80 to-purple-50/80 dark:from-blue-950/30 dark:to-purple-950/30 rounded-2xl p-6 border border-blue-200/50 dark:border-blue-800/30 backdrop-blur-sm">
-          <div className="text-center space-y-4">
-            <div className="flex justify-center items-center gap-3">
-              <span className="text-4xl">💡</span>
+        <div className="bg-gradient-to-r from-blue-50/80 to-purple-50/80 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-200/50 dark:border-blue-800/30 backdrop-blur-sm">
+          <div className="text-center space-y-3 sm:space-y-4">
+            <div className="flex justify-center items-center gap-2 sm:gap-3">
+              <span className="text-2xl sm:text-4xl">💡</span>
               <button
                 onClick={loadQuote}
                 disabled={isLoading}
-                className="p-2 rounded-full bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 sm:p-2 rounded-full bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Get new inspirational quote from curated collection"
               >
-                <RefreshCw className={`w-4 h-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
             </div>
             {isLoading ? (
               <div className="animate-pulse space-y-3">
-                <div className="h-6 bg-muted rounded mx-auto max-w-md"></div>
-                <div className="h-4 bg-muted rounded mx-auto max-w-xs"></div>
+                <div className="h-5 sm:h-6 bg-muted rounded mx-auto max-w-sm sm:max-w-md" />
+                <div className="h-3 sm:h-4 bg-muted rounded mx-auto max-w-xs" />
               </div>
             ) : currentQuote ? (
               <>
-                <blockquote className="text-lg sm:text-xl font-medium text-foreground/90 italic leading-relaxed">
+                <blockquote className="text-base sm:text-lg md:text-xl font-medium text-foreground/90 italic leading-relaxed px-2">
                   &ldquo;{currentQuote.quote}&rdquo;
                 </blockquote>
-                <cite className="text-sm text-muted-foreground font-semibold">
+                <cite className="text-xs sm:text-sm text-muted-foreground font-semibold">
                   — {currentQuote.author}
                 </cite>
                 {/* Show quote tags if available */}
                 {currentQuote.tags && currentQuote.tags.length > 0 && (
-                  <div className="flex justify-center flex-wrap gap-2 mt-2">
+                  <div className="flex justify-center flex-wrap gap-1.5 sm:gap-2 mt-2">
                     {currentQuote.tags.slice(0, 3).map((tag, index) => (
                       <span
                         key={index}
@@ -161,7 +161,7 @@ const HomePage = () => {
                 )}
               </>
             ) : (
-              <p className="text-muted-foreground">Loading inspiration...</p>
+              <p className="text-muted-foreground text-sm sm:text-base">Loading inspiration...</p>
             )}
           </div>
         </div>

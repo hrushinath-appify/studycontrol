@@ -122,6 +122,67 @@
     @apply bg-background text-foreground;
     position: relative;
     overflow-x: hidden;
+    /* Improved touch scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent zoom on iOS when input fields are focused */
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Improve touch targets for mobile */
+  @media (hover: none) and (pointer: coarse) {
+    button, 
+    [role="button"], 
+    input[type="button"], 
+    input[type="submit"], 
+    a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Larger tap targets for small interactive elements */
+    .sidebar-trigger,
+    .theme-toggle,
+    .notification-icon,
+    .profile-icon {
+      min-height: 48px;
+      min-width: 48px;
+    }
+  }
+  
+  /* Safe area insets for notched devices */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: max(0px, env(safe-area-inset-left));
+      padding-right: max(0px, env(safe-area-inset-right));
+    }
+    
+    header {
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+    }
+    
+    footer {
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+  }
+  
+  /* Responsive text scaling */
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px;
+    }
+  }
+  
+  @media (min-width: 641px) and (max-width: 1024px) {
+    html {
+      font-size: 15px;
+    }
+  }
+  
+  @media (min-width: 1025px) {
+    html {
+      font-size: 16px;
+    }
   }
   
   /* Simple Background for Light Mode */
