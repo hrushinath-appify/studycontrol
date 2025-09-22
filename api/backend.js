@@ -296,6 +296,58 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // Resend verification email endpoint
+    if (path === '/auth/resend-verification' && method === 'POST') {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          error: 'Email is required'
+        });
+      }
+
+      // Find user
+      const user = users.get(email.toLowerCase());
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+
+      if (user.isEmailVerified) {
+        return res.status(400).json({
+          success: false,
+          error: 'Email is already verified'
+        });
+      }
+
+      // Generate new verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const hashedVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+
+      // Update user with new token
+      user.emailVerificationToken = hashedVerificationToken;
+      user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Send verification email
+      let emailSent = false;
+      try {
+        emailSent = await sendVerificationEmail(user.email, user.name, verificationToken);
+      } catch (error) {
+        console.error('Failed to send verification email:', error);
+      }
+
+      return res.json({
+        success: true,
+        data: { emailSent },
+        message: emailSent 
+          ? 'Verification email sent! Please check your inbox.'
+          : 'User found but failed to send verification email. Please try again.'
+      });
+    }
+
     // Auth check endpoint
     if (path === '/auth/me' && method === 'GET') {
       const authHeader = req.headers.authorization;

@@ -30,8 +30,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me', {
+        const token = localStorage.getItem('auth-token');
+        if (!token) {
+          setUser(null);
+          setIsInitializing(false);
+          return;
+        }
+
+        const response = await fetch('/api/v1/auth/me', {
           method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
           credentials: 'include',
         })
 
@@ -40,10 +50,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(data.data)
         } else {
           setUser(null)
+          // Clear invalid token
+          localStorage.removeItem('auth-token');
         }
       } catch (error) {
         console.warn("Auth check failed:", error)
         setUser(null)
+        localStorage.removeItem('auth-token');
       } finally {
         setIsInitializing(false)
       }
@@ -57,7 +70,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null)
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,6 +90,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             errorMessage.toLowerCase().includes('password') ||
             errorMessage.toLowerCase().includes('email')) {
           toast.error(toastMessages.auth.invalidCredentials)
+        } else if (errorMessage.toLowerCase().includes('verify')) {
+          toast.error('Email Verification Required', errorMessage)
         } else {
           toast.error(toastMessages.auth.loginError, errorMessage)
         }
@@ -85,8 +100,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       // Store the auth token for API calls
-      if (data.data.token) {
-        localStorage.setItem('auth-token', data.data.token)
+      if (data.data.accessToken) {
+        localStorage.setItem('auth-token', data.data.accessToken)
       }
       
       setUser(data.data.user)
@@ -108,7 +123,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null)
 
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,7 +238,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch('/api/v1/auth/logout', {
         method: 'POST',
         credentials: 'include',
       })

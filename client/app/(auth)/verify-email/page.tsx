@@ -29,7 +29,7 @@ export default function VerifyEmailPage() {
     setStatus('verifying');
     
     try {
-      const response = await fetch('/api/auth/verify-email', {
+      const response = await fetch('/api/v1/auth/verify-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export default function VerifyEmailPage() {
     setResendCooldown(60); // 60 second cooldown
 
     try {
-      const response = await fetch('/api/auth/resend-verification', {
+      const response = await fetch('/api/v1/auth/resend-verification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
