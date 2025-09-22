@@ -20,10 +20,6 @@
       "dest": "api/health.js"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "client/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "client/$1"
     }
