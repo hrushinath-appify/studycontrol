@@ -9,7 +9,12 @@ export interface BackendApiOptions extends RequestInit {
  */
 export async function callBackendAPI(endpoint: string, options: BackendApiOptions = {}): Promise<Response> {
   const { requireAuth = true, ...fetchOptions } = options
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
+  
+  // Use relative URL for production (same domain) or explicit URL for development
+  const isDev = process.env.NODE_ENV === 'development'
+  const backendUrl = isDev 
+    ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
+    : '/api/v1' // Relative URL for production
   
   // Prepare headers
   const headers: Record<string, string> = {
