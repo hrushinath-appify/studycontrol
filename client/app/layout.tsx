@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/ThemeProvider"
 import { Toaster } from "@/components/ui/sonner"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -64,6 +65,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster position="top-center" />
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>
