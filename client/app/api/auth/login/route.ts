@@ -41,11 +41,11 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
-    // Check if email is verified (allow for development/testing)
-    if (!user.isEmailVerified && process.env.NODE_ENV === 'production') {
+    // Check if email is verified (required for all environments)
+    if (!user.isEmailVerified) {
       return NextResponse.json({
         success: false,
-        error: 'Please verify your email before logging in'
+        error: 'Please verify your email address before logging in. Check your email for the verification link.'
       }, { status: 401 })
     }
 

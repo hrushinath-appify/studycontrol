@@ -1,14 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { callBackendAPI, parseJsonResponse } from '@/lib/backend-api'
+import { connectToDatabase, User } from '@/lib/database'
+import { cookies } from 'next/headers'
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
 
-interface PasswordChangeResponse {
-  success?: boolean
-  message?: string
-  error?: string
+// Helper function to get authenticated user ID
+async function getAuthenticatedUser() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth-token')?.value
+
+  if (!token) {
+    throw new Error('Authentication token not found')
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development') as { userId: string }
+    return decoded.userId
+  } catch (error) {
+    console.error('JWT verification failed:', error)
+    throw new Error('Invalid authentication token')
+  }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
+
     const body = await request.json()
     const { currentPassword, newPassword } = body
 
@@ -27,33 +48,44 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Call the backend API
-    const response = await callBackendAPI('/auth/change-password', {
-      method: 'PUT',
-      body: JSON.stringify({ currentPassword, newPassword }),
-    })
-
-    const data = await parseJsonResponse(response) as PasswordChangeResponse
-
-    if (!response.ok) {
+    // Get the user with password field
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = await (User as any).findById(userId).select('+password')
+    
+    if (!user) {
       return NextResponse.json(
-        { error: data.error || 'Password change failed' },
-        { status: response.status }
+        { error: 'User not found' },
+        { status: 404 }
       )
     }
 
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password)
+    if (!isCurrentPasswordValid) {
+      return NextResponse.json(
+        { error: 'Current password is incorrect' },
+        { status: 400 }
+      )
+    }
+
+    // Hash new password
+    const saltRounds = 12
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds)
+
+    // Update password in database
+    await user.updateOne({ password: hashedNewPassword })
+
     return NextResponse.json({
       success: true,
-      message: data.message || 'Password changed successfully'
+      message: 'Password changed successfully'
     })
 
   } catch (error) {
     console.error('Password change error:', error)
     
-    // Handle specific authentication errors
-    if (error instanceof Error && error.message.includes('Access token not found')) {
+    if (error instanceof Error && error.message.includes('Authentication')) {
       return NextResponse.json(
-        { error: 'Not authenticated' },
+        { error: 'Authentication required. Please log in again.' },
         { status: 401 }
       )
     }

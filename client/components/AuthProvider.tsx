@@ -237,12 +237,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const updateProfile = async (_data: Partial<User>) => {
-    throw new Error('Not implemented')
+  const updateProfile = async (data: Partial<User>) => {
+    try {
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Profile update failed')
+      }
+
+      // Update user state with new data
+      setUser(result.data)
+      toast.success('Profile updated successfully!')
+      
+    } catch (error) {
+      console.error('Profile update error:', error)
+      throw error
+    }
   }
 
-  const changePassword = async (_currentPassword: string, _newPassword: string) => {
-    throw new Error('Not implemented')
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+        credentials: 'include',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Password change failed')
+      }
+
+      toast.success('Password changed successfully!')
+      
+    } catch (error) {
+      console.error('Password change error:', error)
+      throw error
+    }
   }
 
   const forgotPassword = async (_email: string) => {

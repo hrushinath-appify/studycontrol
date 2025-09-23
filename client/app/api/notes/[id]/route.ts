@@ -1,79 +1,68 @@
 import { NextRequest } from 'next/server'
-import { getUser } from '@/lib/dal'
+import { connectToDatabase, Note } from '@/lib/database'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
+import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+import mongoose from 'mongoose'
 
-// Backend API helper function with authentication
-async function callBackendAPI(endpoint: string, options: RequestInit = {}) {
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-  
-  // Get JWT token from cookies
+// Helper function to get authenticated user from token
+async function getAuthenticatedUser() {
   const cookieStore = await cookies()
-  const accessToken = cookieStore.get('auth-token')?.value
+  const token = cookieStore.get('auth-token')?.value
   
-  if (!accessToken) {
-    throw new Error('Access token not found in cookies')
+  if (!token) {
+    throw new Error('Authentication token not found')
   }
 
   try {
-    const response = await fetch(`${backendUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        ...options.headers,
-      },
-    })
-
-    return response
-  } catch (error) {
-    console.error('Backend API call failed:', error)
-    throw new Error(`Backend API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development') as { userId: string; email: string }
+    return decoded.userId
+  } catch {
+    throw new Error('Invalid authentication token')
   }
 }
 
 // GET /api/notes/[id] - Get specific note
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // Check if user has a valid session
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
 
     const { id } = await params
 
-    // Forward request to backend
-    const response = await callBackendAPI(`/notes/${id}`, {
-      method: 'GET',
-    })
-
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return createErrorResponse('Invalid note ID', 400)
     }
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to fetch note', response.status)
+    // Find note and ensure it belongs to the authenticated user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const note = await (Note as any).findOne({
+      _id: id,
+      userId: userId
+    }).lean()
+
+    if (!note) {
+      return createErrorResponse('Note not found', 404)
     }
 
     // Transform _id to id for frontend compatibility
-    const transformedNote = data.data ? {
-      ...data.data,
-      id: data.data._id,
-      wordCount: data.data.content ? data.data.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
+    const transformedNote = {
+      ...note,
+      id: note._id.toString(),
+      wordCount: note.content ? note.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
       _id: undefined
-    } : null
+    }
 
-    return createSuccessResponse(transformedNote, data.message)
+    return createSuccessResponse(transformedNote, 'Note retrieved successfully')
 
   } catch (error) {
     console.error('Get Note API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Get note')
   }
@@ -82,52 +71,63 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 // PUT /api/notes/[id] - Update specific note
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // Check if user has a valid session
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
 
     const { id } = await params
     
-    // Get the request body
-    const body = await request.json()
-
-    // Forward request to backend
-    const response = await callBackendAPI(`/notes/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return createErrorResponse('Invalid note ID', 400)
     }
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to update note', response.status)
+    // Get the request body
+    const body = await request.json()
+    const { title, content, category, tags, isArchived, isPinned, color } = body
+
+    // Validate required fields
+    if (!title) {
+      return createErrorResponse('Title is required', 400)
+    }
+
+    // Update note and ensure it belongs to the authenticated user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updatedNote = await (Note as any).findOneAndUpdate(
+      { _id: id, userId: userId },
+      {
+        title,
+        content: content || '',
+        category: category || '',
+        tags: tags || [],
+        isArchived: isArchived || false,
+        isPinned: isPinned || false,
+        color: color || '#ffffff',
+        updatedAt: new Date()
+      },
+      { new: true, lean: true }
+    )
+
+    if (!updatedNote) {
+      return createErrorResponse('Note not found', 404)
     }
 
     // Transform _id to id for frontend compatibility
-    const transformedNote = data.data ? {
-      ...data.data,
-      id: data.data._id,
-      wordCount: data.data.content ? data.data.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
+    const transformedNote = {
+      ...updatedNote,
+      id: updatedNote._id.toString(),
+      wordCount: updatedNote.content ? updatedNote.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
       _id: undefined
-    } : null
+    }
 
-    return createSuccessResponse(transformedNote, data.message)
+    return createSuccessResponse(transformedNote, 'Note updated successfully')
 
   } catch (error) {
     console.error('Update Note API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Update note')
   }
@@ -136,44 +136,36 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 // DELETE /api/notes/[id] - Delete specific note
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // Check if user has a valid session
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
 
     const { id } = await params
 
-    // Forward request to backend
-    const response = await callBackendAPI(`/notes/${id}`, {
-      method: 'DELETE',
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return createErrorResponse('Invalid note ID', 400)
+    }
+
+    // Delete note and ensure it belongs to the authenticated user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const deletedNote = await (Note as any).findOneAndDelete({
+      _id: id,
+      userId: userId
     })
 
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+    if (!deletedNote) {
+      return createErrorResponse('Note not found', 404)
     }
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to delete note', response.status)
-    }
-
-    // For DELETE, usually no data is returned, but transform if present
-    const transformedData = data.data ? {
-      ...data.data,
-      id: data.data._id,
-      _id: undefined
-    } : data.data
-
-    return createSuccessResponse(transformedData, data.message)
+    return createSuccessResponse({ id }, 'Note deleted successfully')
 
   } catch (error) {
     console.error('Delete Note API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Delete note')
   }

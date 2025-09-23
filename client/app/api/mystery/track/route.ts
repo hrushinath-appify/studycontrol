@@ -1,73 +1,48 @@
 import { NextRequest } from 'next/server'
-import { getUser } from '@/lib/dal'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
 import { cookies } from 'next/headers'
-
-// Backend API helper function with authentication
-async function callBackendAPI(endpoint: string, options: RequestInit = {}) {
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1').replace(/\/+$/, '')
-  
-  // Get JWT token from cookies
-  const cookieStore = await cookies()
-  const accessToken = cookieStore.get('auth-token')?.value
-  
-  if (!accessToken) {
-    throw new Error('Access token not found in cookies')
-  }
-
-  try {
-    const response = await fetch(`${backendUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        ...options.headers,
-      },
-    })
-
-    return response
-  } catch (error) {
-    console.error('Backend API call failed:', error)
-    throw new Error(`Backend API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-  }
-}
+import jwt from 'jsonwebtoken'
+import { connectToDatabase, User } from '@/lib/database'
 
 export async function POST(_request: NextRequest) {
   try {
-    console.log('Mystery track API route called')
-    
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Authenticate via JWT cookie like other API routes
+    const cookieStore = await cookies()
+    const token = cookieStore.get('auth-token')?.value
+    if (!token) return createErrorResponse('Authentication required', 401)
 
-    // Forward request to backend
-    const response = await callBackendAPI('/mystery/track', {
-      method: 'POST',
-      body: JSON.stringify({}),
-    })
-
-    let data
+    let userId: string
     try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as { userId: string }
+      userId = decoded.userId
+    } catch {
+      return createErrorResponse('Invalid authentication token', 401)
     }
 
-    if (!response.ok) {
-      console.error('Backend error:', response.status, data)
-      return createErrorResponse(data.error || 'Failed to track mystery exploration', response.status)
+    await connectToDatabase()
+
+    // Update mystery click count in database
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updatedUser = await (User as any).findByIdAndUpdate(
+      userId,
+      { 
+        $inc: { mysteryClicks: 1 },
+        $set: { updatedAt: new Date() }
+      },
+      { new: true }
+    )
+
+    if (!updatedUser) {
+      return createErrorResponse('User not found', 404)
     }
 
-    console.log('Mystery tracking success:', data)
-    return createSuccessResponse(data.data || {}, data.message || 'Mystery exploration tracked successfully')
+    return createSuccessResponse(
+      { mysteryClicks: updatedUser.mysteryClicks },
+      'Mystery exploration tracked successfully'
+    )
 
   } catch (error) {
     console.error('Mystery tracking API error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
-    }
     return handleApiError(error, 'Track mystery exploration')
   }
 }

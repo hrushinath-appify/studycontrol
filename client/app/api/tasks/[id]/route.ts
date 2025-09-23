@@ -1,117 +1,114 @@
 import { NextRequest } from 'next/server'
-import { getUser } from '@/lib/dal'
+import { connectToDatabase, Task } from '@/lib/database'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
+import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+import mongoose from 'mongoose'
 
-// Backend API helper function with authentication
-async function callBackendAPI(endpoint: string, options: RequestInit = {}) {
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-  
-  // Get JWT token from cookies
+// Helper function to get authenticated user from token
+async function getAuthenticatedUser() {
   const cookieStore = await cookies()
-  const accessToken = cookieStore.get('auth-token')?.value
+  const token = cookieStore.get('auth-token')?.value
   
-  if (!accessToken) {
-    throw new Error('Access token not found in cookies')
+  if (!token) {
+    throw new Error('Authentication token not found')
   }
 
   try {
-    const response = await fetch(`${backendUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        ...options.headers,
-      },
-    })
-
-    return response
-  } catch (error) {
-    console.error('Backend API call failed:', error)
-    throw new Error(`Backend API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development') as { userId: string; email: string }
+    return decoded.userId
+  } catch {
+    throw new Error('Invalid authentication token')
   }
 }
 
 // GET /api/tasks/[id] - Get specific task
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // Check if user has a valid session
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
 
     const { id } = await params
 
-    // Forward request to backend
-    const response = await callBackendAPI(`/tasks/${id}`, {
-      method: 'GET',
-    })
-
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return createErrorResponse('Invalid task ID', 400)
     }
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to fetch task', response.status)
+    // Find task and ensure it belongs to the authenticated user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const task = await (Task as any).findOne({
+      _id: id,
+      userId: userId
+    }).lean()
+
+    if (!task) {
+      return createErrorResponse('Task not found', 404)
     }
 
-    return createSuccessResponse(data.data, data.message)
+    return createSuccessResponse(task, 'Task retrieved successfully')
 
   } catch (error) {
     console.error('Get Task API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Get task')
   }
 }
 
-// PUT /api/tasks/[id] - Update specific task
+// PUT /api/tasks/[id] - Update specific task (including toggle completion)
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // Check if user has a valid session
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
 
     const { id } = await params
     
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return createErrorResponse('Invalid task ID', 400)
+    }
+
     // Get the request body
     const body = await request.json()
+    const { title, description, completed, priority, dueDate, category, tags } = body
 
-    // Forward request to backend
-    const response = await callBackendAPI(`/tasks/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    // Build update object only with provided fields
+    const updateData: Record<string, unknown> = {}
+    if (title !== undefined) updateData.title = title
+    if (description !== undefined) updateData.description = description
+    if (completed !== undefined) updateData.completed = completed
+    if (priority !== undefined) updateData.priority = priority
+    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null
+    if (category !== undefined) updateData.category = category
+    if (tags !== undefined) updateData.tags = tags
+    updateData.updatedAt = new Date()
 
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+    // Update task and ensure it belongs to the authenticated user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updatedTask = await (Task as any).findOneAndUpdate(
+      { _id: id, userId: userId },
+      updateData,
+      { new: true, lean: true }
+    )
+
+    if (!updatedTask) {
+      return createErrorResponse('Task not found', 404)
     }
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to update task', response.status)
-    }
-
-    return createSuccessResponse(data.data, data.message)
+    return createSuccessResponse(updatedTask, 'Task updated successfully')
 
   } catch (error) {
     console.error('Update Task API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Update task')
   }
@@ -120,37 +117,36 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 // DELETE /api/tasks/[id] - Delete specific task
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // Check if user has a valid session
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
 
     const { id } = await params
 
-    // Forward request to backend
-    const response = await callBackendAPI(`/tasks/${id}`, {
-      method: 'DELETE',
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return createErrorResponse('Invalid task ID', 400)
+    }
+
+    // Delete task and ensure it belongs to the authenticated user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const deletedTask = await (Task as any).findOneAndDelete({
+      _id: id,
+      userId: userId
     })
 
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+    if (!deletedTask) {
+      return createErrorResponse('Task not found', 404)
     }
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to delete task', response.status)
-    }
-
-    return createSuccessResponse(data.data, data.message)
+    return createSuccessResponse({ id }, 'Task deleted successfully')
 
   } catch (error) {
     console.error('Delete Task API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Delete task')
   }

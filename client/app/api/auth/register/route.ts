@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase, User, generateAvatarUrl } from '@/lib/database'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,18 +50,28 @@ export async function POST(request: NextRequest) {
     const saltRounds = 12
     const hashedPassword = await bcrypt.hash(password, saltRounds)
 
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    const hashedVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex')
+
     // Create new user
     const newUser = new User({
       name: name.trim(),
       email: email.toLowerCase(),
       password: hashedPassword,
       avatar: generateAvatarUrl(name),
-      isEmailVerified: true, // Auto-verify for development/testing
+      isEmailVerified: false, // Require email verification for all environments
+      emailVerificationToken: hashedVerificationToken,
+      emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       isActive: true,
       role: 'user'
     })
 
     await newUser.save()
+
+    // TODO: Send verification email (for now, just log the token for testing)
+    console.log(`Verification token for ${email}: ${verificationToken}`)
+    console.log(`Verification URL: ${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${verificationToken}`)
 
     return NextResponse.json({
       success: true,
@@ -73,7 +84,7 @@ export async function POST(request: NextRequest) {
           isEmailVerified: newUser.isEmailVerified
         }
       },
-      message: 'Registration successful! You can now sign in.'
+      message: 'Registration successful! Please check your email to verify your account before logging in.'
     })
 
   } catch (error) {

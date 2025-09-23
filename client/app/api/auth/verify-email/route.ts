@@ -1,47 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { connectToDatabase, User } from '@/lib/database'
+import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { token } = body
+    const { token } = await request.json()
 
     if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Verification token is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        success: false,
+        error: 'Verification token is required'
+      }, { status: 400 })
     }
 
-    // Forward the request to the backend
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-    const response = await fetch(`${baseUrl}/auth/verify-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
+    // Connect to database
+    await connectToDatabase()
+
+    // Hash the token to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
+    // Find user with valid verification token
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = await (User as any).findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: new Date() }
     })
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { success: false, message: data.message || 'Email verification failed' },
-        { status: response.status }
-      )
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid or expired verification token'
+      }, { status: 400 })
     }
+
+    // Update user as verified
+    user.isEmailVerified = true
+    user.emailVerificationToken = undefined
+    user.emailVerificationExpires = undefined
+    
+    await user.save()
 
     return NextResponse.json({
       success: true,
-      message: data.message || 'Email verified successfully',
-      data: data.data
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          isEmailVerified: user.isEmailVerified
+        }
+      },
+      message: 'Email verified successfully! You can now log in to your account.'
     })
 
   } catch (error) {
     console.error('Email verification error:', error)
-    return NextResponse.json(
-      { success: false, message: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
+    }, { status: 500 })
   }
 }

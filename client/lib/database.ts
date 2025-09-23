@@ -14,6 +14,8 @@ export interface IUser extends mongoose.Document {
   role: string
   resetPasswordToken?: string
   resetPasswordExpires?: Date
+  // App metrics
+  mysteryClicks?: number
   createdAt: Date
   updatedAt: Date
 }
@@ -97,6 +99,13 @@ const userSchema = new mongoose.Schema<IUser>({
     type: String,
     default: 'user',
     enum: ['user', 'admin', 'moderator'],
+  },
+  // Simple usage metric for "Mystery Explorations"
+  mysteryClicks: {
+    type: Number,
+    default: 0,
+    min: 0,
+    index: true,
   },
 }, {
   timestamps: true,
