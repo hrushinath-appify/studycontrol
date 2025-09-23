@@ -41,9 +41,22 @@ export async function GET(request: NextRequest) {
       }, { status: 401 })
     }
 
+    // Prepare user data (exclude sensitive fields like password)
+    const userData = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      isActive: user.isActive,
+      role: user.role,
+      lastLogin: user.lastLogin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    }
+
     return NextResponse.json({
       success: true,
-      data: user.toJSON()
+      data: userData
     })
 
   } catch (error) {
