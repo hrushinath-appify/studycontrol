@@ -42,9 +42,13 @@ export async function GET(request: NextRequest) {
     // Find user
     console.log('👤 Finding user by ID:', decoded.userId)
     
-    // Validate ObjectId format
-    if (!decoded.userId || typeof decoded.userId !== 'string' || decoded.userId.length !== 24) {
-      console.log('❌ Invalid user ID format:', decoded.userId)
+    // Convert userId to string if it's an ObjectId
+    const userIdString = decoded.userId.toString()
+    console.log('🔍 UserID as string:', userIdString)
+    
+    // Validate ObjectId format (24 characters hex)
+    if (!userIdString || typeof userIdString !== 'string' || !/^[0-9a-fA-F]{24}$/.test(userIdString)) {
+      console.log('❌ Invalid user ID format:', userIdString)
       return NextResponse.json({
         success: false,
         error: 'Invalid user ID'
@@ -52,7 +56,7 @@ export async function GET(request: NextRequest) {
     }
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const user = await (User as any).findById(decoded.userId).lean() as (IUser & { _id: string }) | null
+    const user = await (User as any).findById(userIdString).lean() as (IUser & { _id: any }) | null
     
     if (!user) {
       console.log('❌ User not found')
@@ -71,19 +75,32 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ User found:', user.email)
+    console.log('🔍 User data structure:', {
+      hasId: !!user._id,
+      idType: typeof user._id,
+      hasRole: !!user.role,
+      role: user.role,
+      isActive: user.isActive
+    })
 
     // Prepare user data (exclude sensitive fields like password)
     const userData = {
-      _id: user._id,
+      _id: user._id.toString(), // Ensure _id is a string
       name: user.name,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       isActive: user.isActive,
-      role: user.role || 'user',
+      role: user.role || 'user', // Default role if missing
       lastLogin: user.lastLogin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     }
+
+    console.log('📦 Prepared user data:', { 
+      id: userData._id, 
+      email: userData.email, 
+      role: userData.role 
+    })
 
     console.log('✅ Returning user data successfully')
     return NextResponse.json({

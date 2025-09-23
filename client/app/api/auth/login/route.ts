@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Generate JWT token
     const accessToken = jwt.sign(
       { 
-        userId: user._id,
+        userId: user._id.toString(), // Ensure userId is always a string
         email: user.email 
       },
       process.env.JWT_SECRET || 'fallback-secret-key-for-development',
@@ -72,12 +72,12 @@ export async function POST(request: NextRequest) {
 
     // Prepare user data (exclude sensitive fields)
     const userData = {
-      _id: user._id,
+      _id: user._id.toString(), // Ensure _id is a string
       name: user.name,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       isActive: user.isActive,
-      role: user.role,
+      role: user.role || 'user', // Default role if missing
       lastLogin: new Date(),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
@@ -92,11 +92,11 @@ export async function POST(request: NextRequest) {
       message: 'Login successful'
     })
 
-    // Set token in cookie for persistence
+    // Set token in cookie for persistence (Vercel-optimized)
     response.cookies.set('auth-token', accessToken, {
-      httpOnly: false, // Allow JavaScript access
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      httpOnly: false, // Allow JavaScript access for client-side auth
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict', // More permissive for Vercel
       path: '/',
       maxAge: 7 * 24 * 60 * 60 // 7 days
     })
