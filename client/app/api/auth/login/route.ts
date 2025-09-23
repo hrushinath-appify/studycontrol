@@ -6,8 +6,13 @@ import jwt from 'jsonwebtoken'
 export async function POST(request: NextRequest) {
   try {
     console.log('🔐 Login attempt started')
+    console.log('🌍 Environment:', process.env.NODE_ENV)
+    console.log('🔗 MongoDB URI exists:', !!process.env.MONGODB_URI)
+    console.log('🔑 JWT Secret exists:', !!process.env.JWT_SECRET)
+    
     const { email, password } = await request.json()
     console.log('📧 Email:', email, 'HasPassword:', !!password)
+    console.log('📧 Email type:', typeof email, 'Password type:', typeof password)
 
     if (!email || !password) {
       console.log('❌ Missing email or password')
@@ -19,19 +24,43 @@ export async function POST(request: NextRequest) {
 
     // Connect to database
     console.log('🔌 Connecting to database...')
+    console.log('🔗 Using MongoDB URI:', process.env.MONGODB_URI?.substring(0, 50) + '...')
     await connectToDatabase()
     console.log('✅ Database connected')
 
     // Find user and include password for comparison
     console.log('👤 Searching for user:', email.toLowerCase())
+    console.log('👤 Query: { email:', email.toLowerCase(), '}')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = await (User as any).findOne(
       { email: email.toLowerCase() },
       '+password'
     ).lean() as (IUser & { _id: string }) | null
     
+    console.log('🔍 Query result - User found:', !!user)
+    if (user) {
+      console.log('✅ User details:', {
+        id: user._id,
+        email: user.email,
+        hasPassword: !!user.password,
+        passwordLength: user.password?.length,
+        isEmailVerified: user.isEmailVerified,
+        isActive: user.isActive
+      })
+    }
+    
     if (!user) {
-      console.log('❌ User not found')
+      console.log('❌ User not found for email:', email.toLowerCase())
+      console.log('❌ Available users in DB: checking...')
+      
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const allUsers = await (User as any).find({}, { email: 1 }).lean()
+        console.log('📋 All user emails in DB:', allUsers.map((u: any) => u.email))
+      } catch (err) {
+        console.log('❌ Error checking all users:', err)
+      }
+      
       return NextResponse.json({
         success: false,
         error: 'Invalid credentials'
