@@ -93,6 +93,11 @@ const userSchema = new mongoose.Schema<IUser>({
     type: Boolean,
     default: true,
   },
+  role: {
+    type: String,
+    default: 'user',
+    enum: ['user', 'admin', 'moderator'],
+  },
 }, {
   timestamps: true,
   toJSON: {
