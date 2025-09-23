@@ -1,6 +1,5 @@
 "use client"
 
-import { AuthProvider } from "@/components/AuthProvider"
 import AuthGuard from "@/components/AuthGuard"
 import { LazyComponents } from "@/components/LazyComponents"
 import TopBar from "@/components/custom/TopBar"
@@ -14,27 +13,25 @@ interface AuthenticatedLayoutProps {
 
 export default function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   return (
-    <AuthProvider>
-      <AuthGuard>
-        <SidebarProvider>
-          <LazyComponents.MainSidebar />
-          <SidebarInset>
-            <TooltipProvider>
-              <div className="flex min-h-dvh flex-col overflow-hidden bg-background/30 backdrop-blur-sm">
-                <TopBar />
-                <main className="flex-1 p-3 sm:p-4 md:p-6">
-                  <div className="mx-auto w-full max-w-7xl">
-                    <div className="content-overlay animate-fade-in min-h-[calc(100dvh-180px)] rounded-xl sm:rounded-2xl border border-border/50 bg-card/80 p-3 sm:p-4 md:p-6 shadow-lg backdrop-blur-sm">
-                      {children}
-                    </div>
+    <AuthGuard>
+      <SidebarProvider>
+        <LazyComponents.MainSidebar />
+        <SidebarInset>
+          <TooltipProvider>
+            <div className="flex min-h-dvh flex-col overflow-hidden bg-background/30 backdrop-blur-sm">
+              <TopBar />
+              <main className="flex-1 p-3 sm:p-4 md:p-6">
+                <div className="mx-auto w-full max-w-7xl">
+                  <div className="content-overlay animate-fade-in min-h-[calc(100dvh-180px)] rounded-xl sm:rounded-2xl border border-border/50 bg-card/80 p-3 sm:p-4 md:p-6 shadow-lg backdrop-blur-sm">
+                    {children}
                   </div>
-                </main>
-                <Footer />
-              </div>
-            </TooltipProvider>
-          </SidebarInset>
-        </SidebarProvider>
-      </AuthGuard>
-    </AuthProvider>
+                </div>
+              </main>
+              <Footer />
+            </div>
+          </TooltipProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </AuthGuard>
   )
 }

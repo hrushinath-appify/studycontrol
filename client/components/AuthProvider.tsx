@@ -26,20 +26,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   
-  // Prevent infinite loops
+  // Prevent infinite loops and handle SSR
   const initRef = useRef(false)
   const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
 
-  // Simple, reliable auth check with better timing
+  // Handle SSR/client hydration
   useEffect(() => {
-    if (initRef.current) return
+    setIsMounted(true)
+  }, [])
+
+  // Optimized auth check with better error handling
+  useEffect(() => {
+    if (initRef.current || !isMounted) return
     initRef.current = true
 
     const checkAuth = async () => {
       console.log('[AuthProvider] Starting auth check...')
       
       try {
-        // Check for token in localStorage first
+        // Check for token in localStorage (only on client)
+        if (typeof window === 'undefined') {
+          setIsInitializing(false)
+          return
+        }
+
         const token = localStorage.getItem('auth-token')
         console.log('[AuthProvider] Token exists:', !!token)
         
@@ -50,41 +61,60 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return
         }
 
-        console.log('[AuthProvider] Token found, fetching user data...')
+        console.log('[AuthProvider] Verifying token with server...')
 
-        // Verify token with the new API structure
-        const response = await fetch('/api/auth/me', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          credentials: 'include',
-        })
+        // Use a timeout to prevent hanging
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
-        console.log('[AuthProvider] Auth check response status:', response.status)
+        try {
+          const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            credentials: 'include',
+            signal: controller.signal,
+          })
 
-        if (response.ok) {
-          const data = await response.json()
-          console.log('[AuthProvider] Auth check successful:', data.data?.email)
-          setUser(data.data)
-        } else {
-          console.log('[AuthProvider] Auth check failed, clearing token')
+          clearTimeout(timeoutId)
+          console.log('[AuthProvider] Auth check response status:', response.status)
+
+          if (response.ok) {
+            const data = await response.json()
+            console.log('[AuthProvider] Auth check successful:', data.data?.email)
+            setUser(data.data)
+          } else {
+            console.log('[AuthProvider] Auth check failed, clearing token')
+            setUser(null)
+            localStorage.removeItem('auth-token')
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId)
+          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+            console.log('[AuthProvider] Auth check timed out')
+          } else {
+            console.error('[AuthProvider] Fetch error:', fetchError)
+          }
           setUser(null)
           localStorage.removeItem('auth-token')
         }
       } catch (error) {
         console.error('[AuthProvider] Auth check error:', error)
         setUser(null)
-        localStorage.removeItem('auth-token')
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth-token')
+        }
       } finally {
-        // Only set initializing to false after we've set the user state
-        console.log('[AuthProvider] Auth check completed, setting isInitializing to false')
+        console.log('[AuthProvider] Auth check completed')
         setIsInitializing(false)
       }
     }
 
-    checkAuth()
-  }, [])
+    // Small delay to let the component settle
+    const timer = setTimeout(checkAuth, 100)
+    return () => clearTimeout(timer)
+  }, [isMounted])
 
   const login = async (email: string, password: string) => {
     setIsLoading(true)

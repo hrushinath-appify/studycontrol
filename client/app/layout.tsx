@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Manrope } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/ThemeProvider"
+import { AuthProvider } from "@/components/AuthProvider"
 import { Toaster } from "@/components/ui/sonner"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
@@ -63,7 +64,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
           <Toaster position="top-center" />
           <SpeedInsights />
         </ThemeProvider>

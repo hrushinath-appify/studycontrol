@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "./AuthProvider"
 import LoadingScreen from "./ui/loading-screen"
@@ -13,6 +13,25 @@ export default function AuthGuard({
 }: AuthGuardProps) {
   const { isAuthenticated, isInitializing } = useAuth()
   const router = useRouter()
+  const [shouldShowLoading, setShouldShowLoading] = useState(true)
+
+  // Timeout to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isInitializing) {
+        console.log('[AuthGuard] Timeout reached, stopping loading screen')
+        setShouldShowLoading(false)
+      }
+    }, 5000) // 5 second maximum loading time
+
+    return () => clearTimeout(timer)
+  }, [isInitializing])
+
+  useEffect(() => {
+    if (!isInitializing) {
+      setShouldShowLoading(false)
+    }
+  }, [isInitializing])
 
   useEffect(() => {
     // Only redirect if we're done initializing and not authenticated
@@ -22,8 +41,8 @@ export default function AuthGuard({
     }
   }, [isAuthenticated, isInitializing, router, redirectTo])
 
-  // Show loading state while initializing (but make it brief)
-  if (isInitializing) {
+  // Show loading state while initializing (with timeout protection)
+  if (isInitializing && shouldShowLoading) {
     return fallback || <LoadingScreen message="Loading..." />
   }
 
@@ -40,19 +59,39 @@ export default function AuthGuard({
 export function GuestGuard({ 
   children, 
   fallback,
-  redirectTo = "/" 
+  redirectTo = "/home" 
 }: AuthGuardProps) {
   const { isAuthenticated, isInitializing } = useAuth()
   const router = useRouter()
+  const [shouldShowLoading, setShouldShowLoading] = useState(true)
+
+  // Timeout to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isInitializing) {
+        console.log('[GuestGuard] Timeout reached, stopping loading screen')
+        setShouldShowLoading(false)
+      }
+    }, 3000) // 3 second maximum loading time for guest guard
+
+    return () => clearTimeout(timer)
+  }, [isInitializing])
+
+  useEffect(() => {
+    if (!isInitializing) {
+      setShouldShowLoading(false)
+    }
+  }, [isInitializing])
 
   useEffect(() => {
     if (!isInitializing && isAuthenticated) {
+      console.log('[GuestGuard] Redirecting authenticated user to home')
       router.push(redirectTo)
     }
   }, [isAuthenticated, isInitializing, router, redirectTo])
 
-  // Show loading while initializing auth state
-  if (isInitializing) {
+  // Show loading while initializing auth state (with timeout protection)
+  if (isInitializing && shouldShowLoading) {
     return fallback || <LoadingScreen message="Checking authentication..." />
   }
 
