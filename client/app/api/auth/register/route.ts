@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { connectToDatabase, User, generateAvatarUrl } from '@/lib/database'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,45 +15,78 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Register user against the backend API server
-    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-    
-    try {
-      const registerResponse = await fetch(`${backendUrl}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password, confirmPassword: password }),
-      })
-
-      const registerData = await registerResponse.json()
-
-      if (!registerResponse.ok) {
-        return NextResponse.json(
-          { success: false, error: registerData.error || 'Registration failed' },
-          { status: registerResponse.status }
-        )
-      }
-
-      // DO NOT create session automatically for unverified users
-      // Only return the registration success message
-      return NextResponse.json({
-        success: true,
-        data: registerData.data,
-        message: registerData.message || 'Registration successful! Please check your email to verify your account.'
-      })
-
-    } catch (fetchError) {
-      console.error('Backend registration failed:', fetchError)
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { success: false, error: 'Registration service unavailable' },
-        { status: 503 }
+        { success: false, error: 'Please enter a valid email address' },
+        { status: 400 }
       )
     }
 
+    // Password validation
+    if (password.length < 8) {
+      return NextResponse.json(
+        { success: false, error: 'Password must be at least 8 characters long' },
+        { status: 400 }
+      )
+    }
+
+    // Connect to database
+    await connectToDatabase()
+
+    // Check if user already exists
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingUser = await (User as any).findOne({ email: email.toLowerCase() })
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, error: 'User with this email already exists' },
+        { status: 409 }
+      )
+    }
+
+    // Hash password
+    const saltRounds = 12
+    const hashedPassword = await bcrypt.hash(password, saltRounds)
+
+    // Create new user
+    const newUser = new User({
+      name: name.trim(),
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      avatar: generateAvatarUrl(name),
+      isEmailVerified: true, // Auto-verify for development/testing
+      isActive: true,
+      role: 'user'
+    })
+
+    await newUser.save()
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        user: {
+          id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+          avatar: newUser.avatar,
+          isEmailVerified: newUser.isEmailVerified
+        }
+      },
+      message: 'Registration successful! You can now sign in.'
+    })
+
   } catch (error) {
     console.error('Registration error:', error)
+    
+    // Handle MongoDB duplicate key error
+    if (error instanceof Error && 'code' in error && error.code === 11000) {
+      return NextResponse.json(
+        { success: false, error: 'User with this email already exists' },
+        { status: 409 }
+      )
+    }
+    
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

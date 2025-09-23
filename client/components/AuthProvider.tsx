@@ -164,9 +164,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
-      
-      const response = await fetch(`${apiUrl}/auth/register`, {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
