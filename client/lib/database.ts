@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema<IUser>({
   email: {
     type: String,
     required: true,
+    unique: true,
     lowercase: true,
     trim: true,
   },
@@ -108,8 +109,7 @@ const userSchema = new mongoose.Schema<IUser>({
   }
 })
 
-// Create indexes
-userSchema.index({ email: 1 }, { unique: true })
+// Create indexes (email index will be created automatically by unique: true)
 userSchema.index({ emailVerificationToken: 1 })
 userSchema.index({ resetPasswordToken: 1 })
 
