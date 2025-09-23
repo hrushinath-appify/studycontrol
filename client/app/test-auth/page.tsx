@@ -4,55 +4,108 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/components/AuthProvider'
 
 export default function AuthTestPage() {
   const [signupForm, setSignupForm] = useState({
     name: '',
     email: '',
-    password: ''
+    password: '',
   })
   
   const [loginForm, setLoginForm] = useState({
-    email: 'hrushinath29@gmail.com',
-    password: 'Chinnu@1'
+    email: '',
+    password: '',
   })
   
   const [results, setResults] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-
+  
+  const { login } = useAuth()
+  
   const log = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
-    setResults(prev => [...prev, `[${timestamp}] ${message}`])
+    const logMessage = `[${timestamp}] ${message}`
+    setResults(prev => [...prev, logMessage])
+    console.log(logMessage)
   }
-
+  
+  const clearResults = () => {
+    setResults([])
+  }
+  
   const testEnvironment = async () => {
-    setLoading(true)
-    log('🧪 Testing environment variables...')
+    log('🧪 Testing environment...')
     
     try {
       const response = await fetch('/api/env-check')
       const data = await response.json()
       
-      if (response.ok) {
-        log(`✅ Environment check: ${JSON.stringify(data.environment)}`)
-      } else {
-        log(`❌ Environment check failed: ${data.error}`)
-      }
+      log(`📊 Environment check status: ${response.status}`)
+      log(`📋 MongoDB connected: ${data.dbConnected}`)
+      log(`🔑 JWT configured: ${data.jwtConfigured}`)
+      log(`🌍 Environment: ${data.environment}`)
+      
     } catch (error) {
       log(`❌ Environment check error: ${error}`)
+    }
+  }
+  
+  const testSignup = async () => {
+    if (!signupForm.name || !signupForm.email || !signupForm.password) {
+      log('❌ Please fill all signup fields')
+      return
+    }
+    
+    setLoading(true)
+    log(`📝 Testing signup for: ${signupForm.name} (${signupForm.email})`)
+    
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(signupForm)
+      })
+      
+      const data = await response.json()
+      
+      log(`📊 Response status: ${response.status}`)
+      log(`📋 Response data: ${JSON.stringify(data, null, 2)}`)
+      
+      if (response.ok) {
+        log(`✅ Signup successful!`)
+        log(`👤 User created: ${data.data.user.name} (${data.data.user.email})`)
+        log(`🎟️ Token received: ${!!data.data.accessToken}`)
+        
+        // Auto-fill login form
+        setLoginForm({
+          email: signupForm.email,
+          password: signupForm.password
+        })
+        log(`📋 Login form auto-filled`)
+        
+      } else {
+        log(`❌ Signup failed: ${data.error}`)
+      }
+    } catch (error) {
+      log(`❌ Signup error: ${error}`)
     }
     
     setLoading(false)
   }
-
-  const testLogin = async () => {
+  
+  const testDirectLogin = async () => {
     if (!loginForm.email || !loginForm.password) {
       log('❌ Please fill email and password')
       return
     }
     
     setLoading(true)
-    log(`🔐 Testing login for: ${loginForm.email}`)
+    log(`🔐 Testing DIRECT login for: ${loginForm.email}`)
+    log(`🔐 Password length: ${loginForm.password.length}`)
     
     try {
       const response = await fetch('/api/auth/login', {
@@ -64,13 +117,14 @@ export default function AuthTestPage() {
         body: JSON.stringify(loginForm)
       })
       
-      const data = await response.json()
-      
       log(`📊 Response status: ${response.status}`)
+      log(`📊 Response headers: ${JSON.stringify([...response.headers.entries()])}`)
+      
+      const data = await response.json()
       log(`📋 Response data: ${JSON.stringify(data, null, 2)}`)
       
       if (response.ok) {
-        log(`✅ Login successful!`)
+        log(`✅ DIRECT Login successful!`)
         log(`🎟️ Token received: ${!!data.data.accessToken}`)
         log(`👤 User: ${data.data.user.name} (${data.data.user.email})`)
         
@@ -80,175 +134,160 @@ export default function AuthTestPage() {
           log(`💾 Token stored in localStorage`)
         }
         
-        log(`🎉 AUTHENTICATION SUCCESSFUL - READY TO REDIRECT!`)
+        log(`🎉 DIRECT AUTHENTICATION SUCCESSFUL!`)
         
       } else {
-        log(`❌ Login failed: ${data.error}`)
+        log(`❌ DIRECT Login failed with status ${response.status}`)
+        log(`❌ Error: ${data.error || 'Unknown error'}`)
+        log(`❌ Full response: ${JSON.stringify(data)}`)
       }
     } catch (error) {
-      log(`❌ Login error: ${error}`)
+      log(`❌ DIRECT Login error: ${error}`)
+      log(`❌ Error type: ${typeof error}`)
+      log(`❌ Error details: ${JSON.stringify(error)}`)
     }
     
     setLoading(false)
   }
-
-  const testSignup = async () => {
-    if (!signupForm.name || !signupForm.email || !signupForm.password) {
-      log('❌ Please fill all signup fields')
+  
+  const testAuthProviderLogin = async () => {
+    if (!loginForm.email || !loginForm.password) {
+      log('❌ Please fill email and password')
       return
     }
     
     setLoading(true)
-    log(`🔨 Testing signup for: ${signupForm.email}`)
+    log(`🔐 Testing AUTHPROVIDER login for: ${loginForm.email}`)
+    log(`🔐 Password length: ${loginForm.password.length}`)
     
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(signupForm)
-      })
+      log(`🚀 Calling auth.login()...`)
+      await login(loginForm.email, loginForm.password)
+      log(`✅ AUTHPROVIDER Login completed successfully!`)
       
-      const data = await response.json()
-      
-      if (response.ok) {
-        log(`✅ Signup successful: ${data.data.user.email}`)
-        log(`📧 User verified: ${data.data.user.isEmailVerified}`)
-        setLoginForm({ 
-          email: signupForm.email, 
-          password: signupForm.password 
-        })
-      } else {
-        log(`❌ Signup failed: ${data.error}`)
-      }
     } catch (error) {
-      log(`❌ Signup error: ${error}`)
+      log(`❌ AUTHPROVIDER Login error: ${error}`)
+      log(`❌ Error type: ${typeof error}`)
+      log(`❌ Error message: ${error instanceof Error ? error.message : 'Unknown'}`)
     }
     
     setLoading(false)
   }
-
-  const clearResults = () => setResults([])
-
+  
   const redirectToHome = () => {
-    log('🏠 Redirecting to home page...')
+    log('🏠 Redirecting to /home...')
     window.location.href = '/home'
   }
-
+  
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>🧪 Authentication Flow Test</CardTitle>
-          <CardDescription>
-            Test the complete signup and login flow to debug authentication issues
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-4xl mx-auto space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Environment Check</CardTitle>
-            <CardDescription>Verify environment variables</CardDescription>
+            <CardTitle>🧪 Authentication Test Suite</CardTitle>
+            <CardDescription>
+              Test authentication flow with detailed logging
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={testEnvironment} disabled={loading} className="w-full">
-              Test Environment Variables
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Test Signup</CardTitle>
-            <CardDescription>Create a new user account</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              placeholder="Full Name"
-              value={signupForm.name}
-              onChange={(e) => setSignupForm({...signupForm, name: e.target.value})}
-            />
-            <Input
-              placeholder="Email"
-              type="email"
-              value={signupForm.email}
-              onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
-            />
-            <Input
-              placeholder="Password"
-              type="password"
-              value={signupForm.password}
-              onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
-            />
-            <Button onClick={testSignup} disabled={loading} className="w-full">
-              Test Signup
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Test Login</CardTitle>
-          <CardDescription>Test login with existing credentials</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Input
-            placeholder="Email"
-            type="email"
-            value={loginForm.email}
-            onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
-          />
-          <Input
-            placeholder="Password"
-            type="password"
-            value={loginForm.password}
-            onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-          />
-          <div className="flex gap-2">
-            <Button onClick={testLogin} disabled={loading} className="flex-1">
-              Test Login
-            </Button>
-            <Button variant="outline" onClick={redirectToHome} className="flex-1">
-              Go to Home
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Test Results</CardTitle>
-          <Button variant="outline" size="sm" onClick={clearResults}>
-            Clear
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-black text-green-400 p-4 rounded-md font-mono text-sm max-h-96 overflow-y-auto">
-            {results.length === 0 ? (
-              <div className="text-gray-500">No test results yet. Run a test to see output.</div>
-            ) : (
-              results.map((result, index) => (
-                <div key={index} className="mb-1">
-                  {result}
+          <CardContent className="space-y-6">
+            
+            {/* Environment Check */}
+            <div>
+              <h3 className="font-semibold mb-3">🌍 Environment Check</h3>
+              <Button onClick={testEnvironment} disabled={loading} className="w-full">
+                Check Environment
+              </Button>
+            </div>
+            
+            {/* Signup Test */}
+            <div>
+              <h3 className="font-semibold mb-3">📝 Test Signup</h3>
+              <div className="space-y-3">
+                <Input
+                  placeholder="Name"
+                  value={signupForm.name}
+                  onChange={(e) => setSignupForm({...signupForm, name: e.target.value})}
+                />
+                <Input
+                  placeholder="Email"
+                  type="email"
+                  value={signupForm.email}
+                  onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
+                />
+                <Input
+                  placeholder="Password"
+                  type="password"
+                  value={signupForm.password}
+                  onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
+                />
+                <Button onClick={testSignup} disabled={loading} className="w-full">
+                  Test Signup
+                </Button>
+              </div>
+            </div>
+            
+            {/* Login Tests */}
+            <div>
+              <h3 className="font-semibold mb-3">🔐 Test Login</h3>
+              <div className="space-y-3">
+                <Input
+                  placeholder="Email"
+                  type="email"
+                  value={loginForm.email}
+                  onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                />
+                <Input
+                  placeholder="Password"
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={testDirectLogin} disabled={loading} className="flex-1">
+                    Direct API Test
+                  </Button>
+                  <Button onClick={testAuthProviderLogin} disabled={loading} className="flex-1">
+                    AuthProvider Test
+                  </Button>
                 </div>
-              ))
-            )}
+                <Button variant="outline" onClick={redirectToHome} className="w-full">
+                  🏠 Go to Home (if authenticated)
+                </Button>
+              </div>
+            </div>
+            
+            {/* Results */}
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-semibold">📋 Test Results</h3>
+                <Button variant="outline" size="sm" onClick={clearResults}>
+                  Clear
+                </Button>
+              </div>
+              <div className="bg-black text-green-400 p-4 rounded font-mono text-sm max-h-96 overflow-y-auto">
+                {results.length === 0 ? (
+                  <div className="text-gray-500">No tests run yet...</div>
+                ) : (
+                  results.map((result, index) => (
+                    <div key={index} className="mb-1">
+                      {result}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {loading && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <Card className="p-6 text-center">
+              <div className="animate-spin h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4" />
+              <p>Testing authentication...</p>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
-
-      {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg">
-            <div className="animate-spin h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <div>Running test...</div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
