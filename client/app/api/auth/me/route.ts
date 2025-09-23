@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase, User } from '@/lib/database'
+import { connectToDatabase, User, IUser } from '@/lib/database'
 import jwt from 'jsonwebtoken'
 
 export async function GET(request: NextRequest) {
@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
     await connectToDatabase()
 
     // Find user
-    const user = await User.findById(decoded.userId).exec()
+    // @ts-expect-error - Mongoose typing issue
+    const user = await User.findById(decoded.userId).lean() as (IUser & { _id: string }) | null
     if (!user || !user.isActive) {
       return NextResponse.json({
         success: false,

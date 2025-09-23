@@ -1,5 +1,23 @@
 import mongoose from 'mongoose'
 
+// User interface
+export interface IUser extends mongoose.Document {
+  name: string
+  email: string
+  password: string
+  avatar?: string
+  isEmailVerified: boolean
+  emailVerificationToken?: string
+  emailVerificationExpires?: Date
+  lastLogin?: Date
+  isActive: boolean
+  role: string
+  resetPasswordToken?: string
+  resetPasswordExpires?: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
 // MongoDB connection singleton
 let isConnected = false
 
@@ -25,7 +43,7 @@ export async function connectToDatabase() {
 }
 
 // User Schema
-const userSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema<IUser>({
   name: {
     type: String,
     required: true,
@@ -78,7 +96,7 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   toJSON: {
-    transform: function(doc: any, ret: any) {
+    transform: function(doc: IUser, ret: Record<string, unknown>) {
       // Remove sensitive fields from JSON output
       delete ret.password
       delete ret.emailVerificationToken
@@ -96,7 +114,7 @@ userSchema.index({ email: 1 }, { unique: true })
 userSchema.index({ emailVerificationToken: 1 })
 userSchema.index({ resetPasswordToken: 1 })
 
-export const User = mongoose.models.User || mongoose.model('User', userSchema)
+export const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema)
 
 // Helper function to generate avatar URL
 export function generateAvatarUrl(name: string): string {

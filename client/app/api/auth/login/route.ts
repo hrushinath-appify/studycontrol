@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase, User } from '@/lib/database'
+import { connectToDatabase, User, IUser } from '@/lib/database'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
     await connectToDatabase()
 
     // Find user and include password for comparison
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password').exec()
+    // @ts-expect-error - Mongoose typing issue with select and lean
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password').lean() as (IUser & { _id: string }) | null
     if (!user) {
       return NextResponse.json({
         success: false,
