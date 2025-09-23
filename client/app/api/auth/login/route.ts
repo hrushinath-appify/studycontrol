@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
+    console.log('🔐 Generating JWT token...')
     // Generate JWT token
     const accessToken = jwt.sign(
       { 
@@ -78,14 +79,31 @@ export async function POST(request: NextRequest) {
       process.env.JWT_SECRET || 'fallback-secret-key-for-development',
       { expiresIn: '7d' }
     )
+    console.log('✅ JWT token generated')
 
-    // Update last login
-    user.lastLogin = new Date()
-    await user.save()
+    // Update last login (using updateOne since we used lean())
+    console.log('📅 Updating last login...')
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { lastLogin: new Date() } }
+    )
+    console.log('✅ Last login updated')
 
-    // Prepare user data (password is excluded by schema transform)
-    const userData = user.toJSON()
+    // Prepare user data (exclude sensitive fields)
+    const userData = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      isActive: user.isActive,
+      role: user.role,
+      lastLogin: new Date(),
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    }
+    console.log('📋 User data prepared:', { id: userData._id, email: userData.email })
 
+    console.log('🍪 Setting response and cookies...')
     const response = NextResponse.json({
       success: true,
       data: {
@@ -104,6 +122,7 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60 // 7 days
     })
 
+    console.log('🎉 Login successful for user:', user.email)
     return response
 
   } catch (error) {
