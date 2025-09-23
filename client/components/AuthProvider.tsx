@@ -30,7 +30,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const initRef = useRef(false)
   const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Simple, reliable auth check
+  // Simple, reliable auth check with better timing
   useEffect(() => {
     if (initRef.current) return
     initRef.current = true
@@ -49,6 +49,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setIsInitializing(false)
           return
         }
+
+        console.log('[AuthProvider] Token found, fetching user data...')
 
         // Verify token with the new API structure
         const response = await fetch('/api/auth/me', {
@@ -75,6 +77,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(null)
         localStorage.removeItem('auth-token')
       } finally {
+        // Only set initializing to false after we've set the user state
+        console.log('[AuthProvider] Auth check completed, setting isInitializing to false')
         setIsInitializing(false)
       }
     }

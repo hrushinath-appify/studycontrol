@@ -17,13 +17,14 @@ export default function AuthGuard({
   useEffect(() => {
     // Only redirect if we're done initializing and not authenticated
     if (!isInitializing && !isAuthenticated) {
+      console.log('[AuthGuard] Redirecting to login - not authenticated')
       router.push(redirectTo)
     }
   }, [isAuthenticated, isInitializing, router, redirectTo])
 
-  // Show loading state while initializing
+  // Show loading state while initializing (but make it brief)
   if (isInitializing) {
-    return fallback || <LoadingScreen message="Initializing..." />
+    return fallback || <LoadingScreen message="Loading..." />
   }
 
   // If not authenticated after initialization, don't render children (redirect will happen)
