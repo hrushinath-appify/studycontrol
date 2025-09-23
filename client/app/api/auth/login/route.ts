@@ -83,11 +83,17 @@ export async function POST(request: NextRequest) {
 
     // Update last login (using updateOne since we used lean())
     console.log('📅 Updating last login...')
-    await User.updateOne(
-      { _id: user._id },
-      { $set: { lastLogin: new Date() } }
-    )
-    console.log('✅ Last login updated')
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateResult = await (User as any).updateOne(
+        { _id: user._id },
+        { $set: { lastLogin: new Date() } }
+      )
+      console.log('✅ Last login updated:', updateResult)
+    } catch (updateError) {
+      console.error('❌ Error updating last login:', updateError)
+      // Continue anyway - login was successful
+    }
 
     // Prepare user data (exclude sensitive fields)
     const userData = {
