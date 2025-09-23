@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
     await connectToDatabase()
 
     // Find user
-    // @ts-expect-error - Mongoose typing issue
-    const user = await User.findById(decoded.userId).lean() as (IUser & { _id: string }) | null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = await (User as any).findById(decoded.userId).lean() as (IUser & { _id: string }) | null
     if (!user || !user.isActive) {
       return NextResponse.json({
         success: false,

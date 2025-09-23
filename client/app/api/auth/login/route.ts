@@ -18,8 +18,11 @@ export async function POST(request: NextRequest) {
     await connectToDatabase()
 
     // Find user and include password for comparison
-    // @ts-expect-error - Mongoose typing issue with select and lean
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password').lean() as (IUser & { _id: string }) | null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = await (User as any).findOne(
+      { email: email.toLowerCase() },
+      '+password'
+    ).lean() as (IUser & { _id: string }) | null
     if (!user) {
       return NextResponse.json({
         success: false,
