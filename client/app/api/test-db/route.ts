@@ -33,11 +33,13 @@ export async function GET() {
     console.log('✅ Database connected successfully')
 
     // Test user query
-    const userCount = await User.countDocuments()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userCount = await (User as any).countDocuments()
     console.log('👥 Total users in database:', userCount)
 
     // Test specific user
-    const testUser = await User.findOne({ email: 'hrushinath29@gmail.com' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const testUser = await (User as any).findOne({ email: 'hrushinath29@gmail.com' })
     console.log('👤 Test user found:', testUser ? 'YES' : 'NO')
 
     return NextResponse.json({
