@@ -5,17 +5,9 @@ import jwt from 'jsonwebtoken'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔐 Login attempt started')
-    console.log('🌍 Environment:', process.env.NODE_ENV)
-    console.log('🔗 MongoDB URI exists:', !!process.env.MONGODB_URI)
-    console.log('🔑 JWT Secret exists:', !!process.env.JWT_SECRET)
-    
     const { email, password } = await request.json()
-    console.log('📧 Email:', email, 'HasPassword:', !!password)
-    console.log('📧 Email type:', typeof email, 'Password type:', typeof password)
 
     if (!email || !password) {
-      console.log('❌ Missing email or password')
       return NextResponse.json({
         success: false,
         error: 'Email and password are required'
@@ -23,65 +15,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Connect to database
-    console.log('🔌 Connecting to database...')
-    console.log('🔗 Using MongoDB URI:', process.env.MONGODB_URI?.substring(0, 50) + '...')
     await connectToDatabase()
-    console.log('✅ Database connected')
 
     // Find user and include password for comparison
-    console.log('👤 Searching for user:', email.toLowerCase())
-    console.log('👤 Query: { email:', email.toLowerCase(), '}')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = await (User as any).findOne(
       { email: email.toLowerCase() },
       '+password'
     ).lean() as (IUser & { _id: string }) | null
     
-    console.log('🔍 Query result - User found:', !!user)
-    if (user) {
-      console.log('✅ User details:', {
-        id: user._id,
-        email: user.email,
-        hasPassword: !!user.password,
-        passwordLength: user.password?.length,
-        isEmailVerified: user.isEmailVerified,
-        isActive: user.isActive
-      })
-    }
-    
     if (!user) {
-      console.log('❌ User not found for email:', email.toLowerCase())
-      console.log('❌ Available users in DB: checking...')
-      
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const allUsers = await (User as any).find({}, { email: 1 }).lean()
-        console.log('📋 All user emails in DB:', allUsers.map((u: any) => u.email))
-      } catch (err) {
-        console.log('❌ Error checking all users:', err)
-      }
-      
       return NextResponse.json({
         success: false,
         error: 'Invalid credentials'
       }, { status: 401 })
     }
-    
-    console.log('✅ User found:', { 
-      id: user._id, 
-      email: user.email, 
-      hasPassword: !!user.password,
-      isEmailVerified: user.isEmailVerified,
-      isActive: user.isActive 
-    })
 
     // Check password
-    console.log('🔒 Checking password...')
     const isValidPassword = await bcrypt.compare(password, user.password)
-    console.log('🔒 Password valid:', isValidPassword)
     
     if (!isValidPassword) {
-      console.log('❌ Invalid password')
       return NextResponse.json({
         success: false,
         error: 'Invalid credentials'
@@ -89,16 +42,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email is verified (allow for development/testing)
-    console.log('📧 Checking email verification...', { isEmailVerified: user.isEmailVerified, NODE_ENV: process.env.NODE_ENV })
     if (!user.isEmailVerified && process.env.NODE_ENV === 'production') {
-      console.log('❌ Email not verified')
       return NextResponse.json({
         success: false,
         error: 'Please verify your email before logging in'
       }, { status: 401 })
     }
 
-    console.log('🔐 Generating JWT token...')
     // Generate JWT token
     const accessToken = jwt.sign(
       { 
@@ -108,19 +58,15 @@ export async function POST(request: NextRequest) {
       process.env.JWT_SECRET || 'fallback-secret-key-for-development',
       { expiresIn: '7d' }
     )
-    console.log('✅ JWT token generated')
 
     // Update last login (using updateOne since we used lean())
-    console.log('📅 Updating last login...')
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const updateResult = await (User as any).updateOne(
+      await (User as any).updateOne(
         { _id: user._id },
         { $set: { lastLogin: new Date() } }
       )
-      console.log('✅ Last login updated:', updateResult)
-    } catch (updateError) {
-      console.error('❌ Error updating last login:', updateError)
+    } catch {
       // Continue anyway - login was successful
     }
 
@@ -136,9 +82,7 @@ export async function POST(request: NextRequest) {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     }
-    console.log('📋 User data prepared:', { id: userData._id, email: userData.email })
 
-    console.log('🍪 Setting response and cookies...')
     const response = NextResponse.json({
       success: true,
       data: {
@@ -157,12 +101,10 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60 // 7 days
     })
 
-    console.log('🎉 Login successful for user:', user.email)
     return response
 
   } catch (error) {
-    console.error('❌ Login error:', error)
-    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('Login error:', error)
     return NextResponse.json({
       success: false,
       error: 'Internal server error'

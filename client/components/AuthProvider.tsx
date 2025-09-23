@@ -83,15 +83,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const login = async (email: string, password: string) => {
-    console.log('[AuthProvider] Starting login for:', email)
     setIsLoading(true)
     setError(null)
 
     try {
-      // Use the new API structure
-      console.log('[AuthProvider] Login API URL: /api/auth/login')
-      console.log('[AuthProvider] Current hostname:', window.location.hostname)
-      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -101,9 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         body: JSON.stringify({ email, password }),
       })
 
-      console.log('[AuthProvider] Login response status:', response.status)
       const data = await response.json()
-      console.log('[AuthProvider] Login response data:', { success: data.success, hasUser: !!data.data?.user })
       
       if (!response.ok) {
         const errorMessage = data.error || 'Login failed'
@@ -115,12 +108,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Store token in localStorage (the cookie is set by the API)
       if (data.data.accessToken) {
         localStorage.setItem('auth-token', data.data.accessToken)
-        console.log('[AuthProvider] Token stored in localStorage')
       }
       
       // Set user immediately
       setUser(data.data.user)
-      console.log('[AuthProvider] User set, preparing redirect...')
       
       toast.success(toastMessages.auth.loginSuccess, `Welcome back, ${data.data.user.name}!`)
       
@@ -128,14 +119,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (redirectTimeoutRef.current) {
         clearTimeout(redirectTimeoutRef.current)
       }
-      
+
       // Immediate redirect attempt
-      console.log('[AuthProvider] Attempting immediate redirect...')
       router.push('/home')
       
       // Fallback redirect after 1 second
       redirectTimeoutRef.current = setTimeout(() => {
-        console.log('[AuthProvider] Fallback redirect to /home')
         if (typeof window !== 'undefined') {
           window.location.href = '/home'
         }
@@ -144,7 +133,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Force redirect after 3 seconds if still on login
       setTimeout(() => {
         if (typeof window !== 'undefined' && window.location.pathname === '/login') {
-          console.log('[AuthProvider] Force redirect - still on login page')
           window.location.replace('/home')
         }
       }, 3000)
@@ -208,8 +196,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       toast.success(toastMessages.auth.logoutSuccess)
       router.push('/login')
       
-    } catch (error) {
-      console.error('Logout error:', error)
+    } catch {
       localStorage.removeItem('auth-token')
       setUser(null)
       router.push('/login')
