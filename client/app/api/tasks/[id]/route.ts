@@ -9,7 +9,7 @@ async function callBackendAPI(endpoint: string, options: RequestInit = {}) {
   
   // Get JWT token from cookies
   const cookieStore = await cookies()
-  const accessToken = cookieStore.get('access-token')?.value
+  const accessToken = cookieStore.get('auth-token')?.value
   
   if (!accessToken) {
     throw new Error('Access token not found in cookies')

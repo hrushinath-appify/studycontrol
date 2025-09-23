@@ -30,7 +30,7 @@ export async function POST(_request: NextRequest) {
       message: 'Logged out successfully'
     })
 
-    response.cookies.delete('access-token')
+    response.cookies.delete('auth-token')
     response.cookies.delete('refresh-token')
     response.cookies.delete('session-token')
 
