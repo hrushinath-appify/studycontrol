@@ -1,81 +1,91 @@
 import { NextRequest } from 'next/server'
-import { getUser } from '@/lib/dal'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
+import { connectToDatabase, Note } from '@/lib/database'
 import { cookies } from 'next/headers'
+import jwt from 'jsonwebtoken'
 
-// Backend API helper function with authentication
-async function callBackendAPI(endpoint: string, options: RequestInit = {}) {
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-  
-  // Get JWT token from cookies
+// Helper function to get authenticated user ID
+async function getAuthenticatedUser() {
   const cookieStore = await cookies()
-  const accessToken = cookieStore.get('auth-token')?.value
-  
-  if (!accessToken) {
-    throw new Error('Access token not found in cookies')
+  const token = cookieStore.get('auth-token')?.value
+
+  if (!token) {
+    throw new Error('Authentication token not found')
   }
 
   try {
-    const response = await fetch(`${backendUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        ...options.headers,
-      },
-    })
-
-    return response
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as { userId: string }
+    return decoded.userId
   } catch (error) {
-    console.error('Backend API call failed:', error)
-    throw new Error(`Backend API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    console.error('JWT verification failed:', error)
+    throw new Error('Invalid authentication token')
   }
 }
 
 // GET /api/notes - Get notes
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
 
     // Extract query parameters
     const { searchParams } = new URL(request.url)
-    const queryString = searchParams.toString()
-    const endpoint = `/notes${queryString ? `?${queryString}` : ''}`
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const category = searchParams.get('category')
+    const search = searchParams.get('search')
 
-    // Forward request to backend
-    const response = await callBackendAPI(endpoint, {
-      method: 'GET',
-    })
-
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+    // Build query
+    const query: Record<string, unknown> = { userId }
+    if (category) {
+      query.category = category
+    }
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } }
+      ]
     }
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to fetch notes', response.status)
-    }
+    // Get notes with pagination
+    const skip = (page - 1) * limit
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const notes = await (Note as any)
+      .find(query)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
 
-    // Transform _id to id for frontend compatibility
-    const transformedData = data.data?.map((note: { _id: string; content?: string; [key: string]: unknown }) => ({
+    // Transform notes for frontend compatibility
+    const transformedNotes = notes.map((note: { _id: string; content?: string; [key: string]: unknown }) => ({
       ...note,
-      id: note._id,
-      wordCount: note.content ? note.content.trim().split(/\s+/).filter(word => word.length > 0).length : 0,
+      id: note._id.toString(),
+      wordCount: note.content ? note.content.toString().trim().split(/\s+/).filter(word => word.length > 0).length : 0,
       _id: undefined
-    })) || []
+    }))
 
-    return createSuccessResponse(transformedData, data.message)
+    // Get total count
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const total = await (Note as any).countDocuments(query)
+
+    return createSuccessResponse({
+      notes: transformedNotes,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      }
+    }, 'Notes retrieved successfully')
 
   } catch (error) {
     console.error('API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Get notes')
   }
@@ -84,50 +94,131 @@ export async function GET(request: NextRequest) {
 // POST /api/notes - Create note
 export async function POST(request: NextRequest) {
   try {
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
 
     // Get the request body
     const body = await request.json()
-    
-    // Forward request to backend
-    const response = await callBackendAPI('/notes', {
-      method: 'POST',
-      body: JSON.stringify(body),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const { title, content, category, tags, isPublic } = body
+
+    // Validate required fields
+    if (!title) {
+      return createErrorResponse('Title is required', 400)
+    }
+
+    // Create new note
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const note = await (Note as any).create({
+      userId,
+      title,
+      content: content || '',
+      category: category || '',
+      tags: tags || [],
+      isPublic: isPublic || false,
     })
 
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
-    }
-
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to create note', response.status)
-    }
-
-    // Transform _id to id for frontend compatibility
-    const transformedNote = data.data ? {
-      ...data.data,
-      id: data.data._id,
-      wordCount: data.data.content ? data.data.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
+    // Transform for frontend compatibility
+    const transformedNote = {
+      ...note.toObject(),
+      id: note._id.toString(),
+      wordCount: note.content ? note.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
       _id: undefined
-    } : null
+    }
 
-    return createSuccessResponse(transformedNote, data.message)
+    return createSuccessResponse(transformedNote, 'Note created successfully')
 
   } catch (error) {
     console.error('API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Create note')
+  }
+}
+
+// PUT /api/notes - Update note
+export async function PUT(request: NextRequest) {
+  try {
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
+
+    // Get the request body
+    const body = await request.json()
+    const { id, ...updateData } = body
+
+    if (!id) {
+      return createErrorResponse('Note ID is required', 400)
+    }
+
+    // Update note
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const note = await (Note as any).findOneAndUpdate(
+      { _id: id, userId }, // Ensure user owns the note
+      { $set: updateData },
+      { new: true, runValidators: true }
+    )
+
+    if (!note) {
+      return createErrorResponse('Note not found', 404)
+    }
+
+    // Transform for frontend compatibility
+    const transformedNote = {
+      ...note.toObject(),
+      id: note._id.toString(),
+      wordCount: note.content ? note.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
+      _id: undefined
+    }
+
+    return createSuccessResponse(transformedNote, 'Note updated successfully')
+
+  } catch (error) {
+    console.error('API Route Error:', error)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
+    }
+    return handleApiError(error, 'Update note')
+  }
+}
+
+// DELETE /api/notes - Delete note
+export async function DELETE(request: NextRequest) {
+  try {
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
+
+    // Get note ID from query parameters
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return createErrorResponse('Note ID is required', 400)
+    }
+
+    // Delete note
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const deletedNote = await (Note as any).findOneAndDelete({ _id: id, userId })
+
+    if (!deletedNote) {
+      return createErrorResponse('Note not found', 404)
+    }
+
+    return createSuccessResponse({ id }, 'Note deleted successfully')
+
+  } catch (error) {
+    console.error('API Route Error:', error)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
+    }
+    return handleApiError(error, 'Delete note')
   }
 }

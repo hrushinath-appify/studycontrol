@@ -1,77 +1,78 @@
 import { NextRequest } from 'next/server'
-import { getUser } from '@/lib/dal'
+import { connectToDatabase, DiaryEntry } from '@/lib/database'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
+import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 
-// Backend API helper function with authentication
-async function callBackendAPI(endpoint: string, options: RequestInit = {}) {
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-  
-  // Get JWT token from cookies
+// Helper function to get authenticated user from token
+async function getAuthenticatedUser() {
   const cookieStore = await cookies()
-  const accessToken = cookieStore.get('auth-token')?.value
+  const token = cookieStore.get('auth-token')?.value
   
-  if (!accessToken) {
-    throw new Error('Access token not found in cookies')
+  if (!token) {
+    throw new Error('Authentication token not found')
   }
 
   try {
-    const response = await fetch(`${backendUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        ...options.headers,
-      },
-    })
-
-    return response
-  } catch (error) {
-    console.error('Backend API call failed:', error)
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error(`Cannot connect to backend server at ${backendUrl}. Please ensure the backend service is running.`)
-    }
-    throw new Error(`Backend API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development') as { userId: string; email: string }
+    return decoded.userId
+  } catch {
+    throw new Error('Invalid authentication token')
   }
 }
 
 // GET /api/diary - Get diary entries
 export async function GET(request: NextRequest) {
   try {
-    // Check if user has a valid session
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
 
-    // Extract query parameters
+    // Connect to database
+    await connectToDatabase()
+
+    // Extract query parameters for filtering
     const { searchParams } = new URL(request.url)
-    const queryString = searchParams.toString()
-    const endpoint = `/diary${queryString ? `?${queryString}` : ''}`
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const search = searchParams.get('search') || ''
 
-    // Forward request to backend
-    const response = await callBackendAPI(endpoint, {
-      method: 'GET',
-    })
-
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+    // Build query
+    const query: Record<string, unknown> = { userId }
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+      ]
     }
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to fetch diary entries', response.status)
-    }
+    // Get diary entries with pagination
+    const skip = (page - 1) * limit
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const diaryEntries = await (DiaryEntry as any)
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
 
-    return createSuccessResponse(data.data, data.message)
+    // Get total count for pagination
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const total = await (DiaryEntry as any).countDocuments(query)
+
+    return createSuccessResponse({
+      entries: diaryEntries,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      }
+    }, 'Diary entries retrieved successfully')
 
   } catch (error) {
     console.error('API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Get diary entries')
   }
@@ -80,42 +81,38 @@ export async function GET(request: NextRequest) {
 // POST /api/diary - Create diary entry
 export async function POST(request: NextRequest) {
   try {
-    // Check if user has a valid session
-    const user = await getUser()
-    if (!user) {
-      return createErrorResponse('Authentication required', 401)
-    }
+    // Get authenticated user
+    const userId = await getAuthenticatedUser()
+
+    // Connect to database
+    await connectToDatabase()
 
     // Get the request body
     const body = await request.json()
+    const { title, content, mood, tags, isPrivate } = body
 
-    // Forward request to backend
-    const response = await callBackendAPI('/diary', {
-      method: 'POST',
-      body: JSON.stringify(body),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    // Validate required fields
+    if (!title || !content) {
+      return createErrorResponse('Title and content are required', 400)
+    }
+
+    // Create new diary entry
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const diaryEntry = await (DiaryEntry as any).create({
+      userId,
+      title,
+      content,
+      mood: mood || 'neutral',
+      tags: tags || [],
+      isPrivate: isPrivate !== false, // Default to true if not specified
     })
 
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
-    }
-
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to create diary entry', response.status)
-    }
-
-    return createSuccessResponse(data.data, data.message)
+    return createSuccessResponse(diaryEntry, 'Diary entry created successfully')
 
   } catch (error) {
     console.error('API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Create diary entry')
   }

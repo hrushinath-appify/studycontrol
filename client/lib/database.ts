@@ -120,6 +120,177 @@ userSchema.index({ resetPasswordToken: 1 })
 
 export const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema)
 
+// Diary Entry interface and schema
+export interface IDiaryEntry extends mongoose.Document {
+  userId: mongoose.Types.ObjectId
+  title: string
+  content: string
+  mood?: 'excellent' | 'good' | 'neutral' | 'bad' | 'terrible'
+  tags?: string[]
+  isPrivate: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+const diaryEntrySchema = new mongoose.Schema<IDiaryEntry>({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 200,
+  },
+  content: {
+    type: String,
+    required: true,
+    maxlength: 10000,
+  },
+  mood: {
+    type: String,
+    enum: ['excellent', 'good', 'neutral', 'bad', 'terrible'],
+    default: 'neutral',
+  },
+  tags: [{
+    type: String,
+    trim: true,
+    maxlength: 50,
+  }],
+  isPrivate: {
+    type: Boolean,
+    default: true,
+  },
+}, {
+  timestamps: true,
+})
+
+export const DiaryEntry = mongoose.models.DiaryEntry || mongoose.model<IDiaryEntry>('DiaryEntry', diaryEntrySchema)
+
+// Task interface and schema
+export interface ITask extends mongoose.Document {
+  userId: mongoose.Types.ObjectId
+  title: string
+  description?: string
+  completed: boolean
+  priority: 'low' | 'medium' | 'high'
+  dueDate?: Date
+  category?: string
+  tags?: string[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+const taskSchema = new mongoose.Schema<ITask>({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 200,
+  },
+  description: {
+    type: String,
+    trim: true,
+    maxlength: 1000,
+  },
+  completed: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'medium',
+  },
+  dueDate: {
+    type: Date,
+  },
+  category: {
+    type: String,
+    trim: true,
+    maxlength: 50,
+  },
+  tags: [{
+    type: String,
+    trim: true,
+    maxlength: 30,
+  }],
+}, {
+  timestamps: true,
+})
+
+export const Task = mongoose.models.Task || mongoose.model<ITask>('Task', taskSchema)
+
+// Note interface and schema  
+export interface INote extends mongoose.Document {
+  userId: mongoose.Types.ObjectId
+  title: string
+  content: string
+  category?: string
+  tags?: string[]
+  isArchived: boolean
+  isPinned: boolean
+  color?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+const noteSchema = new mongoose.Schema<INote>({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 200,
+  },
+  content: {
+    type: String,
+    required: true,
+    maxlength: 50000,
+  },
+  category: {
+    type: String,
+    trim: true,
+    maxlength: 50,
+  },
+  tags: [{
+    type: String,
+    trim: true,
+    maxlength: 30,
+  }],
+  isArchived: {
+    type: Boolean,
+    default: false,
+  },
+  isPinned: {
+    type: Boolean,
+    default: false,
+  },
+  color: {
+    type: String,
+    default: '#ffffff',
+  },
+}, {
+  timestamps: true,
+})
+
+export const Note = mongoose.models.Note || mongoose.model<INote>('Note', noteSchema)
+
 // Helper function to generate avatar URL
 export function generateAvatarUrl(name: string): string {
   const initials = name
