@@ -56,20 +56,20 @@ export function NotificationsIcon() {
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">Study session reminder</p>
-            <p className="text-xs text-muted-foreground">Your focus session is starting in 5 minutes</p>
+            <p className="text-sm font-medium">💕 Always Yours</p>
+            <p className="text-xs text-muted-foreground">You are my only one, Ammu. No matter where life takes us, my heart belongs to you—forever and always.</p>
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">Daily goal achieved</p>
-            <p className="text-xs text-muted-foreground">You&apos;ve completed your study goal for today!</p>
+            <p className="text-sm font-medium">🤗 Safe With Me</p>
+            <p className="text-xs text-muted-foreground">I promise to be your safest place, your biggest supporter, and your truest friend. You never have to doubt my love for you.</p>
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">New diary entry</p>
-            <p className="text-xs text-muted-foreground">Don&apos;t forget to write your daily reflection</p>
+            <p className="text-sm font-medium">✨ Cherished Every Moment</p>
+            <p className="text-xs text-muted-foreground">Every day with you is a blessing I&apos;ll never take for granted. Thank you for being mine, Ammu—I adore you more than words can say.</p>
           </div>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
