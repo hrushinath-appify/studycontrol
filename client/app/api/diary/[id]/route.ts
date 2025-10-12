@@ -8,26 +8,39 @@ import mongoose from 'mongoose'
 // GET /api/diary/[id] - Get specific diary entry
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    console.log('🔍 GET /api/diary/[id] - Request received')
+    
     // Get authenticated user
     const user = await getUserFromToken(request)
     
     if (!user) {
+      console.error('❌ Unauthorized - No user found')
       return createErrorResponse('Unauthorized', 401)
     }
     
     const userId = user.id
+    console.log('✅ User authenticated:', userId)
 
     // Connect to database
     await connectToDatabase()
+    console.log('✅ Database connected')
 
     const { id } = await params
+    console.log('🔍 Diary entry ID requested:', id)
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('❌ Invalid ObjectId format:', id)
       return createErrorResponse('Invalid diary entry ID', 400)
     }
+    console.log('✅ ObjectId format valid')
 
     // Find diary entry and ensure it belongs to the authenticated user - Convert userId to ObjectId
+    console.log('🔍 Querying database for entry:', {
+      entryId: id,
+      userId: userId
+    })
+    
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const diaryEntry = await (DiaryEntry as any).findOne({
       _id: id,
@@ -35,8 +48,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }).lean()
 
     if (!diaryEntry) {
+      console.error('❌ Diary entry not found:', {
+        entryId: id,
+        userId: userId
+      })
+      
+      // Check if entry exists but belongs to different user
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anyEntry = await (DiaryEntry as any).findOne({ _id: id }).lean()
+      if (anyEntry) {
+        console.error('⚠️ Entry exists but belongs to different user')
+        return createErrorResponse('Diary entry not found or access denied', 404)
+      }
+      
       return createErrorResponse('Diary entry not found', 404)
     }
+    
+    console.log('✅ Diary entry found:', diaryEntry.title)
 
     // Serialize MongoDB ObjectIds to strings for JSON and add formatted date
     const entryId = diaryEntry._id.toString()
