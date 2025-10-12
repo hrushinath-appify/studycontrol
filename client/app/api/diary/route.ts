@@ -56,6 +56,15 @@ export async function GET(request: NextRequest) {
       const entryUserId = entry.userId.toString()
       const entryDate = formatDate(entry.createdAt)
       
+      // Debug logging to verify ID format
+      console.log('📝 Diary Entry Serialization:', {
+        rawId: entry._id,
+        stringId: entryId,
+        idLength: entryId.length,
+        isValidObjectId: /^[0-9a-fA-F]{24}$/.test(entryId),
+        title: entry.title
+      })
+      
       return {
         _id: entryId,
         id: entryId, // Include both _id and id for compatibility

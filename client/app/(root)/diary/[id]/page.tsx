@@ -32,6 +32,21 @@ const DiaryDetailPage = () => {
         setIsLoading(true)
         setError(null)
 
+        // Validate ID format before making API call
+        if (!entryId || entryId.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(entryId)) {
+          console.error('❌ Invalid diary entry ID format:', {
+            entryId,
+            length: entryId?.length,
+            expected: '24 hex characters',
+            received: entryId
+          })
+          setError('Invalid diary entry ID format. The entry link may be corrupted.')
+          setIsLoading(false)
+          return
+        }
+
+        console.log('✅ Fetching diary entry with valid ID:', entryId)
+
         // Load all entries to get navigation data
         const [entry, entries] = await Promise.all([
           DiaryApi.getEntryById(entryId),
@@ -39,14 +54,21 @@ const DiaryDetailPage = () => {
         ])
 
         if (!entry) {
+          console.error('❌ Entry not found for ID:', entryId)
           setError('Entry not found')
           return
         }
 
+        console.log('✅ Successfully loaded entry:', {
+          id: entry.id,
+          title: entry.title,
+          date: entry.date
+        })
+
         setCurrentEntry(entry)
         setAllEntries(entries)
       } catch (error) {
-        console.error('Error loading entry data:', error)
+        console.error('❌ Error loading entry data:', error)
         
         // Provide specific error messages based on error type
         if (error instanceof Error) {

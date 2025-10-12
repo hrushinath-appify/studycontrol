@@ -387,14 +387,23 @@ const DiaryPageContent = () => {
             </div>
           ) : (
             entries.map((entry, index) => {
-              // Debug logging for each entry
-              console.log(`🔍 Entry ${index + 1}:`, {
+              // Comprehensive debug logging for each entry
+              const idValidation = {
                 id: entry.id,
+                idType: typeof entry.id,
                 idLength: entry.id?.length,
                 isValidObjectId: entry.id ? /^[0-9a-fA-F]{24}$/.test(entry.id) : false,
                 title: entry.title,
+                date: entry.date,
                 href: `/diary/${entry.id}`
-              });
+              }
+              
+              console.log(`🔍 Entry ${index + 1} Validation:`, idValidation)
+              
+              // Alert if invalid ID detected
+              if (!idValidation.isValidObjectId) {
+                console.error(`❌ INVALID ID DETECTED for entry ${index + 1}:`, idValidation)
+              }
               
               return (
                 <Link 

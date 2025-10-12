@@ -60,25 +60,62 @@ export class DiaryApi {
   // Get entries from the backend
   static async getEntries(params?: DiaryApiParams): Promise<DiaryEntry[]> {
     try {
-      const { data } = await apiClient.get('/diary', { params })
-      const entries = (data as any)?.entries || []
+      const response = await apiClient.get('/diary', { params })
       
-      return entries.map((entry: any) => ({
-        id: entry._id || entry.id,
-        title: entry.title,
-        content: entry.content,
-        preview: entry.content.length > 150 ? entry.content.substring(0, 150) + '...' : entry.content,
-        date: entry.date,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-        mood: entry.mood,
-        tags: entry.tags || [],
-        wordCount: entry.wordCount || entry.content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
-        isPrivate: entry.isPrivate || false,
-        attachments: entry.attachments || []
-      }))
+      console.log('📥 Diary API - Full response:', JSON.stringify(response, null, 2).substring(0, 500))
+      
+      // The response structure is: { success: true, data: { entries: [...], pagination: {...} } }
+      const responseData = response.data as { entries?: unknown[]; pagination?: unknown } | undefined
+      const entries = responseData?.entries || []
+      
+      console.log('📥 Diary API - Extracted entries count:', entries.length)
+      
+      const mappedEntries = entries.map((entry: unknown, idx: number) => {
+        const rawEntry = entry as Record<string, unknown>
+        
+        // Try multiple ways to get the ID - prioritize 'id' over '_id'
+        const id = (rawEntry.id || rawEntry._id) as string | undefined
+        
+        // Validate ID format
+        if (!id || typeof id !== 'string' || id.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(id)) {
+          console.error(`❌ CRITICAL: Invalid ID in API response for entry ${idx}:`, {
+            fullEntry: rawEntry,
+            extractedId: id,
+            idType: typeof id,
+            idLength: id?.length,
+            has_id: 'id' in rawEntry,
+            has_underscore_id: '_id' in rawEntry,
+            id_value: rawEntry.id,
+            _id_value: rawEntry._id
+          })
+          // Throw error instead of silently continuing with bad data
+          throw new Error(`Invalid diary entry ID format received from API: ${id}. Entry index: ${idx}`)
+        }
+        
+        console.log(`✅ Entry ${idx} validated - ID: ${id}, Title: ${rawEntry.title}`)
+        
+        const content = rawEntry.content as string || ''
+        const mood = rawEntry.mood as DiaryEntry['mood'] | undefined
+        return {
+          id,
+          title: rawEntry.title as string || 'Untitled',
+          content,
+          preview: content.length > 150 ? content.substring(0, 150) + '...' : content,
+          date: rawEntry.date as string || new Date().toISOString(),
+          createdAt: rawEntry.createdAt as string || new Date().toISOString(),
+          updatedAt: rawEntry.updatedAt as string || new Date().toISOString(),
+          ...(mood && { mood }),
+          tags: (rawEntry.tags as string[]) || [],
+          wordCount: (rawEntry.wordCount as number) || content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
+          isPrivate: (rawEntry.isPrivate as boolean) || false,
+          attachments: (rawEntry.attachments as string[]) || []
+        }
+      })
+      
+      console.log('✅ Successfully mapped', mappedEntries.length, 'diary entries')
+      return mappedEntries
     } catch (error) {
-      console.error('Failed to get diary entries:', error)
+      console.error('❌ Failed to get diary entries:', error)
       throw error
     }
   }
@@ -90,26 +127,28 @@ export class DiaryApi {
       validateObjectId(id, 'diary entry')
       
       const response = await apiClient.get(`${this.ENDPOINT}/${id}`)
-      const entry = (response.data as any)
+      const rawEntry = response.data as Record<string, unknown> | null | undefined
       
-      if (!entry) {
+      if (!rawEntry) {
         return null
       }
       
       // Transform the entry to match the DiaryEntry interface
+      const content = rawEntry.content as string || ''
+      const mood = rawEntry.mood as DiaryEntry['mood'] | undefined
       return {
-        id: entry._id || entry.id,
-        title: entry.title,
-        content: entry.content,
-        preview: entry.content.length > 150 ? entry.content.substring(0, 150) + '...' : entry.content,
-        date: entry.date,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-        mood: entry.mood,
-        tags: entry.tags || [],
-        wordCount: entry.wordCount || entry.content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
-        isPrivate: entry.isPrivate || false,
-        attachments: entry.attachments || []
+        id: (rawEntry._id || rawEntry.id) as string,
+        title: rawEntry.title as string || 'Untitled',
+        content,
+        preview: content.length > 150 ? content.substring(0, 150) + '...' : content,
+        date: rawEntry.date as string || new Date().toISOString(),
+        createdAt: rawEntry.createdAt as string || new Date().toISOString(),
+        updatedAt: rawEntry.updatedAt as string || new Date().toISOString(),
+        ...(mood && { mood }),
+        tags: (rawEntry.tags as string[]) || [],
+        wordCount: (rawEntry.wordCount as number) || content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
+        isPrivate: (rawEntry.isPrivate as boolean) || false,
+        attachments: (rawEntry.attachments as string[]) || []
       }
     } catch (error) {
       console.error('Failed to fetch diary entry by ID from API:', error)
@@ -121,22 +160,24 @@ export class DiaryApi {
   static async createEntry(data: CreateDiaryEntryData): Promise<DiaryEntry> {
     try {
       const response = await apiClient.post(this.ENDPOINT, data)
-      const entry = (response.data as any)
+      const rawEntry = response.data as Record<string, unknown>
       
       // Transform the entry to match the DiaryEntry interface
+      const content = rawEntry.content as string || ''
+      const mood = rawEntry.mood as DiaryEntry['mood'] | undefined
       return {
-        id: entry._id || entry.id,
-        title: entry.title,
-        content: entry.content,
-        preview: entry.content.length > 150 ? entry.content.substring(0, 150) + '...' : entry.content,
-        date: entry.date,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-        mood: entry.mood,
-        tags: entry.tags || [],
-        wordCount: entry.wordCount || entry.content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
-        isPrivate: entry.isPrivate || false,
-        attachments: entry.attachments || []
+        id: (rawEntry._id || rawEntry.id) as string,
+        title: rawEntry.title as string || 'Untitled',
+        content,
+        preview: content.length > 150 ? content.substring(0, 150) + '...' : content,
+        date: rawEntry.date as string || new Date().toISOString(),
+        createdAt: rawEntry.createdAt as string || new Date().toISOString(),
+        updatedAt: rawEntry.updatedAt as string || new Date().toISOString(),
+        ...(mood && { mood }),
+        tags: (rawEntry.tags as string[]) || [],
+        wordCount: (rawEntry.wordCount as number) || content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
+        isPrivate: (rawEntry.isPrivate as boolean) || false,
+        attachments: (rawEntry.attachments as string[]) || []
       }
     } catch (error) {
       console.error('Failed to create diary entry via API:', error)
@@ -151,22 +192,24 @@ export class DiaryApi {
       validateObjectId(data.id, 'diary entry')
       
       const response = await apiClient.put(`${this.ENDPOINT}/${data.id}`, data)
-      const entry = (response.data as any)
+      const rawEntry = response.data as Record<string, unknown>
       
       // Transform the entry to match the DiaryEntry interface
+      const content = rawEntry.content as string || ''
+      const mood = rawEntry.mood as DiaryEntry['mood'] | undefined
       return {
-        id: entry._id || entry.id,
-        title: entry.title,
-        content: entry.content,
-        preview: entry.content.length > 150 ? entry.content.substring(0, 150) + '...' : entry.content,
-        date: entry.date,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-        mood: entry.mood,
-        tags: entry.tags || [],
-        wordCount: entry.wordCount || entry.content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
-        isPrivate: entry.isPrivate || false,
-        attachments: entry.attachments || []
+        id: (rawEntry._id || rawEntry.id) as string,
+        title: rawEntry.title as string || 'Untitled',
+        content,
+        preview: content.length > 150 ? content.substring(0, 150) + '...' : content,
+        date: rawEntry.date as string || new Date().toISOString(),
+        createdAt: rawEntry.createdAt as string || new Date().toISOString(),
+        updatedAt: rawEntry.updatedAt as string || new Date().toISOString(),
+        ...(mood && { mood }),
+        tags: (rawEntry.tags as string[]) || [],
+        wordCount: (rawEntry.wordCount as number) || content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
+        isPrivate: (rawEntry.isPrivate as boolean) || false,
+        attachments: (rawEntry.attachments as string[]) || []
       }
     } catch (error) {
       console.error('Failed to update diary entry via API:', error)
