@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded corners for iOS -->
+  <rect x="0" y="0" width="180" height="180" rx="32" fill="url(#grad)"/>
+  
+  <!-- Study/Book icon scaled up -->
+  <g fill="white" fill-opacity="0.9">
+    <!-- Book base -->
+    <rect x="45" y="67" width="90" height="67" rx="4" fill="white"/>
+    <!-- Book spine -->
+    <rect x="45" y="67" width="8" height="67" fill="#e5e7eb"/>
+    <!-- Pages -->
+    <line x1="60" y1="80" x2="125" y2="80" stroke="#6b7280" stroke-width="2"/>
+    <line x1="60" y1="90" x2="115" y2="90" stroke="#6b7280" stroke-width="2"/>
+    <line x1="60" y1="100" x2="125" y2="100" stroke="#6b7280" stroke-width="2"/>
+    <line x1="60" y1="110" x2="105" y2="110" stroke="#6b7280" stroke-width="2"/>
+    <line x1="60" y1="120" x2="120" y2="120" stroke="#6b7280" stroke-width="2"/>
+    
+    <!-- Focus indicator (larger circle for visibility) -->
+    <circle cx="115" cy="55" r="12" fill="#fbbf24" stroke="white" stroke-width="2"/>
+    <circle cx="115" cy="55" r="6" fill="#f59e0b"/>
+  </g>
+</svg>
