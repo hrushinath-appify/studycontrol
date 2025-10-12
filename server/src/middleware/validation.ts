@@ -171,70 +171,6 @@ export const validateUpdateDiaryEntry = [
     .withMessage('isPrivate must be a boolean'),
 ];
 
-// Task validation rules
-export const validateCreateTask = [
-  body('title')
-    .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Title must be between 1 and 200 characters'),
-  
-  body('description')
-    .optional()
-    .trim()
-    .isLength({ max: 2000 })
-    .withMessage('Description cannot exceed 2000 characters'),
-  
-  body('priority')
-    .isIn(['low', 'medium', 'high'])
-    .withMessage('Priority must be low, medium, or high'),
-  
-  body('dueDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Due date must be a valid ISO date'),
-  
-  body('tags')
-    .optional()
-    .isArray({ max: 10 })
-    .withMessage('Maximum 10 tags allowed'),
-  
-  body('category')
-    .isIn(['personal', 'work', 'study', 'health', 'other'])
-    .withMessage('Category must be personal, work, study, health, or other'),
-  
-  body('estimatedTime')
-    .optional()
-    .isInt({ min: 1, max: 1440 })
-    .withMessage('Estimated time must be between 1 and 1440 minutes'),
-];
-
-export const validateUpdateTask = [
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid task ID'),
-  
-  body('title')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Title must be between 1 and 200 characters'),
-  
-  body('completed')
-    .optional()
-    .isBoolean()
-    .withMessage('Completed must be a boolean'),
-  
-  body('priority')
-    .optional()
-    .isIn(['low', 'medium', 'high'])
-    .withMessage('Priority must be low, medium, or high'),
-  
-  body('status')
-    .optional()
-    .isIn(['pending', 'in-progress', 'completed', 'cancelled'])
-    .withMessage('Status must be pending, in-progress, completed, or cancelled'),
-];
-
 // Note validation rules
 export const validateCreateNote = [
   body('title')
@@ -295,7 +231,6 @@ export const validateMongoId = [
 ];
 
 // Specific ID validators for clarity
-export const validateTaskId = validateMongoId;
 export const validateNoteId = validateMongoId;
 export const validateDiaryId = validateMongoId;
 

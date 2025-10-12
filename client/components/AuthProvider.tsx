@@ -28,7 +28,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   
   // Prevent infinite loops and handle SSR
   const initRef = useRef(false)
-  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [isMounted, setIsMounted] = useState(false)
 
   // Handle SSR/client hydration
@@ -42,8 +41,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initRef.current = true
 
     const checkAuth = async () => {
-      console.log('[AuthProvider] Starting auth check...')
-      
       try {
         // Check for token in localStorage (only on client)
         if (typeof window === 'undefined') {
@@ -52,16 +49,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         const token = localStorage.getItem('auth-token')
-        console.log('[AuthProvider] Token exists:', !!token)
         
         if (!token) {
-          console.log('[AuthProvider] No token found')
           setUser(null)
           setIsInitializing(false)
           return
         }
-
-        console.log('[AuthProvider] Verifying token with server...')
 
         // Use a timeout to prevent hanging
         const controller = new AbortController()
@@ -78,12 +71,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           })
 
           clearTimeout(timeoutId)
-          console.log('[AuthProvider] Auth check response status:', response.status)
 
           if (response.ok) {
             const data = await response.json()
-            console.log('[AuthProvider] Auth check successful:', data.data?.email)
             setUser(data.data)
+            console.log('[AuthProvider] User authenticated successfully')
           } else {
             console.log('[AuthProvider] Auth check failed, clearing token')
             setUser(null)
@@ -91,22 +83,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         } catch (fetchError) {
           clearTimeout(timeoutId)
+          console.log('[AuthProvider] Auth check error:', fetchError)
           if (fetchError instanceof Error && fetchError.name === 'AbortError') {
             console.log('[AuthProvider] Auth check timed out')
-          } else {
-            console.error('[AuthProvider] Fetch error:', fetchError)
           }
           setUser(null)
           localStorage.removeItem('auth-token')
         }
-      } catch (error) {
-        console.error('[AuthProvider] Auth check error:', error)
+      } catch {
         setUser(null)
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth-token')
         }
       } finally {
-        console.log('[AuthProvider] Auth check completed')
         setIsInitializing(false)
       }
     }
@@ -149,27 +138,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       toast.success(toastMessages.auth.loginSuccess, `Welcome back, ${data.data.user.name}!`)
       
-      // Clear any existing redirect timeout
-      if (redirectTimeoutRef.current) {
-        clearTimeout(redirectTimeoutRef.current)
-      }
-
       // Immediate redirect attempt
       router.push('/home')
       
-      // Fallback redirect after 1 second
-      redirectTimeoutRef.current = setTimeout(() => {
-        if (typeof window !== 'undefined') {
-          window.location.href = '/home'
-        }
-      }, 1000)
-      
-      // Force redirect after 3 seconds if still on login
-      setTimeout(() => {
-        if (typeof window !== 'undefined' && window.location.pathname === '/login') {
-          window.location.replace('/home')
-        }
-      }, 3000)
+      return data.data
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Login failed"
@@ -218,9 +190,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
-      
-      await fetch(`${apiUrl}/auth/logout`, {
+      // Call the Next.js API logout route
+      await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
       })
@@ -313,15 +284,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     error,
     clearError,
   }
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (redirectTimeoutRef.current) {
-        clearTimeout(redirectTimeoutRef.current)
-      }
-    }
-  }, [])
 
   return (
     <AuthContext.Provider value={value}>

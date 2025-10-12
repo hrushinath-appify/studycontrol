@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   
   // Turbopack configuration
   turbopack: {
+    root: "/Users/rishi/studyControl/client",
     rules: {
       "*.svg": {
         loaders: ["@svgr/webpack"],
@@ -101,8 +102,8 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             value: process.env.NODE_ENV === "development" 
-              ? "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' http://localhost:5000 ws: wss: localhost:*;"
-              : "default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https: wss:;",
+              ? "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' http://localhost:5000 ws: wss: localhost:*; object-src 'none';"
+              : "default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https: wss:; object-src 'none';",
           },
         ],
       },

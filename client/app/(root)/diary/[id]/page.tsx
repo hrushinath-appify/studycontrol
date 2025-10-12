@@ -14,6 +14,12 @@ const DiaryDetailPage = () => {
   
   // Decode the URL parameter in case it's URL-encoded
   const entryId = rawId ? decodeURIComponent(rawId) : rawId
+  
+  // Debug logging to see what ID we're getting
+  console.log('🔍 Debug - Raw ID from params:', rawId)
+  console.log('🔍 Debug - Decoded ID:', entryId)
+  console.log('🔍 Debug - ID length:', entryId?.length)
+  console.log('🔍 Debug - Is valid ObjectId:', entryId ? /^[0-9a-fA-F]{24}$/.test(entryId) : false)
   const [currentEntry, setCurrentEntry] = useState<DiaryEntry | null>(null)
   const [allEntries, setAllEntries] = useState<DiaryEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)

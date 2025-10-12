@@ -1,59 +1,87 @@
 import { NextRequest } from 'next/server'
-import { getUser } from '@/lib/dal'
+import { getUserFromToken } from '@/lib/auth-utils'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
-import { cookies } from 'next/headers'
-
-// Backend API helper function with authentication
-async function callBackendAPI(endpoint: string, options: RequestInit = {}) {
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-  
-  // Get JWT token from cookies
-  const cookieStore = await cookies()
-  const accessToken = cookieStore.get('auth-token')?.value
-  
-  if (!accessToken) {
-    throw new Error('Access token not found in cookies')
-  }
-  
-  const response = await fetch(`${backendUrl}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-      ...options.headers,
-    },
-  })
-  
-  return response
-}
+import { connectToDatabase, Note } from '@/lib/database'
+import mongoose from 'mongoose'
 
 // GET /api/notes/stats - Get note statistics
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     // Check if user has a valid session
-    const user = await getUser()
+    const user = await getUserFromToken(request)
     if (!user) {
       return createErrorResponse('Authentication required', 401)
     }
 
-    // Forward request to backend
-    const response = await callBackendAPI('/notes/stats', {
-      method: 'GET',
+    const userId = user.id
+
+    // Connect to database
+    await connectToDatabase()
+
+    // Get all notes for the user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const notes = await (Note as any)
+      .find({ userId: new mongoose.Types.ObjectId(userId) })
+      .lean()
+
+    // Calculate statistics
+    const totalNotes = notes.length
+    const archivedNotes = notes.filter((n: { isArchived: boolean }) => n.isArchived).length
+    const pinnedNotes = notes.filter((n: { isPinned: boolean }) => n.isPinned).length
+    
+    const totalWords = notes.reduce((sum: number, note: { content: string }) => {
+      return sum + (note.content?.trim().split(/\s+/).filter((w: string) => w.length > 0).length || 0)
+    }, 0)
+    const averageWordsPerNote = totalNotes > 0 ? Math.round(totalWords / totalNotes) : 0
+
+    // Category distribution
+    const categoryDistribution: Record<string, number> = {}
+    notes.forEach((note: { category?: string }) => {
+      const category = note.category || 'Uncategorized'
+      categoryDistribution[category] = (categoryDistribution[category] || 0) + 1
     })
 
-    const data = await response.json()
+    // Tag distribution
+    const tagDistribution: Record<string, number> = {}
+    notes.forEach((note: { tags?: string[] }) => {
+      if (note.tags && Array.isArray(note.tags)) {
+        note.tags.forEach((tag: string) => {
+          tagDistribution[tag] = (tagDistribution[tag] || 0) + 1
+        })
+      }
+    })
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to fetch note statistics', response.status)
+    // Notes this month and week
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay())
+    startOfWeek.setHours(0, 0, 0, 0)
+
+    const notesThisMonth = notes.filter((n: { createdAt: Date }) => 
+      new Date(n.createdAt) >= startOfMonth
+    ).length
+    
+    const notesThisWeek = notes.filter((n: { createdAt: Date }) => 
+      new Date(n.createdAt) >= startOfWeek
+    ).length
+
+    const stats = {
+      totalNotes,
+      archivedNotes,
+      pinnedNotes,
+      totalWords,
+      averageWordsPerNote,
+      categoryDistribution,
+      tagDistribution,
+      notesThisMonth,
+      notesThisWeek
     }
 
-    return createSuccessResponse(data.data, data.message)
+    return createSuccessResponse(stats, 'Note statistics retrieved successfully')
 
   } catch (error) {
     console.error('Notes Stats API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
-    }
     return handleApiError(error, 'Get note statistics')
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase, User } from '@/lib/database'
 import crypto from 'crypto'
+import { emailService } from '@/lib/email-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,9 +41,21 @@ export async function POST(request: NextRequest) {
     user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
     await user.save()
 
-    // TODO: Send verification email (for now, just log the token for testing)
-    console.log(`New verification token for ${email}: ${verificationToken}`)
-    console.log(`Verification URL: ${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${verificationToken}`)
+    // Send verification email
+    console.log(`📧 Resending verification email to: ${email}`)
+    const emailSent = await emailService.sendVerificationEmail(
+      user.email,
+      user.name,
+      verificationToken
+    )
+
+    if (emailSent) {
+      console.log('✅ Verification email resent successfully')
+    } else {
+      console.warn('⚠️  Verification email could not be sent - check SMTP configuration')
+      console.log(`📧 Verification token (for testing): ${verificationToken}`)
+      console.log(`   URL: ${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${verificationToken}`)
+    }
 
     return NextResponse.json({
       success: true,

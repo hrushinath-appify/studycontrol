@@ -36,8 +36,6 @@ interface UserStats {
   diaryHighestStreak: number
   mysteryClicks: number
   totalNotes: number
-  totalTasks: number
-  completedTasks: number
   focusSessionsTotal: number
   averageFocusTime: number
 }
@@ -76,8 +74,6 @@ const SettingsPage = () => {
     diaryHighestStreak: 0,
     mysteryClicks: 0,
     totalNotes: 0,
-    totalTasks: 0,
-    completedTasks: 0,
     focusSessionsTotal: 0,
     averageFocusTime: 0
   })
@@ -117,8 +113,6 @@ const SettingsPage = () => {
         diaryHighestStreak: 0,
         mysteryClicks: 0,
         totalNotes: 0,
-        totalTasks: 0,
-        completedTasks: 0,
         focusSessionsTotal: 0,
         averageFocusTime: 0
       }

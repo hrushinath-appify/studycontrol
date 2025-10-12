@@ -139,10 +139,10 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       return res.status(401).json(createErrorResponse('Invalid credentials'));
     }
 
-    // Check if email is verified (temporarily disabled for testing)
-    // if (!user.isEmailVerified) {
-    //   return res.status(401).json(createErrorResponse('Please verify your email address before logging in. Check your email for the verification link.'));
-    // }
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      return res.status(401).json(createErrorResponse('Please verify your email address before logging in. Check your email for the verification link.'));
+    }
 
     // Check password
     const isPasswordValid = await user.comparePassword(password);

@@ -72,7 +72,7 @@ export function GuestGuard({
         console.log('[GuestGuard] Timeout reached, stopping loading screen')
         setShouldShowLoading(false)
       }
-    }, 3000) // 3 second maximum loading time for guest guard
+    }, 1500) // Reduced to 1.5 seconds
 
     return () => clearTimeout(timer)
   }, [isInitializing])

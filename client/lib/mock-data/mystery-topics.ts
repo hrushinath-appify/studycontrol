@@ -1,9 +1,17 @@
 // Mock data for mystery topics
 // This provides sample mystery topics for exploration
+// NOTE: This file is deprecated. Use @/lib/utils/topic-loader instead for better performance
+// The topic-loader uses lazy loading to avoid including the large data file in the initial bundle
+
 import { MysteryTopic } from './medicine'
 import { mysteryTopics } from './medicine'
 
-// Utility functions
+// Legacy utility functions - kept for backward compatibility
+// For new code, use the async versions from @/lib/utils/topic-loader
+
+/**
+ * @deprecated Use getRandomTopic from @/lib/utils/topic-loader instead
+ */
 export function getRandomTopic(): MysteryTopic {
   if (mysteryTopics.length === 0) {
     throw new Error('No mystery topics available')
@@ -12,6 +20,9 @@ export function getRandomTopic(): MysteryTopic {
   return mysteryTopics[randomIndex]!
 }
 
+/**
+ * @deprecated Use getTopicsByCategory from @/lib/utils/topic-loader instead
+ */
 export function getTopicsByCategory(category: MysteryTopic['category']): MysteryTopic[] {
   return mysteryTopics.filter(topic => topic.category === category)
 }

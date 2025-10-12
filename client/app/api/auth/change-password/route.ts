@@ -1,31 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase, User } from '@/lib/database'
-import { cookies } from 'next/headers'
-import jwt from 'jsonwebtoken'
+import { getUserFromToken } from '@/lib/auth-utils'
 import bcrypt from 'bcryptjs'
-
-// Helper function to get authenticated user ID
-async function getAuthenticatedUser() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth-token')?.value
-
-  if (!token) {
-    throw new Error('Authentication token not found')
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development') as { userId: string }
-    return decoded.userId
-  } catch (error) {
-    console.error('JWT verification failed:', error)
-    throw new Error('Invalid authentication token')
-  }
-}
+import { createErrorResponse } from '@/lib/api-utils'
 
 export async function PUT(request: NextRequest) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const authUser = await getUserFromToken(request)
+    
+    if (!authUser) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = authUser.id
 
     // Connect to database
     await connectToDatabase()
@@ -35,45 +23,33 @@ export async function PUT(request: NextRequest) {
 
     // Validate input
     if (!currentPassword || !newPassword) {
-      return NextResponse.json(
-        { error: 'Current password and new password are required' },
-        { status: 400 }
-      )
+      return createErrorResponse('Current password and new password are required', 400)
     }
 
     if (newPassword.length < 8) {
-      return NextResponse.json(
-        { error: 'New password must be at least 8 characters long' },
-        { status: 400 }
-      )
+      return createErrorResponse('New password must be at least 8 characters long', 400)
     }
 
     // Get the user with password field
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const user = await (User as any).findById(userId).select('+password')
+    const userDoc = await (User as any).findById(userId).select('+password')
     
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
+    if (!userDoc) {
+      return createErrorResponse('User not found', 404)
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password)
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, userDoc.password)
     if (!isCurrentPasswordValid) {
-      return NextResponse.json(
-        { error: 'Current password is incorrect' },
-        { status: 400 }
-      )
+      return createErrorResponse('Current password is incorrect', 400)
     }
 
     // Hash new password
-    const saltRounds = 12
+    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS || '12', 10)
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds)
 
     // Update password in database
-    await user.updateOne({ password: hashedNewPassword })
+    await userDoc.updateOne({ password: hashedNewPassword })
 
     return NextResponse.json({
       success: true,
@@ -84,15 +60,9 @@ export async function PUT(request: NextRequest) {
     console.error('Password change error:', error)
     
     if (error instanceof Error && error.message.includes('Authentication')) {
-      return NextResponse.json(
-        { error: 'Authentication required. Please log in again.' },
-        { status: 401 }
-      )
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return createErrorResponse('Internal server error', 500)
   }
 }

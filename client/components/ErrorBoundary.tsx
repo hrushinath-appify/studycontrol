@@ -114,13 +114,6 @@ export function withErrorBoundary<P extends object>(
   return WithErrorBoundaryComponent
 }
 
-// Hook for using error boundary
-export function useErrorHandler() {
-  return (error: Error) => {
-    throw error
-  }
-}
-
 // Async error boundary for async operations
 export class AsyncErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {

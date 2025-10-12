@@ -25,7 +25,10 @@ const userSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: function(this: IUser) {
+        // Password is required only for credentials-based auth
+        return this.provider === 'credentials';
+      },
       minlength: [8, 'Password must be at least 8 characters long'],
       select: false, // Don't include password in queries by default
     },
@@ -115,6 +118,26 @@ const userSchema = new Schema<IUser>(
     lastLoginAt: {
       type: Date,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    // OAuth provider fields
+    provider: {
+      type: String,
+      enum: ['credentials', 'google', 'github'],
+      default: 'credentials',
+    },
+    providerId: {
+      type: String,
+      sparse: true,
+    },
+    // Mystery tracking
+    mysteryClicks: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,
@@ -143,7 +166,6 @@ const userSchema = new Schema<IUser>(
 );
 
 // Indexes for better query performance
-userSchema.index({ email: 1 });
 userSchema.index({ createdAt: -1 });
 userSchema.index({ lastLoginAt: -1 });
 
@@ -194,7 +216,6 @@ userSchema.pre('deleteOne', { document: true, query: false }, async function (ne
   try {
     // Clean up user's data when user is deleted
     await mongoose.model('DiaryEntry').deleteMany({ userId: this._id });
-    await mongoose.model('Task').deleteMany({ userId: this._id });
     await mongoose.model('Note').deleteMany({ userId: this._id });
     await mongoose.model('PomodoroSession').deleteMany({ userId: this._id });
     await mongoose.model('TimerSettings').deleteMany({ userId: this._id });

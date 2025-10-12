@@ -55,8 +55,8 @@ export class NotesApi {
   // Get notes
   static async getNotes(params?: NoteApiParams): Promise<Note[]> {
     try {
-      const response = await apiClient.get<Note[]>(this.ENDPOINT, params)
-      return response.data || []
+      const response = await apiClient.get<{ notes: Note[] }>(this.ENDPOINT, params)
+      return response.data?.notes || []
     } catch (error) {
       console.warn('Failed to fetch notes from API, using localStorage:', error)
       return this.getLocalNotes(params)
@@ -131,6 +131,16 @@ export class NotesApi {
   static async deleteNote(id: string): Promise<boolean> {
     try {
       await apiClient.delete(`${this.ENDPOINT}/${id}`)
+      
+      // Sync to localStorage when API succeeds
+      try {
+        const localNotes = this.getLocalNotes({ archived: true })
+        const updatedNotes = localNotes.filter(note => note.id !== id)
+        this.saveLocalNotes(updatedNotes)
+      } catch (localError) {
+        console.warn('Failed to sync note deletion to localStorage:', localError)
+      }
+      
       return true
     } catch (error) {
       console.warn('Failed to delete note via API, using localStorage:', error)
@@ -165,11 +175,11 @@ export class NotesApi {
   // Search notes
   static async searchNotes(query: string, params?: Omit<NoteApiParams, 'limit'>): Promise<Note[]> {
     try {
-      const response = await apiClient.get<Note[]>(`${this.ENDPOINT}/search`, { 
-        q: query, 
+      const response = await apiClient.get<{ notes: Note[] }>(this.ENDPOINT, { 
+        search: query, 
         ...params 
       })
-      return response.data || []
+      return response.data?.notes || []
     } catch (error) {
       console.warn('Failed to search notes from API, using localStorage:', error)
       const notes = this.getLocalNotes()
@@ -311,7 +321,7 @@ export class NotesApi {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isArchived: false,
-      wordCount: data.content.split(/\s+/).filter(word => word !== '').length
+      wordCount: data.content.trim().split(/\s+/).filter(word => word.length > 0).length
     }
 
     const updatedNotes = [newNote, ...notes]
@@ -336,7 +346,7 @@ export class NotesApi {
         updatedAt: new Date().toISOString(),
         isArchived: false,
         tags: data.tags || [],
-        wordCount: data.content ? data.content.split(/\s+/).filter(word => word !== '').length : 0
+        wordCount: data.content ? data.content.trim().split(/\s+/).filter(word => word.length > 0).length : 0
       }
       
       const updatedNotes = [basicNote, ...notes]
@@ -355,7 +365,7 @@ export class NotesApi {
       isArchived: existingNote.isArchived,
       tags: data.tags ?? existingNote.tags,
       ...(data.category !== undefined && { category: data.category }),
-      wordCount: data.content ? data.content.split(/\s+/).filter(word => word !== '').length : existingNote.wordCount
+      wordCount: data.content ? data.content.trim().split(/\s+/).filter(word => word.length > 0).length : existingNote.wordCount
     }
 
     notes[noteIndex] = updatedNote

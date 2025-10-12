@@ -22,8 +22,8 @@ const eslintConfig = [
   },
   {
     rules: {
-      // Performance optimizations
-      "react/jsx-no-bind": "warn",
+      // Performance optimizations - disable false positive
+      "react/jsx-no-bind": "off", // Disabled due to false positives with function references
       "react-hooks/exhaustive-deps": "warn",
       
       // Code quality

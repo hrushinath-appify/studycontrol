@@ -10,7 +10,6 @@ A comprehensive Node.js/Express backend API for the StudyControl application, fe
 - **Task Management**: Priority-based task system with subtasks
 - **Note Taking**: Rich note-taking with tagging and categorization
 - **Quotes System**: Motivational quotes with categories and search
-- **News & Articles**: Educational content management
 - **Pomodoro Timer**: Focus session tracking
 
 ### Technical Features

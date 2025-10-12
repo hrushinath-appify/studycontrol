@@ -164,26 +164,6 @@ export function validateDiaryEntry(title: string, content: string): FormErrors {
 }
 
 // =============================================================================
-// TASK VALIDATION
-// =============================================================================
-
-export function validateTask(title: string, description?: string): FormErrors {
-  const errors: FormErrors = {}
-
-  if (!title.trim()) {
-    errors.title = 'Task title is required'
-  } else if (title.trim().length < 3) {
-    errors.title = 'Task title must be at least 3 characters long'
-  }
-
-  if (description && description.length > 500) {
-    errors.description = 'Description must be less than 500 characters'
-  }
-
-  return errors
-}
-
-// =============================================================================
 // NOTE VALIDATION
 // =============================================================================
 

@@ -4,7 +4,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/ThemeProvider"
 import { AuthProvider } from "@/components/AuthProvider"
 import { Toaster } from "@/components/ui/sonner"
-import { SpeedInsights } from "@vercel/speed-insights/next"
+// import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -68,7 +68,7 @@ export default function RootLayout({
             {children}
           </AuthProvider>
           <Toaster position="top-center" />
-          <SpeedInsights />
+          {/* <SpeedInsights /> */}
         </ThemeProvider>
       </body>
     </html>

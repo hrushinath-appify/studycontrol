@@ -1,43 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { connectToDatabase } from '@/lib/database'
+import { Session } from '@/lib/session-model'
 import { cookies } from 'next/headers'
 
 export async function POST(_request: NextRequest) {
   try {
+    console.log('🔵 Logout Flow Started')
+    
     const cookieStore = await cookies()
-    const refreshToken = cookieStore.get('refresh-token')?.value
+    const authToken = cookieStore.get('auth-token')?.value
 
-    // Notify backend about logout (if we have a refresh token)
-    if (refreshToken) {
-      const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-      
+    // Step 1: Delete session from MongoDB if token exists
+    if (authToken) {
       try {
-        await fetch(`${backendUrl}/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ refreshToken }),
+        await connectToDatabase()
+        console.log('✅ Database connected')
+
+        // Step 2: Find and delete session from database
+        console.log('🗑️ Deleting session from MongoDB...')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (Session as any).deleteOne({ 
+          token: authToken,
+          isActive: true 
         })
-      } catch (error) {
-        console.warn('Backend logout notification failed:', error)
-        // Continue with local logout even if backend call fails
+
+        if (result.deletedCount > 0) {
+          console.log('✅ Session deleted from database')
+        } else {
+          console.log('⚠️ Session not found in database (may be expired)')
+        }
+      } catch (dbError) {
+        console.error('⚠️ Database cleanup error (continuing):', dbError)
+        // Continue with logout even if database operation fails
       }
     }
 
-    // Clear authentication cookies
+    // Step 3: Clear session cookie
+    console.log('🍪 Clearing authentication cookies...')
     const response = NextResponse.json({
       success: true,
       message: 'Logged out successfully'
     })
 
+    // Step 4: Delete cookies
     response.cookies.delete('auth-token')
     response.cookies.delete('refresh-token')
     response.cookies.delete('session-token')
 
+    console.log('✅ Cookies cleared')
+    console.log('🎉 Logout complete')
+
     return response
 
   } catch (error) {
-    console.error('Logout error:', error)
+    console.error('❌ Logout error:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

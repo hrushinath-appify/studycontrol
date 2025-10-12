@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 
 // Define protected and public routes
 const protectedRoutes = [
@@ -7,12 +7,11 @@ const protectedRoutes = [
   '/diary',
   '/focus',
   '/notes',
-  '/to-do-list',
   '/settings',
   '/help',
   '/news',
   '/mystery',
-  '/developer-notes'
+  '/developer-notes',
 ]
 
 const authRoutes = [
@@ -23,14 +22,49 @@ const authRoutes = [
   '/verify-email'
 ]
 
-// Verify JWT token
-async function isValidToken(token: string): Promise<boolean> {
+// Admin-only routes for role-based access control
+const adminRoutes = [
+  '/admin',
+  '/developer-notes'
+]
+
+interface TokenPayload {
+  userId: string
+  email: string
+  role: string | undefined
+  exp: number | undefined
+}
+
+// Verify JWT token using jose library (Edge Runtime compatible)
+async function validateToken(token: string): Promise<TokenPayload | null> {
   try {
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development')
-    return true
+    const jwtSecret = process.env.JWT_SECRET
+    if (!jwtSecret) {
+      console.error('[Middleware] JWT_SECRET environment variable is not set')
+      return null
+    }
+    
+    // Convert string secret to Uint8Array for jose library
+    const secret = new TextEncoder().encode(jwtSecret)
+    
+    // Verify the token and check expiration
+    const { payload } = await jwtVerify(token, secret)
+    
+    // Check if token is expired
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      console.log('[Middleware] Token has expired')
+      return null
+    }
+    
+    return {
+      userId: payload.userId as string,
+      email: payload.email as string,
+      role: payload.role as string | undefined,
+      exp: payload.exp
+    }
   } catch (error) {
     console.log('[Middleware] Token verification failed:', error)
-    return false
+    return null
   }
 }
 
@@ -42,10 +76,14 @@ export async function middleware(request: NextRequest) {
   
   console.log('[Middleware] Checking path:', pathname, 'has token:', !!cookieToken)
 
-  // Check if user has a valid token
-  const isAuthenticated = cookieToken ? await isValidToken(cookieToken) : false
+  // Validate token and get payload
+  const tokenPayload = cookieToken ? await validateToken(cookieToken) : null
+  const isAuthenticated = !!tokenPayload
 
   console.log('[Middleware] Authentication status:', isAuthenticated)
+  if (tokenPayload) {
+    console.log('[Middleware] User role:', tokenPayload.role)
+  }
 
   // Handle protected routes
   if (protectedRoutes.some(route => pathname.startsWith(route))) {
@@ -55,21 +93,38 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
     }
+
+    // Check role-based access control for admin routes
+    if (adminRoutes.some(route => pathname.startsWith(route))) {
+      if (tokenPayload?.role !== 'admin') {
+        console.log('[Middleware] Access denied - insufficient permissions')
+        const unauthorizedUrl = new URL('/unauthorized', request.url)
+        return NextResponse.redirect(unauthorizedUrl)
+      }
+      console.log('[Middleware] Admin access granted')
+    }
+
+    console.log('[Middleware] Allowing access to protected route')
+    return NextResponse.next()
   }
 
   // Handle auth routes (redirect authenticated users away)
   if (authRoutes.some(route => pathname.startsWith(route))) {
     if (isAuthenticated) {
-      console.log('[Middleware] Redirecting authenticated user to home')
+      console.log('[Middleware] Redirecting authenticated user from auth route to home')
       return NextResponse.redirect(new URL('/home', request.url))
     }
+    console.log('[Middleware] Allowing access to auth route')
+    return NextResponse.next()
   }
 
   // Handle root route
   if (pathname === '/') {
     if (isAuthenticated) {
+      console.log('[Middleware] Redirecting authenticated user from root to home')
       return NextResponse.redirect(new URL('/home', request.url))
     } else {
+      console.log('[Middleware] Redirecting unauthenticated user from root to login')
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }

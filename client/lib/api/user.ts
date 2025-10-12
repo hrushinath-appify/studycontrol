@@ -29,7 +29,6 @@ export interface UserProfile {
 export interface UserStats {
   studyStreak: number
   totalStudyHours: number
-  completedTasks: number
   notesCreated: number
   averageStudyTime: number
   productivityScore: number
@@ -281,7 +280,6 @@ export class UserApi {
     return {
       studyStreak: mockUser.stats.studyStreak,
       totalStudyHours: mockUser.stats.totalStudyHours,
-      completedTasks: mockUser.stats.completedTasks,
       notesCreated: mockUser.stats.notesCreated,
       averageStudyTime: 3.2, // Mock average
       productivityScore: 85 // Mock score

@@ -16,9 +16,11 @@ import {
   BookOpen,
   X,
   Check,
-  Copy
+  Copy,
+  WifiOff
 } from 'lucide-react'
 import { NotesApi, type Note as ApiNote, type NoteStats as ApiNoteStats } from '@/lib/api/notes'
+import { useRealtimeNotes, syncSSEEventWithStorage } from '@/lib/sse-notes'
 
 // Use the API interface instead of local interface
 type Note = ApiNote
@@ -34,7 +36,6 @@ const NotesPage = React.memo(() => {
   const [newNoteTitle, setNewNoteTitle] = useState('')
   const [newNoteContent, setNewNoteContent] = useState('')
   const [newNoteTags, setNewNoteTags] = useState('')
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'title'>('updated')
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<NoteStats | null>(null)
@@ -54,23 +55,77 @@ const NotesPage = React.memo(() => {
   })
   const [isOnline, setIsOnline] = useState(true)
   const [hasOfflineChanges, setHasOfflineChanges] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   
   const contentRef = useRef<HTMLTextAreaElement>(null)
   const titleRef = useRef<HTMLInputElement>(null)
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Real-time notes integration
+  const { subscribe: subscribeToRealtime, isConnected: isRealtimeConnected } = useRealtimeNotes()
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Calculate stats dynamically from current notes
+  const calculateStats = useCallback((notesList: Note[]): NoteStats => {
+    const activeNotes = notesList.filter(note => !note.isArchived)
+    
+    const total = activeNotes.length
+    const totalWords = activeNotes.reduce((sum, note) => sum + (note.wordCount || 0), 0)
+    const averageWordsPerNote = total > 0 ? Math.round(totalWords / total) : 0
+    
+    // Get unique tags
+    const allTags = Array.from(new Set(activeNotes.flatMap(note => note.tags || [])))
+    
+    // Get unique categories
+    const allCategories = Array.from(new Set(
+      activeNotes.map(note => note.category).filter(Boolean) as string[]
+    ))
+    
+    // Calculate time-based stats
+    const now = new Date()
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    
+    const notesThisWeek = activeNotes.filter(note => 
+      new Date(note.createdAt) >= oneWeekAgo
+    ).length
+    
+    const notesThisMonth = activeNotes.filter(note => 
+      new Date(note.createdAt) >= oneMonthAgo
+    ).length
+    
+    return {
+      total,
+      archived: notesList.filter(note => note.isArchived).length,
+      totalWords,
+      averageWordsPerNote,
+      tagsCount: allTags.length,
+      categoriesCount: allCategories.length,
+      notesThisWeek,
+      notesThisMonth
+    }
+  }, [])
 
   // Load notes and stats from database
   const loadNotesAndStats = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      const [notesData, statsData] = await Promise.all([
-        NotesApi.getNotes(),
-        NotesApi.getStats()
-      ])
+      const notesData = await NotesApi.getNotes()
       
       setNotes(notesData || [])
-      setStats(statsData)
+      
+      // Calculate stats from loaded notes for real-time accuracy
+      const calculatedStats = calculateStats(notesData || [])
+      setStats(calculatedStats)
     } catch (error) {
       console.error('Failed to load notes:', error)
       setError('Failed to load notes. Please try again.')
@@ -79,22 +134,79 @@ const NotesPage = React.memo(() => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [calculateStats])
 
-  // Refresh stats only
-  const refreshStats = useCallback(async () => {
-    try {
-      const statsData = await NotesApi.getStats()
-      setStats(statsData)
-    } catch (error) {
-      console.error('Failed to refresh stats:', error)
-      // Don't show error for stats refresh failures as it's not critical
-    }
-  }, [])
+  // Refresh stats from current notes (always real-time)
+  const refreshStats = useCallback(() => {
+    const calculatedStats = calculateStats(notes)
+    setStats(calculatedStats)
+  }, [calculateStats, notes])
 
   useEffect(() => {
     loadNotesAndStats()
   }, [loadNotesAndStats])
+
+  // Real-time updates integration
+  useEffect(() => {
+    const unsubscribe = subscribeToRealtime((event) => {
+      console.log('Real-time notes event:', event)
+      
+      // Sync with localStorage
+      syncSSEEventWithStorage(event)
+      
+      // Update UI based on event type
+      switch (event.type) {
+        case 'note_created':
+          if (event.note) {
+            setNotes(prev => {
+              const updatedNotes = [event.note!, ...prev]
+              const newStats = calculateStats(updatedNotes)
+              setStats(newStats)
+              return updatedNotes
+            })
+          }
+          break
+        case 'note_updated':
+          if (event.note) {
+            setNotes(prev => {
+              const updatedNotes = prev.map(note => 
+                note.id === event.noteId ? event.note! : note
+              )
+              const newStats = calculateStats(updatedNotes)
+              setStats(newStats)
+              return updatedNotes
+            })
+          }
+          break
+        case 'note_deleted':
+          setNotes(prev => {
+            const updatedNotes = prev.filter(note => note.id !== event.noteId)
+            const newStats = calculateStats(updatedNotes)
+            setStats(newStats)
+            return updatedNotes
+          })
+          if (selectedNote?.id === event.noteId) {
+            setSelectedNote(null)
+            setIsEditing(false)
+          }
+          break
+        case 'note_archived':
+          if (event.note) {
+            setNotes(prev => {
+              const updatedNotes = prev.map(note => 
+                note.id === event.noteId ? event.note! : note
+              )
+              const newStats = calculateStats(updatedNotes)
+              setStats(newStats)
+              return updatedNotes
+            })
+          }
+          break
+      }
+    })
+
+    return unsubscribe
+  }, [subscribeToRealtime, selectedNote?.id, calculateStats])
 
   // Refresh stats periodically to ensure they stay up to date
   useEffect(() => {
@@ -134,7 +246,6 @@ const NotesPage = React.memo(() => {
     }
   }, [hasOfflineChanges, loadNotesAndStats])
 
-  // Auto-save functionality
   const saveCurrentNote = useCallback(async () => {
     if (!selectedNote) return
 
@@ -145,14 +256,17 @@ const NotesPage = React.memo(() => {
         content: selectedNote.content
       })
 
-      setNotes(prev => prev.map(note => 
-        note.id === selectedNote.id ? updatedNote : note
-      ))
-      // Don't update selectedNote here to avoid triggering auto-save loop
+      setNotes(prev => {
+        const updatedNotes = prev.map(note => 
+          note.id === selectedNote.id ? updatedNote : note
+        )
+        // Update stats immediately as word count may have changed
+        const newStats = calculateStats(updatedNotes)
+        setStats(newStats)
+        return updatedNotes
+      })
+      setSelectedNote(updatedNote)
       setError(null)
-      
-      // Refresh stats as word count may have changed
-      await refreshStats()
     } catch (error) {
       console.error('Failed to save note:', error)
       
@@ -170,12 +284,16 @@ const NotesPage = React.memo(() => {
             content: selectedNote.content
           })
           
-          setNotes(prev => prev.map(note => 
-            note.id === selectedNote.id ? retryUpdatedNote : note
-          ))
-          // Don't update selectedNote here to avoid triggering auto-save loop
+          setNotes(prev => {
+            const updatedNotes = prev.map(note => 
+              note.id === selectedNote.id ? retryUpdatedNote : note
+            )
+            const newStats = calculateStats(updatedNotes)
+            setStats(newStats)
+            return updatedNotes
+          })
+          setSelectedNote(retryUpdatedNote)
           setError(null)
-          await refreshStats()
           
           console.log('Successfully saved after resync')
         } catch (retryError) {
@@ -186,33 +304,7 @@ const NotesPage = React.memo(() => {
         setError('Failed to save note. Your changes may be lost.')
       }
     }
-  }, [selectedNote, refreshStats, loadNotesAndStats])
-
-  // Auto-save functionality
-  useEffect(() => {
-    const content = selectedNote?.content
-    const title = selectedNote?.title
-    const noteId = selectedNote?.id
-    
-    if (noteId && content !== undefined && title !== undefined && isEditing) {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current)
-      }
-      
-      setAutoSaveStatus('saving')
-      
-      autoSaveTimeoutRef.current = setTimeout(() => {
-        saveCurrentNote()
-        setAutoSaveStatus('saved')
-      }, 1000) // Auto-save after 1 second of inactivity
-    }
-    
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current)
-      }
-    }
-  }, [selectedNote?.content, selectedNote?.title, selectedNote?.id, isEditing, saveCurrentNote])
+  }, [selectedNote, calculateStats, loadNotesAndStats])
 
   const createNote = useCallback(async () => {
     if (!newNoteTitle.trim()) return
@@ -227,13 +319,16 @@ const NotesPage = React.memo(() => {
         tags: newNoteTags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
       })
 
-      setNotes(prev => [newNote, ...prev])
+      setNotes(prev => {
+        const updatedNotes = [newNote, ...prev]
+        // Update stats immediately
+        const newStats = calculateStats(updatedNotes)
+        setStats(newStats)
+        return updatedNotes
+      })
       setSelectedNote(newNote)
       setShowCreateForm(false)
-      setIsEditing(true)
-      
-      // Refresh stats
-      await refreshStats()
+      setIsEditing(false) // Go to preview mode after creating
       
       // Reset form
       setNewNoteTitle('')
@@ -245,7 +340,7 @@ const NotesPage = React.memo(() => {
     } finally {
       setOperationLoading(prev => ({ ...prev, create: false }))
     }
-  }, [newNoteTitle, newNoteContent, newNoteTags, refreshStats])
+  }, [newNoteTitle, newNoteContent, newNoteTags, calculateStats])
 
   const deleteNote = useCallback(async (noteId: string) => {
     try {
@@ -253,20 +348,28 @@ const NotesPage = React.memo(() => {
       setError(null)
       
       await NotesApi.deleteNote(noteId)
-      setNotes(prev => prev.filter(note => note.id !== noteId))
+      setNotes(prev => {
+        const updatedNotes = prev.filter(note => note.id !== noteId)
+        // Update stats immediately
+        const newStats = calculateStats(updatedNotes)
+        setStats(newStats)
+        return updatedNotes
+      })
       
       if (selectedNote?.id === noteId) {
         setSelectedNote(null)
         setIsEditing(false)
       }
-      
-      // Refresh stats
-      await refreshStats()
     } catch (error) {
       console.error('Failed to delete note:', error)
       
       // Still remove from UI for better UX, but show warning
-      setNotes(prev => prev.filter(note => note.id !== noteId))
+      setNotes(prev => {
+        const updatedNotes = prev.filter(note => note.id !== noteId)
+        const newStats = calculateStats(updatedNotes)
+        setStats(newStats)
+        return updatedNotes
+      })
       if (selectedNote?.id === noteId) {
         setSelectedNote(null)
         setIsEditing(false)
@@ -278,11 +381,10 @@ const NotesPage = React.memo(() => {
       } else {
         setError('Note deleted locally, but may not be synced to server. Changes will sync when connection is restored.')
       }
-      await refreshStats()
     } finally {
       setOperationLoading(prev => ({ ...prev, delete: false }))
     }
-  }, [selectedNote?.id, refreshStats, isOnline])
+  }, [selectedNote?.id, isOnline, calculateStats])
 
 
 
@@ -292,17 +394,20 @@ const NotesPage = React.memo(() => {
       setError(null)
       
       const duplicatedNote = await NotesApi.duplicateNote(note.id)
-      setNotes(prev => [duplicatedNote, ...prev])
-      
-      // Refresh stats
-      await refreshStats()
+      setNotes(prev => {
+        const updatedNotes = [duplicatedNote, ...prev]
+        // Update stats immediately
+        const newStats = calculateStats(updatedNotes)
+        setStats(newStats)
+        return updatedNotes
+      })
     } catch (error) {
       console.error('Failed to duplicate note:', error)
       setError('Failed to duplicate note. Please try again.')
     } finally {
       setOperationLoading(prev => ({ ...prev, duplicate: false }))
     }
-  }, [refreshStats])
+  }, [calculateStats])
 
   // Search notes using database API
   const searchNotes = useCallback(async (query: string) => {
@@ -317,13 +422,17 @@ const NotesPage = React.memo(() => {
       
       const searchResults = await NotesApi.searchNotes(query)
       setNotes(searchResults)
+      
+      // Recalculate stats from search results for real-time accuracy
+      const calculatedStats = calculateStats(searchResults)
+      setStats(calculatedStats)
     } catch (error) {
       console.error('Failed to search notes:', error)
       setError('Failed to search notes. Please try again.')
     } finally {
       setOperationLoading(prev => ({ ...prev, search: false }))
     }
-  }, [loadNotesAndStats])
+  }, [loadNotesAndStats, calculateStats])
 
   // Handle search input changes
   const handleSearchChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -337,9 +446,15 @@ const NotesPage = React.memo(() => {
     setIsEditing(false)
   }, [])
 
-  const handleToggleEdit = useCallback(() => {
-    setIsEditing(!isEditing)
-  }, [isEditing])
+  const handleToggleEdit = useCallback(async () => {
+    if (isEditing) {
+      // Save note when switching from edit to preview
+      await saveCurrentNote()
+      setIsEditing(false)
+    } else {
+      setIsEditing(true)
+    }
+  }, [isEditing, saveCurrentNote])
 
   const handleCloseCreateForm = useCallback(() => {
     setShowCreateForm(false)
@@ -353,7 +468,6 @@ const NotesPage = React.memo(() => {
     const content = e.target.value
     if (selectedNote) {
       setSelectedNote({ ...selectedNote, content })
-      setAutoSaveStatus('unsaved')
     }
   }, [selectedNote])
 
@@ -463,15 +577,48 @@ const NotesPage = React.memo(() => {
   }, [notes])
 
   const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
+    if (!dateString) return 'Unknown'
     
-    if (diffInHours < 1) return 'Just now'
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays < 7) return `${diffInDays}d ago`
-    return date.toLocaleDateString()
+    try {
+      const date = new Date(dateString)
+      const now = new Date()
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+      
+      // Less than 1 minute
+      if (diffInMinutes < 1) return 'Just now'
+      
+      // Less than 60 minutes
+      if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+      
+      // Less than 24 hours
+      const diffInHours = Math.floor(diffInMinutes / 60)
+      if (diffInHours < 24) return `${diffInHours}h ago`
+      
+      // Less than 7 days
+      const diffInDays = Math.floor(diffInHours / 24)
+      if (diffInDays < 7) return `${diffInDays}d ago`
+      
+      // Less than 30 days - show date with time
+      if (diffInDays < 30) {
+        return date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
+      }
+      
+      // More than 30 days - show full date
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric',
+        month: 'short', 
+        day: 'numeric'
+      })
+    } catch (error) {
+      console.error('Error formatting date:', error)
+      return 'Invalid date'
+    }
   }, [])
 
   const getPreview = useCallback((content: string) => {
@@ -479,20 +626,20 @@ const NotesPage = React.memo(() => {
   }, [])
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
+    <div className="min-h-screen p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">
               Notes
             </h1>
-            <p className="text-muted-foreground text-base md:text-lg">
+            <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
               Capture your thoughts and organize your ideas.
             </p>
           </div>
           <div className="text-primary flex-shrink-0" aria-hidden="true">
-            <StickyNote className="w-10 h-10 md:w-12 md:h-12" />
+            <StickyNote className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12" />
           </div>
         </div>
 
@@ -536,60 +683,78 @@ const NotesPage = React.memo(() => {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6" role="region" aria-label="Notes statistics">
-          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 text-center hover:bg-card/50 transition-all duration-300">
-            <div className="flex items-center justify-center mb-2" aria-hidden="true">
-              <FileText className="w-6 h-6 text-primary" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6" role="region" aria-label="Notes statistics">
+          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center hover:bg-card/50 transition-all duration-300">
+            <div className="flex items-center justify-center mb-1 sm:mb-2" aria-hidden="true">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             </div>
-            <div className="text-2xl font-bold text-primary mb-1" aria-label={`${stats?.total || 0} total notes`}>
+            <div className="text-xl sm:text-2xl font-bold text-primary mb-1" aria-label={`${stats?.total || 0} total notes`} key={`total-${stats?.total}`}>
               {stats?.total || 0}
             </div>
-            <div className="text-muted-foreground text-sm">Total Notes</div>
+            <div className="text-muted-foreground text-xs sm:text-sm">Total Notes</div>
           </div>
           
-          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 text-center hover:bg-card/50 transition-all duration-300">
-            <div className="flex items-center justify-center mb-2" aria-hidden="true">
-              <Tag className="w-6 h-6 text-green-500" />
+          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center hover:bg-card/50 transition-all duration-300">
+            <div className="flex items-center justify-center mb-1 sm:mb-2" aria-hidden="true">
+              <Tag className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
             </div>
-            <div className="text-2xl font-bold text-green-500 mb-1" aria-label={`${stats?.tagsCount || 0} unique tags`}>
+            <div className="text-xl sm:text-2xl font-bold text-green-500 mb-1" aria-label={`${stats?.tagsCount || 0} unique tags`} key={`tags-${stats?.tagsCount}`}>
               {stats?.tagsCount || 0}
             </div>
-            <div className="text-muted-foreground text-sm">Tags</div>
+            <div className="text-muted-foreground text-xs sm:text-sm">Tags</div>
           </div>
           
-          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 text-center hover:bg-card/50 transition-all duration-300">
-            <div className="flex items-center justify-center mb-2" aria-hidden="true">
-              <BookOpen className="w-6 h-6 text-blue-500" />
+          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center hover:bg-card/50 transition-all duration-300">
+            <div className="flex items-center justify-center mb-1 sm:mb-2" aria-hidden="true">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
             </div>
-            <div className="text-2xl font-bold text-blue-500 mb-1" aria-label={`${stats?.totalWords || 0} total words`}>
+            <div className="text-xl sm:text-2xl font-bold text-purple-500 mb-1" aria-label={`${stats?.notesThisWeek || 0} notes created this week`} key={`created-${stats?.notesThisWeek}`}>
+              {stats?.notesThisWeek || 0}
+            </div>
+            <div className="text-muted-foreground text-xs sm:text-sm">Created (7d)</div>
+          </div>
+          
+          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center hover:bg-card/50 transition-all duration-300">
+            <div className="flex items-center justify-center mb-1 sm:mb-2" aria-hidden="true">
+              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
+            </div>
+            <div className="text-xl sm:text-2xl font-bold text-blue-500 mb-1" aria-label={`${stats?.totalWords || 0} total words`} key={`words-${stats?.totalWords}`}>
               {stats?.totalWords || 0}
             </div>
-            <div className="text-muted-foreground text-sm">Words</div>
+            <div className="text-muted-foreground text-xs sm:text-sm">Words</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Real-time Connection Status Banner */}
+        {!isRealtimeConnected && (
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg sm:rounded-xl p-2 sm:p-3 mb-4 sm:mb-6 flex items-center gap-2" role="status" aria-live="polite">
+            <WifiOff className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-orange-500">Real-time updates are currently unavailable. Data will sync when connection is restored.</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Notes List */}
           <div className="lg:col-span-1">
-            <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 mb-4">
+            <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
               {/* Search and Filters */}
-              <div className="space-y-4 mb-4" role="search" aria-label="Search and filter notes">
+              <div className="space-y-3 sm:space-y-4 mb-3 sm:mb-4" role="search" aria-label="Search and filter notes">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" aria-hidden="true" />
                   <Input
                     value={searchQuery}
                     onChange={handleSearchChange}
                     placeholder="Search notes..."
-                    className="pl-10 bg-background/50"
+                    className="pl-8 sm:pl-10 bg-background/50 text-sm sm:text-base h-9 sm:h-10"
                     aria-label="Search notes"
                   />
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
                   <select
                     value={filterTag}
                     onChange={handleFilterTagChange}
-                    className="flex-1 bg-background/50 border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full xs:flex-1 bg-background/50 border border-border rounded-md px-3 py-2 sm:px-3 sm:py-2 md:px-4 md:py-2.5 text-sm sm:text-sm md:text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-200 hover:border-primary/50 cursor-pointer"
                     aria-label="Filter by tag"
                   >
                     <option value="all">All Notes</option>
@@ -601,7 +766,7 @@ const NotesPage = React.memo(() => {
                   <select
                     value={sortBy}
                     onChange={handleSortByChange}
-                    className="bg-background/50 border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full xs:flex-1 bg-background/50 border border-border rounded-md px-3 py-2 sm:px-3 sm:py-2 md:px-4 md:py-2.5 text-sm sm:text-sm md:text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-200 hover:border-primary/50 cursor-pointer"
                     aria-label="Sort notes by"
                   >
                     <option value="updated">Last Updated</option>
@@ -614,18 +779,18 @@ const NotesPage = React.memo(() => {
               {/* Create Note Button */}
               <Button
                 onClick={handleShowCreateForm}
-                className="w-full mb-4 bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="w-full mb-3 sm:mb-4 bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-base h-9 sm:h-10"
                 disabled={operationLoading.create}
                 aria-label="Create new note"
               >
-                <Plus className="w-4 h-4 mr-2" aria-hidden="true" />
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" aria-hidden="true" />
                 {operationLoading.create ? 'Creating...' : 'New Note'}
               </Button>
             </div>
 
             {/* Notes List */}
             <div 
-              className="space-y-3 max-h-[600px] overflow-y-auto" 
+              className="space-y-2 sm:space-y-3 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] overflow-y-auto" 
               role="list" 
               aria-label={`Notes list with ${filteredNotes.length} ${filteredNotes.length === 1 ? 'note' : 'notes'}`}
             >
@@ -653,7 +818,7 @@ const NotesPage = React.memo(() => {
                   <div
                     key={noteKey}
                     onClick={createNoteClickHandler(note)}
-                    className={`bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 cursor-pointer hover:bg-card/50 transition-all duration-200 ${
+                    className={`bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-3 sm:p-4 cursor-pointer hover:bg-card/50 active:scale-[0.98] transition-all duration-200 ${
                       selectedNote?.id === note.id ? 'ring-2 ring-primary/50 bg-card/50' : ''
                     } ${operationLoading.delete || operationLoading.toggle ? 'opacity-50 pointer-events-none' : ''}`}
                     role="listitem"
@@ -662,52 +827,52 @@ const NotesPage = React.memo(() => {
                     onKeyDown={createNoteKeyDownHandler(note)}
                   >
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-foreground truncate">{note.title || 'Untitled'}</h3>
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <h3 className="font-semibold text-foreground truncate text-sm sm:text-base">{note.title || 'Untitled'}</h3>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={createDeleteNoteHandler(note.id)}
-                        className="p-1 hover:bg-accent/50 rounded text-muted-foreground hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        className="p-1.5 sm:p-1 hover:bg-accent/50 rounded text-muted-foreground hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-primary/50 touch-manipulation"
                         disabled={operationLoading.delete}
                         aria-label="Delete note"
                       >
                         {operationLoading.delete ? (
-                          <div className="w-4 h-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                          <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                         ) : (
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         )}
                       </button>
                     </div>
                   </div>
                   
-                  <p className="text-muted-foreground text-sm mb-3 line-clamp-3">
+                  <p className="text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2 sm:line-clamp-3">
                     {getPreview(note.content || '')}
                   </p>
                   
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <span className="flex items-center gap-1" title={new Date(note.updatedAt || new Date().toISOString()).toLocaleString()}>
                         <Clock className="w-3 h-3" />
                         {formatDate(note.updatedAt || new Date().toISOString())}
                       </span>
-                      <span>{note.wordCount || 0} words</span>
+                      <span className="hidden sm:inline">{note.wordCount || 0} words</span>
                     </div>
                   </div>
                   
                   {note.tags && note.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {note.tags.slice(0, 3).map((tag, tagIndex) => (
+                      {note.tags.slice(0, isMobile ? 2 : 3).map((tag, tagIndex) => (
                         <span
                           key={`${noteKey}-tag-${tagIndex}-${tag}`}
-                          className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary"
+                          className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs bg-primary/10 text-primary"
                         >
                           {tag}
                         </span>
                       ))}
-                      {note.tags.length > 3 && (
-                        <span className="text-xs text-muted-foreground">
-                          +{note.tags.length - 3} more
+                      {note.tags.length > (isMobile ? 2 : 3) && (
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">
+                          +{note.tags.length - (isMobile ? 2 : 3)}
                         </span>
                       )}
                     </div>
@@ -722,63 +887,64 @@ const NotesPage = React.memo(() => {
           {/* Note Editor */}
           <div className="lg:col-span-2">
             {showCreateForm ? (
-              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-foreground">Create New Note</h2>
+              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg sm:rounded-xl p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">Create New Note</h2>
                   <Button
                     onClick={handleCloseCreateForm}
                     variant="ghost"
                     size="sm"
+                    className="h-8 w-8 sm:h-9 sm:w-9"
                   >
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Title</label>
+                    <label className="text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2 block">Title</label>
                     <Input
                       value={newNoteTitle}
                       onChange={handleNewNoteTitleChange}
                       placeholder="Enter note title..."
-                      className="bg-background/50"
+                      className="bg-background/50 text-sm sm:text-base h-9 sm:h-10"
                     />
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Tags (comma-separated)</label>
+                    <label className="text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2 block">Tags (comma-separated)</label>
                     <Input
                       value={newNoteTags}
                       onChange={handleNewNoteTagsChange}
                       placeholder="study, important, project..."
-                      className="bg-background/50"
+                      className="bg-background/50 text-sm sm:text-base h-9 sm:h-10"
                     />
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Content</label>
+                    <label className="text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2 block">Content</label>
                     <textarea
                       value={newNoteContent}
                       onChange={handleNewNoteContentChange}
                       placeholder="Start writing your note..."
-                      className="w-full min-h-[300px] bg-background/50 border border-border rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="w-full min-h-[120px] sm:min-h-[150px] bg-background/50 border border-border rounded-md px-2.5 sm:px-3 py-2 text-sm sm:text-base text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
                   
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <Button
                       onClick={createNote}
                       disabled={!newNoteTitle.trim() || operationLoading.create}
-                      className="bg-primary hover:bg-primary/90"
+                      className="bg-primary hover:bg-primary/90 text-sm sm:text-base h-9 sm:h-10 flex-1 sm:flex-initial"
                     >
                       {operationLoading.create ? (
                         <>
-                          <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
                           Creating...
                         </>
                       ) : (
                         <>
-                          <Check className="w-4 h-4 mr-2" />
+                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                           Create Note
                         </>
                       )}
@@ -787,6 +953,7 @@ const NotesPage = React.memo(() => {
                       onClick={handleCloseCreateForm}
                       variant="outline"
                       disabled={operationLoading.create}
+                      className="text-sm sm:text-base h-9 sm:h-10 flex-1 sm:flex-initial"
                     >
                       Cancel
                     </Button>
@@ -794,50 +961,30 @@ const NotesPage = React.memo(() => {
                 </div>
               </div>
             ) : selectedNote ? (
-              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
+              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg sm:rounded-xl p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {isEditing ? (
                       <Input
                         ref={titleRef}
                         value={selectedNote.title}
                         onChange={handleNoteTitleChange}
-                        className="text-xl font-semibold bg-transparent border-0 p-0 focus:ring-0"
+                        className="text-lg sm:text-xl font-semibold bg-transparent border-0 p-0 focus:ring-0"
                       />
                     ) : (
-                      <h2 className="text-xl font-semibold text-foreground">{selectedNote.title}</h2>
+                      <h2 className="text-lg sm:text-xl font-semibold text-foreground truncate">{selectedNote.title}</h2>
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mr-4">
-                      {autoSaveStatus === 'saving' && (
-                        <>
-                          <div className="w-3 h-3 animate-spin rounded-full border border-muted-foreground border-t-transparent" />
-                          Saving...
-                        </>
-                      )}
-                      {autoSaveStatus === 'saved' && (
-                        <>
-                          <Check className="w-3 h-3 text-green-500" />
-                          Saved
-                        </>
-                      )}
-                      {autoSaveStatus === 'unsaved' && (
-                        <>
-                          <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
-                          Unsaved changes
-                        </>
-                      )}
-                    </div>
-                    
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <Button
                       onClick={handleToggleEdit}
                       variant="outline"
                       size="sm"
+                      className="text-xs sm:text-sm h-8 sm:h-9"
                     >
-                      <Edit3 className="w-4 h-4 mr-2" />
-                      {isEditing ? 'Preview' : 'Edit'}
+                      <Edit3 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                      <span className="hidden sm:inline">{isEditing ? 'Save & Preview' : 'Edit'}</span>
                     </Button>
                     
                     <Button
@@ -845,11 +992,13 @@ const NotesPage = React.memo(() => {
                       variant="ghost"
                       size="sm"
                       disabled={operationLoading.duplicate}
+                      className="h-8 w-8 sm:h-9 sm:w-9"
+                      title="Duplicate note"
                     >
                       {operationLoading.duplicate ? (
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                        <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
                       ) : (
-                        <Copy className="w-4 h-4" />
+                        <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       )}
                     </Button>
                     
@@ -857,31 +1006,32 @@ const NotesPage = React.memo(() => {
                       onClick={handleDeleteSelectedNote}
                       variant="ghost"
                       size="sm"
-                      className="text-red-500 hover:text-red-600"
+                      className="text-red-500 hover:text-red-600 h-8 w-8 sm:h-9 sm:w-9"
                       disabled={operationLoading.delete}
+                      title="Delete note"
                     >
                       {operationLoading.delete ? (
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+                        <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
                       ) : (
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       )}
                     </Button>
                   </div>
                 </div>
                 
-                <div className="mb-4">
+                <div className="mb-3 sm:mb-4">
                   {isEditing ? (
                     <textarea
                       ref={contentRef}
                       value={selectedNote.content}
                       onChange={handleNoteContentChange}
                       placeholder="Start writing your note..."
-                      className="w-full min-h-[400px] bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground focus:outline-none text-base leading-relaxed"
+                      className="w-full min-h-[300px] sm:min-h-[400px] bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground focus:outline-none text-sm sm:text-base leading-relaxed"
                     />
                   ) : (
-                    <div className="min-h-[400px] prose prose-sm max-w-none text-foreground">
+                    <div className="min-h-[300px] sm:min-h-[400px] prose prose-sm max-w-none text-foreground">
                       {selectedNote.content.split('\n').map((line, index) => (
-                        <p key={index} className="mb-3 leading-relaxed">
+                        <p key={index} className="mb-2 sm:mb-3 leading-relaxed text-sm sm:text-base">
                           {line || '\u00A0'}
                         </p>
                       ))}
@@ -889,29 +1039,38 @@ const NotesPage = React.memo(() => {
                   )}
                 </div>
                 
-                <div className="border-t border-border/30 pt-4">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        Created: {new Date(selectedNote.createdAt).toLocaleDateString()}
+                <div className="border-t border-border/30 pt-3 sm:pt-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                      <span className="flex items-center gap-1" title={new Date(selectedNote.createdAt).toLocaleString()}>
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">Created:</span>
+                        {new Date(selectedNote.createdAt).toLocaleDateString('en-US', { 
+                          year: 'numeric',
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        Updated: {formatDate(selectedNote.updatedAt)}
+                      <span className="flex items-center gap-1" title={new Date(selectedNote.updatedAt).toLocaleString()}>
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">Updated:</span>
+                        {formatDate(selectedNote.updatedAt)}
                       </span>
-                      <span>{selectedNote.wordCount} words</span>
+                      <span className="hidden sm:inline">{selectedNote.wordCount} words</span>
                     </div>
                   </div>
                   
                   {selectedNote.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                       {selectedNote.tags.map(tag => (
                         <span
                           key={tag}
-                          className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary border border-primary/20"
+                          className="px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs bg-primary/10 text-primary border border-primary/20"
                         >
-                          <Tag className="w-3 h-3 inline mr-1" />
+                          <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 inline mr-0.5 sm:mr-1" />
                           {tag}
                         </span>
                       ))}
@@ -920,12 +1079,12 @@ const NotesPage = React.memo(() => {
                 </div>
               </div>
             ) : (
-              <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-12 text-center">
-                <StickyNote className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">
+              <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-8 sm:p-12 text-center">
+                <StickyNote className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground/30 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1 sm:mb-2">
                   Select a note to view
                 </h3>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Choose a note from the list to start reading or editing
                 </p>
               </div>
@@ -940,3 +1099,4 @@ const NotesPage = React.memo(() => {
 NotesPage.displayName = 'NotesPage'
 
 export default NotesPage
+

@@ -1,32 +1,19 @@
 import { NextRequest } from 'next/server'
 import { connectToDatabase, Note } from '@/lib/database'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
-import jwt from 'jsonwebtoken'
-import { cookies } from 'next/headers'
-import mongoose from 'mongoose'
-
-// Helper function to get authenticated user from token
-async function getAuthenticatedUser() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth-token')?.value
-  
-  if (!token) {
-    throw new Error('Authentication token not found')
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development') as { userId: string; email: string }
-    return decoded.userId
-  } catch {
-    throw new Error('Invalid authentication token')
-  }
-}
-
-// GET /api/notes/[id] - Get specific note
+import { getUserFromToken } from '@/lib/auth-utils'
+import { broadcastNoteEvent } from '@/lib/sse-broadcaster'
+import mongoose from 'mongoose'// GET /api/notes/[id] - Get specific note
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const user = await getUserFromToken(request)
+    
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = user.id
 
     // Connect to database
     await connectToDatabase()
@@ -38,11 +25,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return createErrorResponse('Invalid note ID', 400)
     }
 
-    // Find note and ensure it belongs to the authenticated user
+    // Find note and ensure it belongs to the authenticated user - Convert userId to ObjectId
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const note = await (Note as any).findOne({
       _id: id,
-      userId: userId
+      userId: new mongoose.Types.ObjectId(userId)
     }).lean()
 
     if (!note) {
@@ -72,7 +59,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const user = await getUserFromToken(request)
+    
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = user.id
 
     // Connect to database
     await connectToDatabase()
@@ -93,10 +86,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return createErrorResponse('Title is required', 400)
     }
 
-    // Update note and ensure it belongs to the authenticated user
+    // Update note and ensure it belongs to the authenticated user - Convert userId to ObjectId
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatedNote = await (Note as any).findOneAndUpdate(
-      { _id: id, userId: userId },
+      { _id: id, userId: new mongoose.Types.ObjectId(userId) },
       {
         title,
         content: content || '',
@@ -122,6 +115,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       _id: undefined
     }
 
+    // Broadcast real-time event
+    broadcastNoteEvent({
+      type: 'note_updated',
+      noteId: transformedNote.id,
+      note: transformedNote,
+      userId,
+      timestamp: new Date().toISOString()
+    })
+
     return createSuccessResponse(transformedNote, 'Note updated successfully')
 
   } catch (error) {
@@ -137,7 +139,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const user = await getUserFromToken(request)
+    
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = user.id
 
     // Connect to database
     await connectToDatabase()
@@ -149,16 +157,24 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return createErrorResponse('Invalid note ID', 400)
     }
 
-    // Delete note and ensure it belongs to the authenticated user
+    // Delete note and ensure it belongs to the authenticated user - Convert userId to ObjectId
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deletedNote = await (Note as any).findOneAndDelete({
       _id: id,
-      userId: userId
+      userId: new mongoose.Types.ObjectId(userId)
     })
 
     if (!deletedNote) {
       return createErrorResponse('Note not found', 404)
     }
+
+    // Broadcast real-time event
+    broadcastNoteEvent({
+      type: 'note_deleted',
+      noteId: id,
+      userId,
+      timestamp: new Date().toISOString()
+    })
 
     return createSuccessResponse({ id }, 'Note deleted successfully')
 

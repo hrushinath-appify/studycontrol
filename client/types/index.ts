@@ -75,27 +75,8 @@ export interface StreakData {
 }
 
 // =============================================================================
-// TASK & PRODUCTIVITY TYPES
+// PRODUCTIVITY TYPES
 // =============================================================================
-
-export interface Task {
-  id: string
-  title: string
-  description?: string
-  completed: boolean
-  priority: 'low' | 'medium' | 'high'
-  dueDate?: string
-  tags?: string[]
-  createdAt: string
-  updatedAt: string
-}
-
-export interface TaskStats {
-  total: number
-  completed: number
-  pending: number
-  overdue: number
-}
 
 export interface PomodoroSession {
   id: string
@@ -128,6 +109,7 @@ export interface Note {
   updatedAt: string
   isPinned: boolean
 }
+
 
 // =============================================================================
 // NEWS & CONTENT TYPES
@@ -231,7 +213,6 @@ export interface AuthResponse {
 // =============================================================================
 
 export type Theme = 'light' | 'dark' | 'system'
-export type Priority = 'low' | 'medium' | 'high'
 export type Mood = 'great' | 'good' | 'okay' | 'bad' | 'terrible'
 export type UserRole = 'user' | 'admin'
 export type TimerType = 'work' | 'shortBreak' | 'longBreak'

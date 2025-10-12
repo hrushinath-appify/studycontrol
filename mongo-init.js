@@ -18,8 +18,6 @@ db.createUser({
 // Create indexes for better performance
 db.users.createIndex({ "email": 1 }, { unique: true });
 db.diaryentries.createIndex({ "userId": 1, "createdAt": -1 });
-db.tasks.createIndex({ "userId": 1, "completed": 1 });
-db.tasks.createIndex({ "userId": 1, "dueDate": 1 });
 db.notes.createIndex({ "userId": 1, "isPinned": -1, "updatedAt": -1 });
 db.quotes.createIndex({ "category": 1, "isActive": 1 });
 

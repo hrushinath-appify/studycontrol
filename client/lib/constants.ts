@@ -52,7 +52,6 @@ export const POMODORO = {
 export const STORAGE_KEYS = {
   USER_PREFERENCES: 'user-preferences',
   DIARY_ENTRIES: 'diary-entries',
-  TASKS: 'tasks',
   NOTES: 'notes',
   POMODORO_SESSIONS: 'pomodoro-sessions',
   THEME: 'theme',
@@ -70,10 +69,8 @@ export const ROUTES = {
   DIARY: '/diary',
   FOCUS: '/focus',
   NOTES: '/notes',
-  TASKS: '/to-do-list',
   SETTINGS: '/settings',
   HELP: '/help',
-  NEWS: '/news',
   MYSTERY: '/mystery',
   DEVELOPER_NOTES: '/developer-notes',
   UNAUTHORIZED: '/unauthorized',
@@ -84,10 +81,8 @@ export const PROTECTED_ROUTES = [
   ROUTES.DIARY,
   ROUTES.FOCUS,
   ROUTES.NOTES,
-  ROUTES.TASKS,
   ROUTES.SETTINGS,
   ROUTES.HELP,
-  ROUTES.NEWS,
   ROUTES.MYSTERY,
   ROUTES.DEVELOPER_NOTES,
 ] as const
@@ -214,8 +209,5 @@ export const SUCCESS_MESSAGES = {
   PROFILE_UPDATED: 'Profile updated successfully',
   PASSWORD_RESET_SENT: 'Password reset email sent',
   ENTRY_SAVED: 'Entry saved successfully',
-  TASK_CREATED: 'Task created successfully',
-  TASK_UPDATED: 'Task updated successfully',
-  TASK_DELETED: 'Task deleted successfully',
   NOTE_SAVED: 'Note saved successfully',
 } as const

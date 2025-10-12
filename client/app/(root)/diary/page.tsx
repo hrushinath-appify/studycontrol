@@ -17,6 +17,7 @@ type DiaryEntry = ApiDiaryEntry
 const DiaryPageContent = () => {
   const { user } = useAuth()
   const [currentEntry, setCurrentEntry] = useState('')
+  const [currentTitle, setCurrentTitle] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [entries, setEntries] = useState<DiaryEntry[]>([])
   const [streakData, setStreakData] = useState<DiaryStats | null>(null)
@@ -64,9 +65,12 @@ const DiaryPageContent = () => {
   const handleSaveEntry = useCallback(async () => {
     if (currentEntry.trim()) {
       try {
-      // Generate a smart title from content, use a simple fallback if none found
-      const smartTitle = generateSmartTitle(currentEntry)
-      const title = smartTitle || 'Untitled Entry'
+      // Use provided title or generate a smart one
+      let title = currentTitle.trim()
+      if (!title) {
+        const smartTitle = generateSmartTitle(currentEntry)
+        title = smartTitle || 'Untitled Entry'
+      }
       
         // Create entry via API
         const newEntry = await DiaryApi.createEntry({
@@ -96,6 +100,7 @@ const DiaryPageContent = () => {
       
         console.log('Entry saved successfully:', newEntry)
         setCurrentEntry('')
+        setCurrentTitle('')
         
         // Dispatch event to notify other components (including settings page)
         window.dispatchEvent(new CustomEvent('diaryEntriesUpdated'))
@@ -105,7 +110,7 @@ const DiaryPageContent = () => {
         // You could add a toast notification here
       }
     }
-  }, [currentEntry, streakData?.currentStreak])
+  }, [currentEntry, currentTitle, streakData?.currentStreak])
 
   const getStreakMessage = () => {
     const streak = streakData?.currentStreak || 0
@@ -157,23 +162,23 @@ const DiaryPageContent = () => {
   }, [handleSearchChange])
 
   return (
-    <div className="min-h-screen p-4 md:p-6 space-y-6 md:space-y-8">
+    <div className="min-h-screen p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 md:space-y-8">
       {/* Header Section */}
       <div className="max-w-4xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-2">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">
               Diary Mode
             </h1>
-            <p className="text-muted-foreground text-base md:text-lg">
+            <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
               Capture your daily reflections and insights.
             </p>
           </div>
           <div className="text-primary flex-shrink-0">
             <svg 
-              width="40" 
-              height="40" 
-              className="md:w-12 md:h-12"
+              width="32" 
+              height="32" 
+              className="sm:w-10 sm:h-10 md:w-12 md:h-12"
               viewBox="0 0 24 24" 
               fill="none" 
               stroke="currentColor" 
@@ -193,15 +198,15 @@ const DiaryPageContent = () => {
 
       {/* Streak Celebration */}
       {showStreakCelebration && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className="bg-primary/90 backdrop-blur-sm text-primary-foreground px-8 py-4 rounded-2xl shadow-2xl animate-bounce">
-            <div className="flex items-center gap-3">
-              <Trophy className="w-8 h-8 text-yellow-400" />
-              <div className="text-center">
-                <div className="text-xl font-bold">Streak Milestone! 🎉</div>
-                <div className="text-sm opacity-90">{getStreakMessage()}</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4">
+          <div className="bg-primary/90 backdrop-blur-sm text-primary-foreground px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-2xl animate-bounce max-w-md">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 flex-shrink-0" />
+              <div className="text-center flex-1 min-w-0">
+                <div className="text-base sm:text-lg md:text-xl font-bold">Streak Milestone! 🎉</div>
+                <div className="text-xs sm:text-sm opacity-90">{getStreakMessage()}</div>
               </div>
-              <Trophy className="w-8 h-8 text-yellow-400" />
+              <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 flex-shrink-0" />
             </div>
           </div>
         </div>
@@ -209,51 +214,51 @@ const DiaryPageContent = () => {
 
       {/* Streak Statistics */}
       <div className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {/* Current Streak */}
-          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 md:p-6 text-center hover:bg-card/50 transition-all duration-300 group">
-            <div className="flex items-center justify-center mb-3">
-              <Flame className={`w-6 h-6 md:w-8 md:h-8 ${getStreakColor()} group-hover:scale-110 transition-transform duration-200`} />
+          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 text-center hover:bg-card/50 transition-all duration-300 group">
+            <div className="flex items-center justify-center mb-2 sm:mb-3">
+              <Flame className={`w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 ${getStreakColor()} group-hover:scale-110 transition-transform duration-200`} />
             </div>
-            <div className={`text-2xl md:text-3xl font-bold mb-2 ${getStreakColor()}`}>
+            <div className={`text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2 ${getStreakColor()}`}>
               {streakData?.currentStreak || 0}
             </div>
-            <div className="text-muted-foreground text-sm mb-1">
+            <div className="text-muted-foreground text-xs sm:text-sm mb-1">
               Current Streak
             </div>
-            <div className="text-xs text-muted-foreground/70">
+            <div className="text-[10px] sm:text-xs text-muted-foreground/70">
               {getStreakMessage()}
             </div>
           </div>
 
           {/* Longest Streak */}
-          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 md:p-6 text-center hover:bg-card/50 transition-all duration-300 group">
-            <div className="flex items-center justify-center mb-3">
-              <Trophy className="w-6 h-6 md:w-8 md:h-8 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
+          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 text-center hover:bg-card/50 transition-all duration-300 group">
+            <div className="flex items-center justify-center mb-2 sm:mb-3">
+              <Trophy className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
             </div>
-            <div className="text-2xl md:text-3xl font-bold text-yellow-500 mb-2">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-500 mb-1 sm:mb-2">
               {streakData?.diaryHighestStreak || 0}
             </div>
-            <div className="text-muted-foreground text-sm mb-1">
+            <div className="text-muted-foreground text-xs sm:text-sm mb-1">
               Longest Streak
             </div>
-            <div className="text-xs text-muted-foreground/70">
+            <div className="text-[10px] sm:text-xs text-muted-foreground/70">
               Personal Best
             </div>
           </div>
 
           {/* Total Entries */}
-          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-xl p-4 md:p-6 text-center hover:bg-card/50 transition-all duration-300 group">
-            <div className="flex items-center justify-center mb-3">
-              <Calendar className="w-6 h-6 md:w-8 md:h-8 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
+          <div className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 text-center hover:bg-card/50 transition-all duration-300 group">
+            <div className="flex items-center justify-center mb-2 sm:mb-3">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
             </div>
-            <div className="text-2xl md:text-3xl font-bold text-blue-500 mb-2">
+            <div className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-500 mb-1 sm:mb-2">
               {streakData?.totalEntries || 0}
             </div>
-            <div className="text-muted-foreground text-sm mb-1">
+            <div className="text-muted-foreground text-xs sm:text-sm mb-1">
               Total Entries
             </div>
-            <div className="text-xs text-muted-foreground/70">
+            <div className="text-[10px] sm:text-xs text-muted-foreground/70">
               All Time
             </div>
           </div>
@@ -262,8 +267,21 @@ const DiaryPageContent = () => {
 
       {/* Main Entry Section */}
       <div className="max-w-4xl mx-auto">
-        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <div className="space-y-4">
+        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <div className="space-y-3 sm:space-y-4">
+            {/* Title Input */}
+            <div className="relative">
+              <input
+                type="text"
+                value={currentTitle}
+                onChange={(e) => setCurrentTitle(e.target.value)}
+                placeholder="Entry Title"
+                autoComplete="off"
+                className="w-full bg-transparent border-0 text-foreground placeholder:text-muted-foreground text-base sm:text-lg md:text-xl font-semibold focus:outline-none focus:ring-0 focus:border-0 p-0"
+                style={{ fontFamily: 'inherit', boxShadow: 'none' }}
+              />
+            </div>
+
             {/* Entry Textarea */}
             <div className="relative">
               <textarea
@@ -271,44 +289,44 @@ const DiaryPageContent = () => {
                 onChange={handleCurrentEntryChange}
                 placeholder={`What secrets does the night hold, ${user?.name || 'friend'}?`}
                 autoComplete="off"
-                className="w-full min-h-[180px] md:min-h-[200px] bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground text-base md:text-lg leading-relaxed focus:outline-none focus:ring-0 p-0"
+                className="w-full min-h-[100px] sm:min-h-[120px] md:min-h-[140px] bg-transparent border-0 resize-none text-foreground placeholder:text-muted-foreground text-sm sm:text-base md:text-lg leading-relaxed focus:outline-none focus:ring-0 p-0"
                 style={{ fontFamily: 'inherit' }}
               />
             </div>
 
             {/* Entry Controls */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-border/30">
-              <div className="flex items-center space-x-2 md:space-x-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-border/30">
+              <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors duration-200"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors duration-200 h-8 w-8 sm:h-9 sm:w-9"
                   title="Add emoji"
                 >
-                  <Smile className="h-4 w-4 md:h-5 md:w-5" />
+                  <Smile className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors duration-200"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors duration-200 h-8 w-8 sm:h-9 sm:w-9"
                   title="Add image"
                 >
                   {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  <Image className="h-4 w-4 md:h-5 md:w-5" />
+                  <Image className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors duration-200"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors duration-200 h-8 w-8 sm:h-9 sm:w-9"
                   title="Voice recording"
                 >
-                  <Mic className="h-4 w-4 md:h-5 md:w-5" />
+                  <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
                 </Button>
               </div>
               <Button
                 onClick={handleSaveEntry}
                 disabled={!currentEntry.trim()}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-full font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg w-full sm:w-auto"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg w-full sm:w-auto"
               >
                 Save Entry
               </Button>
@@ -318,41 +336,41 @@ const DiaryPageContent = () => {
       </div>
 
       {/* Past Entries Section */}
-      <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
-            <h2 className="text-xl md:text-2xl font-semibold text-foreground">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground">
               Past Entries
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Click on any entry to preview
             </p>
           </div>
           
           {/* Search Bar */}
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative w-full sm:w-72 md:w-80">
+            <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={handleSearchInputChange}
               placeholder="Search entries..."
               autoComplete="off"
-              className="pl-10 bg-card/30 border-border/50 rounded-full transition-all duration-200 focus:bg-card/50"
+              className="pl-8 sm:pl-10 bg-card/30 border-border/50 rounded-full transition-all duration-200 focus:bg-card/50 text-sm sm:text-base h-9 sm:h-10"
             />
           </div>
         </div>
 
         {/* Entries List */}
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-2 sm:space-y-3 md:space-y-4">
           {loading ? (
-            <div className="text-center py-8">
-              <div className="text-muted-foreground">Loading entries...</div>
+            <div className="text-center py-6 sm:py-8">
+              <div className="text-sm sm:text-base text-muted-foreground">Loading entries...</div>
             </div>
           ) : entries.length === 0 ? (
-            <div className="text-center py-8 md:py-12">
-              <div className="text-muted-foreground/30 mb-4">
+            <div className="text-center py-8 sm:py-10 md:py-12">
+              <div className="text-muted-foreground/30 mb-3 sm:mb-4">
                 <svg 
-                  className="h-16 w-16 mx-auto" 
+                  className="h-12 w-12 sm:h-16 sm:w-16 mx-auto" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   stroke="currentColor"
@@ -360,33 +378,44 @@ const DiaryPageContent = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
               </div>
-              <p className="text-muted-foreground text-base md:text-lg">
+              <p className="text-muted-foreground text-sm sm:text-base md:text-lg">
                 No diary entries yet
               </p>
-              <p className="text-muted-foreground/70 text-sm mt-2">
+              <p className="text-muted-foreground/70 text-xs sm:text-sm mt-2">
                 Start writing to see your entries here
               </p>
             </div>
           ) : (
-            entries.map((entry, index) => (
-              <Link 
-                key={entry.id || `entry-${index}`} 
-                href={`/diary/${entry.id}`}
-                className="block"
-              >
+            entries.map((entry, index) => {
+              // Debug logging for each entry
+              console.log(`🔍 Entry ${index + 1}:`, {
+                id: entry.id,
+                idLength: entry.id?.length,
+                isValidObjectId: entry.id ? /^[0-9a-fA-F]{24}$/.test(entry.id) : false,
+                title: entry.title,
+                href: `/diary/${entry.id}`
+              });
+              
+              return (
+                <Link 
+                  key={entry.id || `entry-${index}`} 
+                  href={`/diary/${entry.id}`}
+                  className="block"
+                >
                 <div
-                  className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg md:rounded-xl p-4 md:p-6 hover:bg-card/50 hover:border-border/60 hover:shadow-lg transition-all duration-300 cursor-pointer group animate-fade-in hover:scale-[1.02] active:scale-[0.98]"
+                  className="bg-card/30 backdrop-blur-sm border border-border/30 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 hover:bg-card/50 hover:border-border/60 hover:shadow-lg transition-all duration-300 cursor-pointer group animate-fade-in hover:scale-[1.01] sm:hover:scale-[1.02] active:scale-[0.98]"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-2 sm:gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <h3 className="font-semibold text-foreground text-sm md:text-base">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                      <h3 className="font-semibold text-foreground text-xs sm:text-sm md:text-base">
                         {entry.date}
                       </h3>
-                      <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                        <Eye className="h-3 w-3" />
-                        <span>View Details</span>
+                      <div className="flex items-center gap-1 text-[10px] sm:text-xs bg-primary/10 text-primary px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
+                        <Eye className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                        <span className="hidden xs:inline">View Details</span>
+                        <span className="xs:hidden">View</span>
                       </div>
                     </div>
                     
@@ -395,32 +424,35 @@ const DiaryPageContent = () => {
                      entry.title !== 'Untitled Entry' && 
                      !entry.content.startsWith(entry.title) && 
                      !entry.title.includes(entry.date) && (
-                      <h4 className="font-medium text-foreground text-sm md:text-base mb-2 line-clamp-2">
+                      <h4 className="font-medium text-foreground text-xs sm:text-sm md:text-base mb-1.5 sm:mb-2 line-clamp-2">
                         {entry.title}
                       </h4>
                     )}
                     
-                    <p className="text-muted-foreground leading-relaxed text-sm md:text-base line-clamp-3 mb-3">
+                    <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm md:text-base line-clamp-2 sm:line-clamp-3 mb-2 sm:mb-3">
                       {entry.preview}
                     </p>
                     
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <FileText className="h-3 w-3" />
-                        {entry.wordCount || entry.content.length} words
+                        <FileText className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                        <span className="hidden xs:inline">{entry.wordCount || entry.content.length} words</span>
+                        <span className="xs:hidden">{entry.wordCount || entry.content.length}w</span>
                       </span>
-                      <span>•</span>
+                      <span className="hidden xs:inline">•</span>
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date(entry.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                        <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                        <span className="hidden sm:inline">{new Date(entry.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                        <span className="sm:hidden">{new Date(entry.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })}</span>
                       </span>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all duration-200 flex-shrink-0 ml-4 mt-1" />
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all duration-200 flex-shrink-0 mt-0.5 sm:mt-1" />
                 </div>
               </div>
             </Link>
-            ))
+              )
+            })
           )}
         </div>
       </div>

@@ -21,13 +21,18 @@ export const authenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    console.log('🔐 Auth middleware called for:', req.path);
+    
     // Get token from header
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.startsWith('Bearer ') 
       ? authHeader.substring(7) 
       : null;
 
+    console.log('🔐 Token found:', !!token, 'length:', token?.length || 0);
+
     if (!token) {
+      console.log('❌ No token provided');
       res.status(401).json(createErrorResponse('Access token is required'));
       return;
     }
@@ -36,7 +41,9 @@ export const authenticate = async (
     let decoded: any;
     try {
       decoded = jwt.verify(token, config.JWT_SECRET);
+      console.log('✅ Token verified, userId:', decoded.userId);
     } catch (error) {
+      console.log('❌ Token verification failed:', error instanceof Error ? error.message : 'Unknown error');
       if (error instanceof jwt.TokenExpiredError) {
         res.status(401).json(createErrorResponse('Token has expired'));
         return;
@@ -50,26 +57,26 @@ export const authenticate = async (
     }
 
     // Get user from database
+    console.log('🔐 Looking up user:', decoded.userId);
     const user = await User.findById(decoded.userId).select('-password -refreshTokens');
     if (!user) {
+      console.log('❌ User not found for ID:', decoded.userId);
       res.status(401).json(createErrorResponse('User not found'));
       return;
     }
 
-    // Check if user's email is verified (temporarily disabled for testing)
-    // if (!user.isEmailVerified) {
-    //   res.status(401).json(createErrorResponse('Please verify your email address to access this feature. Check your email for the verification link.'));
-    //   return;
-    // }
+    console.log('✅ User found:', user.email, 'verified:', user.isEmailVerified);
 
-    // Check if user is active (you can add an isActive field to User model if needed)
-    // if (!user.isActive) {
-    //   res.status(401).json(createErrorResponse('User account is deactivated'));
-    //   return;
-    // }
+    // Check if user's email is verified
+    if (!user.isEmailVerified) {
+      console.log('❌ User email not verified');
+      res.status(401).json(createErrorResponse('Please verify your email address to access this feature. Check your email for the verification link.'));
+      return;
+    }
 
     // Attach user to request
     req.user = user;
+    console.log('✅ Auth successful, proceeding to next middleware');
     next();
   } catch (error) {
     console.error('Authentication error:', error);

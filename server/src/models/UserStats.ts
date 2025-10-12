@@ -17,10 +17,6 @@ export interface IUserStats extends Document {
   totalNotes: number
   archivedNotes: number
   
-  // Tasks statistics
-  totalTasks: number
-  completedTasks: number
-  
   // Focus statistics
   totalFocusSessions: number
   totalFocusTime: number // in minutes
@@ -72,16 +68,6 @@ const userStatsSchema = new Schema<IUserStats>({
     default: 0
   },
   archivedNotes: {
-    type: Number,
-    default: 0
-  },
-  
-  // Tasks statistics
-  totalTasks: {
-    type: Number,
-    default: 0
-  },
-  completedTasks: {
     type: Number,
     default: 0
   },
@@ -148,13 +134,6 @@ userStatsSchema.methods.updateNotesStats = function(archived: boolean = false) {
   this.totalNotes += 1
   if (archived) {
     this.archivedNotes += 1
-  }
-}
-
-userStatsSchema.methods.updateTaskStats = function(completed: boolean = false) {
-  this.totalTasks += 1
-  if (completed) {
-    this.completedTasks += 1
   }
 }
 

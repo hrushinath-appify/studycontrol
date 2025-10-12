@@ -12,18 +12,6 @@
     {
       "src": "api/backend.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "api/debug-env.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/test-email.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "api/manual-verify.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -38,18 +26,6 @@
     {
       "src": "/api/debug",
       "dest": "api/health.js"
-    },
-    {
-      "src": "/debug-env",
-      "dest": "api/debug-env.js"
-    },
-    {
-      "src": "/test-email",
-      "dest": "api/test-email.js"
-    },
-    {
-      "src": "/manual-verify",
-      "dest": "api/manual-verify.js"
     },
     {
       "src": "/(.*)",

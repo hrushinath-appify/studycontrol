@@ -26,7 +26,8 @@ import {
   Focus,
   Sparkles,
   Heart,
-  List,
+  PenTool,
+  BarChart3,
   // Newspaper,
 } from "lucide-react"
 import { useAuth } from "@/components/AuthProvider"
@@ -43,30 +44,31 @@ const mainItems = [
     url: "/mystery",
     icon: Sparkles,
   },
-  // {
-  //   title: "MBBS News",
-  //   url: "/news",
-  //   icon: Newspaper,
-  // },
+  {
+    title: "Marrow Progress",
+    url: "/marrow-progress",
+    icon: BarChart3,
+  },
   {
     title: "Focus",
     url: "/focus",
     icon: Focus,
   },
-  {
-    title: "Diary",
-    url: "/diary",
-    icon: FileText,
-  },
-  {
-    title: "To-Do-List",
-    url: "/to-do-list",
-    icon: List,
-  },
+  // {
+  //   title: "MBBS News",
+  //   url: "/news",
+  //   icon: Newspaper,
+  // },
+  
   {
     title: "Notes",
     url: "/notes",
     icon: FileText,
+  },
+  {
+    title: "Diary",
+    url: "/diary",
+    icon: PenTool,
   },
 ]
 
@@ -83,9 +85,12 @@ export default function MainSidebar() {
       '/home': 'home',
       '/diary': 'diary',
       '/notes': 'notes',
-      '/to-do-list': 'todoList',
       '/focus': 'focus',
       '/settings': 'settings',
+      '/mystery': 'mystery',
+      '/marrow-progress': 'marrow-progress',
+      '/developer-notes': 'developer-notes',
+      '/help': 'help',
     }
     
     const routeName = routeMap[url]
@@ -152,7 +157,11 @@ export default function MainSidebar() {
               asChild
               className="group-data-[collapsible=icon]:px-3 h-11 rounded-xl hover:bg-accent/50 transition-all duration-200"
             >
-              <Link href="/settings" className="flex items-center gap-4 h-full px-3">
+              <Link 
+                href="/settings" 
+                className="flex items-center gap-4 h-full px-3"
+                onMouseEnter={createHoverHandler('/settings')}
+              >
                 <Settings className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                 <span className="group-data-[collapsible=icon]:hidden font-medium">Settings</span>
               </Link>
@@ -163,7 +172,11 @@ export default function MainSidebar() {
               asChild
               className="group-data-[collapsible=icon]:px-3 h-11 rounded-xl hover:bg-accent/50 transition-all duration-200"
             >
-              <Link href="/developer-notes" className="flex items-center gap-4 h-full px-3">
+              <Link 
+                href="/developer-notes" 
+                className="flex items-center gap-4 h-full px-3"
+                onMouseEnter={createHoverHandler('/developer-notes')}
+              >
                 <Heart className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                 <span className="group-data-[collapsible=icon]:hidden font-medium">Developer Notes</span>
               </Link>
@@ -174,7 +187,11 @@ export default function MainSidebar() {
               asChild
               className="group-data-[collapsible=icon]:px-3 h-11 rounded-xl hover:bg-accent/50 transition-all duration-200"
             >
-              <Link href="/help" className="flex items-center gap-4 h-full px-3">
+              <Link 
+                href="/help" 
+                className="flex items-center gap-4 h-full px-3"
+                onMouseEnter={createHoverHandler('/help')}
+              >
                 <HelpCircle className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                 <span className="group-data-[collapsible=icon]:hidden font-medium">About & Support</span>
               </Link>

@@ -11,11 +11,30 @@ export interface IUser extends mongoose.Document {
   emailVerificationExpires?: Date
   lastLogin?: Date
   isActive: boolean
-  role: string
+  role: 'user' | 'admin' | 'moderator'
   resetPasswordToken?: string
   resetPasswordExpires?: Date
+  // OAuth provider fields
+  provider: 'credentials' | 'google' | 'github'
+  providerId?: string
   // App metrics
-  mysteryClicks?: number
+  mysteryClicks: number
+  // User preferences
+  preferences?: {
+    theme: 'light' | 'dark' | 'system'
+    studyReminders: boolean
+    appUpdates: boolean
+    emailNotifications: boolean
+    soundEnabled: boolean
+    language: string
+  }
+  profile?: {
+    bio?: string
+    studyGoals?: string[]
+    focusAreas?: string[]
+    dailyStudyHours?: number
+    timezone?: string
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -60,7 +79,10 @@ const userSchema = new mongoose.Schema<IUser>({
   },
   password: {
     type: String,
-    required: true,
+    required: function(this: IUser) {
+      // Password is required only for credentials-based auth
+      return this.provider === 'credentials'
+    },
     select: false, // Don't include password in queries by default
   },
   avatar: {
@@ -100,12 +122,73 @@ const userSchema = new mongoose.Schema<IUser>({
     default: 'user',
     enum: ['user', 'admin', 'moderator'],
   },
+  // OAuth provider fields
+  provider: {
+    type: String,
+    enum: ['credentials', 'google', 'github'],
+    default: 'credentials',
+  },
+  providerId: {
+    type: String,
+    sparse: true,
+  },
   // Simple usage metric for "Mystery Explorations"
   mysteryClicks: {
     type: Number,
     default: 0,
     min: 0,
     index: true,
+  },
+  // User preferences
+  preferences: {
+    theme: {
+      type: String,
+      enum: ['light', 'dark', 'system'],
+      default: 'system',
+    },
+    studyReminders: {
+      type: Boolean,
+      default: true,
+    },
+    appUpdates: {
+      type: Boolean,
+      default: true,
+    },
+    emailNotifications: {
+      type: Boolean,
+      default: true,
+    },
+    soundEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    language: {
+      type: String,
+      default: 'en',
+    },
+  },
+  profile: {
+    bio: {
+      type: String,
+      maxlength: 500,
+    },
+    studyGoals: [{
+      type: String,
+      maxlength: 100,
+    }],
+    focusAreas: [{
+      type: String,
+      maxlength: 50,
+    }],
+    dailyStudyHours: {
+      type: Number,
+      min: 0,
+      max: 24,
+    },
+    timezone: {
+      type: String,
+      default: 'UTC',
+    },
   },
 }, {
   timestamps: true,
@@ -179,67 +262,6 @@ const diaryEntrySchema = new mongoose.Schema<IDiaryEntry>({
 
 export const DiaryEntry = mongoose.models.DiaryEntry || mongoose.model<IDiaryEntry>('DiaryEntry', diaryEntrySchema)
 
-// Task interface and schema
-export interface ITask extends mongoose.Document {
-  userId: mongoose.Types.ObjectId
-  title: string
-  description?: string
-  completed: boolean
-  priority: 'low' | 'medium' | 'high'
-  dueDate?: Date
-  category?: string
-  tags?: string[]
-  createdAt: Date
-  updatedAt: Date
-}
-
-const taskSchema = new mongoose.Schema<ITask>({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true,
-  },
-  title: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 200,
-  },
-  description: {
-    type: String,
-    trim: true,
-    maxlength: 1000,
-  },
-  completed: {
-    type: Boolean,
-    default: false,
-    index: true,
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high'],
-    default: 'medium',
-  },
-  dueDate: {
-    type: Date,
-  },
-  category: {
-    type: String,
-    trim: true,
-    maxlength: 50,
-  },
-  tags: [{
-    type: String,
-    trim: true,
-    maxlength: 30,
-  }],
-}, {
-  timestamps: true,
-})
-
-export const Task = mongoose.models.Task || mongoose.model<ITask>('Task', taskSchema)
-
 // Note interface and schema  
 export interface INote extends mongoose.Document {
   userId: mongoose.Types.ObjectId
@@ -299,6 +321,85 @@ const noteSchema = new mongoose.Schema<INote>({
 })
 
 export const Note = mongoose.models.Note || mongoose.model<INote>('Note', noteSchema)
+
+// MarrowProgress interface and schema
+export interface IMarrowProgress extends mongoose.Document {
+  userId: mongoose.Types.ObjectId
+  topicId: string
+  completed: boolean
+  subject: string
+  chapter: string
+  topicTitle: string
+  timeSpent?: number
+  difficulty?: string
+  estimatedTime?: number
+  completedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
+const marrowProgressSchema = new mongoose.Schema<IMarrowProgress>({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  },
+  topicId: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  completed: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  subject: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 100,
+  },
+  chapter: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 200,
+  },
+  topicTitle: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 300,
+  },
+  timeSpent: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  difficulty: {
+    type: String,
+    enum: ['Easy', 'Medium', 'Hard', null],
+    default: null,
+  },
+  estimatedTime: {
+    type: Number,
+    min: 0,
+  },
+  completedAt: {
+    type: Date,
+  },
+}, {
+  timestamps: true,
+})
+
+// Compound index for unique topic per user
+marrowProgressSchema.index({ userId: 1, topicId: 1 }, { unique: true })
+marrowProgressSchema.index({ userId: 1, subject: 1 })
+marrowProgressSchema.index({ userId: 1, completed: 1 })
+
+export const MarrowProgress = mongoose.models.MarrowProgress || mongoose.model<IMarrowProgress>('MarrowProgress', marrowProgressSchema)
 
 // Helper function to generate avatar URL
 export function generateAvatarUrl(name: string): string {

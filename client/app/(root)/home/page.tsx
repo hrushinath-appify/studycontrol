@@ -9,9 +9,9 @@ import {
   Timer, 
   // Calendar, 
   BookOpen, 
-  CheckSquare, 
   FileText,
-  RefreshCw
+  RefreshCw,
+  PenTool
 } from 'lucide-react'
 
 const HomePage = () => {
@@ -88,35 +88,28 @@ const HomePage = () => {
             icon={<BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
           <FeatureCard
+            title="Marrow Progress"
+            description="Track your Marrow learning progress."
+            href="/marrow-progress"
+            icon={<BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />}
+          />
+          <FeatureCard
             title="Focus Mode"
             description="Track your study time and progress."
             href="/focus"
             icon={<Timer className="w-5 h-5 sm:w-6 sm:h-6" />}
-          />
-          {/* <FeatureCard
-            title="News Feed"
-            description="Discover thes news in the world of medicine."
-            href="/news"
-            colSpan="2"
-            icon={<Calendar className="w-6 h-6" />}
-          /> */}
-          <FeatureCard
-            title="Diary"
-            description="Record your daily study reflections."
-            href="/diary"
-            icon={<BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />}
-          />
-          <FeatureCard
-            title="To-Do List"
-            description="Keep track of your tasks and assignments."
-            href="/to-do-list"
-            icon={<CheckSquare className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
           <FeatureCard
             title="Notes"
             description="Organize and review your study notes."
             href="/notes"
             icon={<FileText className="w-5 h-5 sm:w-6 sm:h-6" />}
+          />
+          <FeatureCard
+            title="Diary"
+            description="Record your daily study reflections."
+            href="/diary"
+            icon={<PenTool className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
         </div>
         {/* Motivational Quote Section */}

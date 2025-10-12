@@ -65,7 +65,7 @@ export default function VerifyEmailPage() {
     setResendCooldown(60); // 60 second cooldown
 
     try {
-      const response = await fetch('/api/v1/auth/resend-verification', {
+      const response = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,13 +146,13 @@ export default function VerifyEmailPage() {
       <Card className={`w-full max-w-md ${getStatusColor()}`}>
         <CardHeader className="text-center">
           {getStatusIcon()}
-          <CardTitle className="text-2xl font-bold">
+          <CardTitle className="text-2xl font-bold text-black">
             {status === 'success' ? 'Email Verified!' : 
              status === 'verifying' ? 'Verifying...' :
              status === 'error' ? 'Verification Failed' :
              'Verify Your Email'}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-black">
             {status === 'success' ? 'Your account is now active' :
              status === 'verifying' ? 'Please wait while we verify your email' :
              status === 'error' ? 'There was a problem with verification' :
@@ -163,48 +163,50 @@ export default function VerifyEmailPage() {
         <CardContent className="space-y-4">
           {message && (
             <Alert className={status === 'error' ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50'}>
-              <AlertDescription>{message}</AlertDescription>
+              <AlertDescription className="text-black">
+                {message}
+              </AlertDescription>
             </Alert>
           )}
 
           {status === 'idle' && (
             <>
-              <div className="text-center text-gray-600">
+              <div className="text-center text-black">
                 <p className="mb-4">
                   We&apos;ve sent a verification link to your email address.
                   {email && (
-                    <span className="block font-medium text-gray-800 mt-1">{email}</span>
+                    <span className="block font-semibold text-black mt-2">{email}</span>
                   )}
                 </p>
-                <p className="text-sm">
+                <p className="text-sm text-black">
                   Please check your inbox and spam folder, then click the verification link to activate your account.
                 </p>
               </div>
 
               <div className="border-t pt-4">
-                <p className="text-sm text-gray-600 mb-3">
+                <p className="text-sm text-black mb-3 font-medium">
                   Didn&apos;t receive the email?
                 </p>
                 <Button
                   onClick={resendVerificationEmail}
                   disabled={!canResend || isResending}
-                  className="w-full"
+                  className="w-full font-medium text-black"
                   variant="outline"
                 >
                   {isResending ? (
                     <>
                       <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
+                      <span className="text-black">Sending...</span>
                     </>
                   ) : canResend ? (
                     <>
                       <Mail className="mr-2 h-4 w-4" />
-                      Resend Verification Email
+                      <span className="text-black">Resend Verification Email</span>
                     </>
                   ) : (
                     <>
                       <RefreshCw className="mr-2 h-4 w-4" />
-                      Resend in {resendCooldown}s
+                      <span className="text-black font-semibold">Resend in {resendCooldown}s</span>
                     </>
                   )}
                 </Button>
@@ -258,7 +260,7 @@ export default function VerifyEmailPage() {
             <Button
               onClick={handleBackToLogin}
               variant="ghost"
-              className="text-sm"
+              className="text-sm font-medium text-black hover:text-black/80"
             >
               Already verified? Sign in
             </Button>

@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import type { ApiResponse } from '@/types'
 import { API_CONFIG } from './constants'
+import { getLocalStorageItem } from '@/lib/utils/localStorage'
 
 // =============================================================================
 // FETCH UTILITIES
@@ -30,7 +31,7 @@ export async function apiRequest<T = unknown>(
 
     // Add Authorization header if we have an access token and this is a backend API call
     if (url.includes(API_CONFIG.BASE_URL)) {
-      const accessToken = localStorage.getItem('accessToken')
+      const accessToken = getLocalStorageItem('accessToken')
       if (accessToken) {
         headers.Authorization = `Bearer ${accessToken}`
       }
@@ -167,8 +168,6 @@ export interface UserStats {
   diaryHighestStreak: number
   mysteryClicks: number
   totalNotes: number
-  totalTasks: number
-  completedTasks: number
   focusSessionsTotal: number
   averageFocusTime: number
 }
@@ -226,43 +225,9 @@ export async function fetchUserStats(): Promise<UserStats> {
       diaryHighestStreak: 0,
       mysteryClicks: 0,
       totalNotes: 0,
-      totalTasks: 0,
-      completedTasks: 0,
       focusSessionsTotal: 0,
       averageFocusTime: 0
     }
-  }
-}
-
-// =============================================================================
-// AUTHENTICATION HELPERS
-// =============================================================================
-
-// Note: These functions are deprecated - authentication should be handled by the backend API
-// Keeping for backward compatibility only
-
-export function getUserRole(_email: string): 'user' | 'admin' {
-  // Default to 'user' role - actual roles should come from backend
-  return 'user'
-}
-
-export function createUserObject(email: string, name?: string): {
-  id: string
-  email: string
-  name: string
-  avatar: string
-  createdAt: string
-  lastLoginAt: string
-  role: 'user' | 'admin'
-} {
-  return {
-    id: Date.now().toString(),
-    email,
-    name: name || email.split("@")[0] || 'User',
-    avatar: generateAvatar(email),
-    createdAt: new Date().toISOString(),
-    lastLoginAt: new Date().toISOString(),
-    role: getUserRole(email)
   }
 }
 

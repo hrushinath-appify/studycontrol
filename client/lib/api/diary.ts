@@ -60,9 +60,10 @@ export class DiaryApi {
   // Get entries from the backend
   static async getEntries(params?: DiaryApiParams): Promise<DiaryEntry[]> {
     try {
-      const { data } = await apiClient.get('/diary', { params }) as { data: any[] }
+      const { data } = await apiClient.get('/diary', { params })
+      const entries = (data as any)?.entries || []
       
-      return data.map((entry: any) => ({
+      return entries.map((entry: any) => ({
         id: entry._id || entry.id,
         title: entry.title,
         content: entry.content,
@@ -72,7 +73,7 @@ export class DiaryApi {
         updatedAt: entry.updatedAt,
         mood: entry.mood,
         tags: entry.tags || [],
-        wordCount: entry.wordCount || entry.content.split(/\s+/).length,
+        wordCount: entry.wordCount || entry.content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
         isPrivate: entry.isPrivate || false,
         attachments: entry.attachments || []
       }))
@@ -88,8 +89,28 @@ export class DiaryApi {
       // Validate the ID before making the API call
       validateObjectId(id, 'diary entry')
       
-      const response = await apiClient.get<DiaryEntry>(`${this.ENDPOINT}/${id}`)
-      return response.data || null
+      const response = await apiClient.get(`${this.ENDPOINT}/${id}`)
+      const entry = (response.data as any)
+      
+      if (!entry) {
+        return null
+      }
+      
+      // Transform the entry to match the DiaryEntry interface
+      return {
+        id: entry._id || entry.id,
+        title: entry.title,
+        content: entry.content,
+        preview: entry.content.length > 150 ? entry.content.substring(0, 150) + '...' : entry.content,
+        date: entry.date,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+        mood: entry.mood,
+        tags: entry.tags || [],
+        wordCount: entry.wordCount || entry.content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
+        isPrivate: entry.isPrivate || false,
+        attachments: entry.attachments || []
+      }
     } catch (error) {
       console.error('Failed to fetch diary entry by ID from API:', error)
       throw error
@@ -99,8 +120,24 @@ export class DiaryApi {
   // Create new diary entry
   static async createEntry(data: CreateDiaryEntryData): Promise<DiaryEntry> {
     try {
-      const response = await apiClient.post<DiaryEntry>(this.ENDPOINT, data)
-      return response.data!
+      const response = await apiClient.post(this.ENDPOINT, data)
+      const entry = (response.data as any)
+      
+      // Transform the entry to match the DiaryEntry interface
+      return {
+        id: entry._id || entry.id,
+        title: entry.title,
+        content: entry.content,
+        preview: entry.content.length > 150 ? entry.content.substring(0, 150) + '...' : entry.content,
+        date: entry.date,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+        mood: entry.mood,
+        tags: entry.tags || [],
+        wordCount: entry.wordCount || entry.content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
+        isPrivate: entry.isPrivate || false,
+        attachments: entry.attachments || []
+      }
     } catch (error) {
       console.error('Failed to create diary entry via API:', error)
       throw error
@@ -113,8 +150,24 @@ export class DiaryApi {
       // Validate the ID before making the API call
       validateObjectId(data.id, 'diary entry')
       
-      const response = await apiClient.put<DiaryEntry>(`${this.ENDPOINT}/${data.id}`, data)
-      return response.data!
+      const response = await apiClient.put(`${this.ENDPOINT}/${data.id}`, data)
+      const entry = (response.data as any)
+      
+      // Transform the entry to match the DiaryEntry interface
+      return {
+        id: entry._id || entry.id,
+        title: entry.title,
+        content: entry.content,
+        preview: entry.content.length > 150 ? entry.content.substring(0, 150) + '...' : entry.content,
+        date: entry.date,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+        mood: entry.mood,
+        tags: entry.tags || [],
+        wordCount: entry.wordCount || entry.content.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
+        isPrivate: entry.isPrivate || false,
+        attachments: entry.attachments || []
+      }
     } catch (error) {
       console.error('Failed to update diary entry via API:', error)
       throw error

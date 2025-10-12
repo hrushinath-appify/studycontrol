@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { UserStats, DiaryEntry, Task, Note } from '../models'
+import { UserStats, DiaryEntry, Note } from '../models'
 import { AuthenticatedRequest } from '../types'
 import { calculateDiaryStreaks } from '../utils/streakCalculator'
 
@@ -17,20 +17,14 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
     }
 
     // Calculate real-time stats
-    const [diaryEntries, tasks, notes] = await Promise.all([
+    const [diaryEntries, notes] = await Promise.all([
       DiaryEntry.find({ userId }),
-      Task.find({ userId }),
       Note.find({ userId })
     ])
 
     // Calculate diary stats using the shared streak calculation utility
     const totalDiaryEntries = diaryEntries.length
     const { currentStreak, longestStreak } = calculateDiaryStreaks(diaryEntries)
-
-    // Calculate task stats
-    const totalTasks = tasks.length
-    const completedTasks = tasks.filter(task => task.completed).length
-    const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0
 
     // Calculate note stats
     const totalNotes = notes.length
@@ -40,8 +34,6 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
     userStats.totalDiaryEntries = totalDiaryEntries
     userStats.currentDiaryStreak = currentStreak
     userStats.longestDiaryStreak = longestStreak
-    userStats.totalTasks = totalTasks
-    userStats.completedTasks = completedTasks
     userStats.totalNotes = totalNotes
     userStats.archivedNotes = archivedNotes
     
@@ -56,11 +48,6 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
       // Mystery stats
       mysteryClicks: userStats.mysteryExplorations,
       mysteryTopicsViewed: userStats.mysteryTopicsViewed,
-      
-      // Task stats
-      totalTasks,
-      completedTasks,
-      taskCompletionRate: Math.round(taskCompletionRate),
       
       // Note stats
       totalNotes,
@@ -139,28 +126,6 @@ export const updateDiaryStats = async (userId: string, entryDate: Date = new Dat
     return userStats
   } catch (error) {
     console.error('Update diary stats error:', error)
-    throw error
-  }
-}
-
-// Update task stats (called when task is created/completed)
-export const updateTaskStats = async (userId: string, completed: boolean = false) => {
-  try {
-    let userStats = await UserStats.findOne({ userId })
-    if (!userStats) {
-      userStats = new UserStats({ userId })
-    }
-
-    // Update task stats manually
-    userStats.totalTasks += 1
-    if (completed) {
-      userStats.completedTasks += 1
-    }
-    await userStats.save()
-    
-    return userStats
-  } catch (error) {
-    console.error('Update task stats error:', error)
     throw error
   }
 }

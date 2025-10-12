@@ -1,19 +1,14 @@
 // API service layer - Main entry point
 // This module provides a unified interface for all API calls
 
-export * from './auth'
-
 // Diary API
 export { DiaryApi } from './diary'
 export { getStats as getDiaryStats } from './diary'
 
-// Tasks API  
-export { TasksApi } from './tasks'
-export { getStats as getTaskStats } from './tasks'
-
 // Notes API
 export { NotesApi } from './notes'
 export { getStats as getNotesStats } from './notes'
+
 
 // Focus API
 export { FocusApi } from './focus'
@@ -23,13 +18,11 @@ export { getStats as getFocusStats } from './focus'
 export { UserApi } from './user'
 export { getStats as getUserStats } from './user'
 
-export * from './news'
 export * from './quotes'
 
 // Re-export common types from API modules
 export type { Quote } from './quotes'
 export type { MysteryTopic } from '../mock-data/medicine'
-export type { MockNewsArticle, MockResearchPaper } from '../mock-data/news-articles'
 
 // Base API configuration
 export const API_CONFIG = {
@@ -78,11 +71,15 @@ export class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`
     
+    // Get auth token from localStorage (client-side only)
+    const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+    
     const config: RequestInit = {
       ...options,
       credentials: 'include', // Include cookies for authentication
       headers: {
         ...this.defaultHeaders,
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
         ...options.headers,
       },
     }

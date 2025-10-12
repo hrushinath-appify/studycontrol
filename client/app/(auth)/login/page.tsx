@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { BookOpen, Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { BookOpen, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
 import { useAuth } from "@/components/AuthProvider"
 import { toast } from "@/lib/toast"
 
@@ -136,7 +136,14 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={auth.isLoading}>
-              {auth.isLoading ? "Signing in..." : "Sign in"}
+              {auth.isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in"
+              )}
             </Button>
             
             <div className="text-center text-sm">

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { BookOpen, Mail, Lock, User, Eye, EyeOff, CheckCircle } from "lucide-react"
+import { BookOpen, Mail, Lock, User, Eye, EyeOff, CheckCircle, Loader2 } from "lucide-react"
 import { useAuth } from "@/components/AuthProvider"
 import { toast } from "@/lib/toast"
 
@@ -177,6 +177,9 @@ export default function SignupPage() {
                     className={`pl-10 ${errors.name ? "border-destructive" : ""}`}
                   />
                 </div>
+                {errors.name && (
+                  <p className="text-sm text-destructive">{errors.name}</p>
+                )}
               </div>
             </div>
 
@@ -194,6 +197,9 @@ export default function SignupPage() {
                     className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email}</p>
+                )}
               </div>
             </div>
 
@@ -227,6 +233,9 @@ export default function SignupPage() {
                     </span>
                   </Button>
                 </div>
+                {errors.password && (
+                  <p className="text-sm text-destructive">{errors.password}</p>
+                )}
               </div>
             </div>
 
@@ -260,12 +269,22 @@ export default function SignupPage() {
                     </span>
                   </Button>
                 </div>
+                {errors.confirmPassword && (
+                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                )}
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create account"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Create account"
+              )}
             </Button>
             
             <div className="text-center text-sm">

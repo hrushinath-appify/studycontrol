@@ -1,32 +1,21 @@
 import { NextRequest } from 'next/server'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
 import { connectToDatabase, Note } from '@/lib/database'
-import { cookies } from 'next/headers'
-import jwt from 'jsonwebtoken'
-
-// Helper function to get authenticated user ID
-async function getAuthenticatedUser() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth-token')?.value
-
-  if (!token) {
-    throw new Error('Authentication token not found')
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as { userId: string }
-    return decoded.userId
-  } catch (error) {
-    console.error('JWT verification failed:', error)
-    throw new Error('Invalid authentication token')
-  }
-}
+import { getUserFromToken } from '@/lib/auth-utils'
+import { broadcastNoteEvent } from '@/lib/sse-broadcaster'
+import mongoose from 'mongoose'
 
 // GET /api/notes - Get notes
 export async function GET(request: NextRequest) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const user = await getUserFromToken(request)
+    
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = user.id
 
     // Connect to database
     await connectToDatabase()
@@ -38,8 +27,8 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category')
     const search = searchParams.get('search')
 
-    // Build query
-    const query: Record<string, unknown> = { userId }
+    // Build query - Convert userId string to ObjectId for proper matching
+    const query: Record<string, unknown> = { userId: new mongoose.Types.ObjectId(userId) }
     if (category) {
       query.category = category
     }
@@ -95,7 +84,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const user = await getUserFromToken(request)
+    
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = user.id
 
     // Connect to database
     await connectToDatabase()
@@ -109,10 +104,10 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Title is required', 400)
     }
 
-    // Create new note
+    // Create new note - Convert userId string to ObjectId for proper storage
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const note = await (Note as any).create({
-      userId,
+      userId: new mongoose.Types.ObjectId(userId),
       title,
       content: content || '',
       category: category || '',
@@ -127,6 +122,15 @@ export async function POST(request: NextRequest) {
       wordCount: note.content ? note.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
       _id: undefined
     }
+
+    // Broadcast real-time event
+    broadcastNoteEvent({
+      type: 'note_created',
+      noteId: transformedNote.id,
+      note: transformedNote,
+      userId,
+      timestamp: new Date().toISOString()
+    })
 
     return createSuccessResponse(transformedNote, 'Note created successfully')
 
@@ -143,7 +147,13 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const user = await getUserFromToken(request)
+    
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = user.id
 
     // Connect to database
     await connectToDatabase()
@@ -156,10 +166,10 @@ export async function PUT(request: NextRequest) {
       return createErrorResponse('Note ID is required', 400)
     }
 
-    // Update note
+    // Update note - Convert userId string to ObjectId for proper matching
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const note = await (Note as any).findOneAndUpdate(
-      { _id: id, userId }, // Ensure user owns the note
+      { _id: id, userId: new mongoose.Types.ObjectId(userId) }, // Ensure user owns the note
       { $set: updateData },
       { new: true, runValidators: true }
     )
@@ -176,6 +186,15 @@ export async function PUT(request: NextRequest) {
       _id: undefined
     }
 
+    // Broadcast real-time event
+    broadcastNoteEvent({
+      type: 'note_updated',
+      noteId: transformedNote.id,
+      note: transformedNote,
+      userId,
+      timestamp: new Date().toISOString()
+    })
+
     return createSuccessResponse(transformedNote, 'Note updated successfully')
 
   } catch (error) {
@@ -191,7 +210,13 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const user = await getUserFromToken(request)
+    
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = user.id
 
     // Connect to database
     await connectToDatabase()
@@ -204,13 +229,21 @@ export async function DELETE(request: NextRequest) {
       return createErrorResponse('Note ID is required', 400)
     }
 
-    // Delete note
+    // Delete note - Convert userId string to ObjectId for proper matching
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const deletedNote = await (Note as any).findOneAndDelete({ _id: id, userId })
+    const deletedNote = await (Note as any).findOneAndDelete({ _id: id, userId: new mongoose.Types.ObjectId(userId) })
 
     if (!deletedNote) {
       return createErrorResponse('Note not found', 404)
     }
+
+    // Broadcast real-time event
+    broadcastNoteEvent({
+      type: 'note_deleted',
+      noteId: id,
+      userId,
+      timestamp: new Date().toISOString()
+    })
 
     return createSuccessResponse({ id }, 'Note deleted successfully')
 

@@ -103,7 +103,6 @@ export const mockUser = {
   stats: {
     studyStreak: 7,
     totalStudyHours: 47.5,
-    completedTasks: 89,
     notesCreated: 156,
     averageStudyTime: 45,
     productivityScore: 85

@@ -6,12 +6,10 @@ import { NotificationsIcon, ProfileIcon } from "@/components/custom/header-icons
 
 interface TopBarProps {
   title?: string
-  showKeyboardShortcut?: boolean
 }
 
 export default function TopBar({ 
-  title = "StudyControl", 
-  showKeyboardShortcut: _showKeyboardShortcut = true 
+  title = "StudyControl"
 }: TopBarProps) {
   return (
     <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border/60 px-3 sm:px-4 md:px-6 py-3 sm:py-4">

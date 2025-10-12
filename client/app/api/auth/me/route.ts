@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase, User, IUser } from '@/lib/database'
-import jwt from 'jsonwebtoken'
+import { jwtVerify } from 'jose'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 /api/auth/me - Starting authentication check')
-    
     // Get token from Authorization header or cookies
     const authHeader = request.headers.get('authorization')
     const cookieToken = request.cookies.get('auth-token')?.value
     
     const token = authHeader?.replace('Bearer ', '') || cookieToken
-    console.log('🔑 Token found:', !!token)
 
     if (!token) {
-      console.log('❌ No token provided')
       return NextResponse.json({
         success: false,
         error: 'No token provided'
@@ -24,10 +20,18 @@ export async function GET(request: NextRequest) {
     // Verify token
     let decoded: { userId: string; email: string }
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development') as { userId: string; email: string }
-      console.log('✅ Token verified for user:', decoded.userId)
-    } catch (tokenError) {
-      console.log('❌ Token verification failed:', tokenError)
+      const jwtSecret = process.env.JWT_SECRET
+      if (!jwtSecret) {
+        return NextResponse.json({
+          success: false,
+          error: 'Authentication service unavailable'
+        }, { status: 503 })
+      }
+      
+      const secret = new TextEncoder().encode(jwtSecret)
+      const { payload } = await jwtVerify(token, secret)
+      decoded = payload as { userId: string; email: string }
+    } catch {
       return NextResponse.json({
         success: false,
         error: 'Invalid token'

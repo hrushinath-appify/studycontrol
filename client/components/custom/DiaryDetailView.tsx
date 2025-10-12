@@ -126,7 +126,7 @@ const DiaryDetailView: React.FC<DiaryDetailViewProps> = ({
         <div className="bg-card/50 backdrop-blur-md border border-border/50 rounded-2xl shadow-xl shadow-black/5 overflow-hidden">
           {/* Entry Header */}
           <div className="border-b border-border/30 bg-gradient-to-r from-card/80 to-card/60 p-6 sm:p-8">
-            <div className="flex items-center gap-4 mb-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 mb-6 text-sm text-muted-foreground flex-wrap">
               <div className="flex items-center gap-2 bg-background/50 px-3 py-1.5 rounded-full border border-border/30">
                 <Calendar className="h-4 w-4" />
                 <span className="font-medium">{formatDate(entry.createdAt)}</span>
@@ -150,12 +150,16 @@ const DiaryDetailView: React.FC<DiaryDetailViewProps> = ({
             <div className="flex items-center gap-4 text-sm text-muted-foreground/80">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                <span>{entry.content.length} characters</span>
+                <span>{entry.content.trim().split(/\s+/).filter((w: string) => w.length > 0).length} words</span>
               </div>
-              <span>•</span>
-              <div className="flex items-center gap-2">
-                <span>Entry ID: {entry.id.slice(-8)}</span>
-              </div>
+              {entry.id && (
+                <>
+                  <span>•</span>
+                  <div className="flex items-center gap-2">
+                    <span>Entry ID: {entry.id.slice(-8)}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

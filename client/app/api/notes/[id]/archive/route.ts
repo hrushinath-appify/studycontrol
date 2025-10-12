@@ -1,79 +1,81 @@
 import { NextRequest } from 'next/server'
-import { getUser } from '@/lib/dal'
+import { getUserFromToken } from '@/lib/auth-utils'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
-import { cookies } from 'next/headers'
-
-// Backend API helper function with authentication
-async function callBackendAPI(endpoint: string, options: RequestInit = {}) {
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '')
-  
-  // Get JWT token from cookies
-  const cookieStore = await cookies()
-  const accessToken = cookieStore.get('auth-token')?.value
-  
-  if (!accessToken) {
-    throw new Error('Access token not found in cookies')
-  }
-
-  try {
-    const response = await fetch(`${backendUrl}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        ...options.headers,
-      },
-    })
-
-    return response
-  } catch (error) {
-    console.error('Backend API call failed:', error)
-    throw new Error(`Backend API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-  }
-}
+import { connectToDatabase, Note } from '@/lib/database'
+import { broadcastNoteEvent } from '@/lib/sse-broadcaster'
+import mongoose from 'mongoose'
 
 // PATCH /api/notes/[id]/archive - Toggle archive status
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // Check if user has a valid session
-    const user = await getUser()
+    // Get authenticated user
+    const user = await getUserFromToken(request)
+    
     if (!user) {
-      return createErrorResponse('Authentication required', 401)
+      return createErrorResponse('Unauthorized', 401)
     }
+    
+    const userId = user.id
+
+    // Connect to database
+    await connectToDatabase()
 
     const { id } = await params
-
-    // Forward request to backend
-    const response = await callBackendAPI(`/notes/${id}/archive`, {
-      method: 'PATCH',
-    })
-
-    let data
-    try {
-      data = await response.json()
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError)
-      return createErrorResponse('Invalid response from backend service', 502)
+    
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return createErrorResponse('Invalid note ID', 400)
     }
 
-    if (!response.ok) {
-      return createErrorResponse(data.error || 'Failed to toggle archive status', response.status)
+    // Find the note first to get current archive status
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentNote = await (Note as any).findOne({
+      _id: id,
+      userId: new mongoose.Types.ObjectId(userId)
+    }).lean()
+
+    if (!currentNote) {
+      return createErrorResponse('Note not found', 404)
+    }
+
+    // Toggle archive status
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updatedNote = await (Note as any).findOneAndUpdate(
+      { _id: id, userId: new mongoose.Types.ObjectId(userId) },
+      {
+        isArchived: !currentNote.isArchived,
+        updatedAt: new Date()
+      },
+      { new: true, lean: true }
+    )
+
+    if (!updatedNote) {
+      return createErrorResponse('Note not found', 404)
     }
 
     // Transform _id to id for frontend compatibility
-    const transformedNote = data.data ? {
-      ...data.data,
-      id: data.data._id,
-      wordCount: data.data.content ? data.data.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
+    const transformedNote = {
+      ...updatedNote,
+      id: updatedNote._id.toString(),
+      wordCount: updatedNote.content ? updatedNote.content.trim().split(/\s+/).filter((word: string) => word.length > 0).length : 0,
       _id: undefined
-    } : null
+    }
 
-    return createSuccessResponse(transformedNote, data.message)
+    // Broadcast real-time event
+    broadcastNoteEvent({
+      type: 'note_archived',
+      noteId: transformedNote.id,
+      note: transformedNote,
+      userId,
+      timestamp: new Date().toISOString()
+    })
+
+    return createSuccessResponse(transformedNote, 'Note archive status updated successfully')
 
   } catch (error) {
     console.error('Toggle Archive API Route Error:', error)
-    if (error instanceof Error && error.message.includes('Access token not found')) {
-      return createErrorResponse('Authentication token missing. Please log in again.', 401)
+    if (error instanceof Error && error.message.includes('Authentication')) {
+      return createErrorResponse('Authentication required. Please log in again.', 401)
     }
     return handleApiError(error, 'Toggle archive status')
   }

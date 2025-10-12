@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import authRoutes from './auth';
 import diaryRoutes from './diary';
-import tasksRoutes from './tasks';
 import notesRoutes from './notes';
 import mysteryRoutes from './mystery';
 import focusRoutes from './focus';
 import quotesRoutes from './quotes';
 import statsRoutes from './statsRoutes';
+import marrowProgressRoutes from './marrowProgress';
 
 const router = Router();
 
@@ -23,12 +23,12 @@ router.get('/health', (req, res) => {
 // API routes
 router.use('/auth', authRoutes);
 router.use('/diary', diaryRoutes);
-router.use('/tasks', tasksRoutes);
 router.use('/notes', notesRoutes);
 router.use('/mystery', mysteryRoutes);
 router.use('/focus', focusRoutes);
 router.use('/quotes', quotesRoutes);
 router.use('/stats', statsRoutes);
+router.use('/marrow-progress', marrowProgressRoutes);
 
 // 404 handler for undefined routes
 router.use('*', (req, res) => {

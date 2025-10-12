@@ -75,9 +75,9 @@ const DiaryEditPage = () => {
     try {
       setIsSaving(true)
       
-      // Generate smart title if title is empty or unchanged from original generated title
+      // Use the provided title or generate a smart one if empty
       let finalTitle = title.trim()
-      if (!finalTitle || finalTitle === originalEntry.title) {
+      if (!finalTitle) {
         const smartTitle = generateSmartTitle(content)
         finalTitle = smartTitle || 'Untitled Entry'
       }
@@ -235,7 +235,7 @@ const DiaryEditPage = () => {
           {/* Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-border/30">
             <div className="text-sm text-muted-foreground">
-              {content.length} characters • Press Ctrl+S to save • Esc to cancel
+              {content.trim().split(/\s+/).filter(word => word.length > 0).length} words • Press Ctrl+S to save • Esc to cancel
             </div>
             <div className="flex items-center gap-2">
               <Button

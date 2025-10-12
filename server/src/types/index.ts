@@ -1,6 +1,7 @@
 // Centralized type definitions for the backend API
 import { Request } from 'express';
 import { Document } from 'mongoose';
+import mongoose from 'mongoose';
 
 // =============================================================================
 // AUTH & USER TYPES
@@ -35,6 +36,12 @@ export interface IUser extends Document {
   passwordResetExpires?: Date;
   refreshTokens: string[];
   lastLoginAt?: Date;
+  isActive: boolean;
+  // OAuth provider fields
+  provider: 'credentials' | 'google' | 'github';
+  providerId?: string;
+  // Mystery tracking
+  mysteryClicks: number;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -48,6 +55,7 @@ export interface AuthTokens {
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
 }
+
 
 // =============================================================================
 // DIARY TYPES
@@ -83,62 +91,6 @@ export interface DiaryStats {
 }
 
 // =============================================================================
-// TASK & PRODUCTIVITY TYPES
-// =============================================================================
-
-export interface ITask extends Document {
-  _id: string;
-  userId: string;
-  title: string;
-  description?: string;
-  completed: boolean;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
-  dueDate?: Date;
-  completedAt?: Date;
-  tags: string[];
-  category: 'personal' | 'work' | 'study' | 'health' | 'other';
-  estimatedTime?: number; // in minutes
-  actualTime?: number; // in minutes
-  subtasks: Array<{
-    id: string;
-    title: string;
-    completed: boolean;
-  }>;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface IPomodoroSession extends Document {
-  _id: string;
-  userId: string;
-  type: 'work' | 'shortBreak' | 'longBreak';
-  duration: number; // in minutes
-  actualDuration: number; // in minutes
-  completed: boolean;
-  taskId?: string;
-  notes?: string;
-  startedAt: Date;
-  completedAt?: Date;
-  createdAt: Date;
-}
-
-export interface ITimerSettings extends Document {
-  _id: string;
-  userId: string;
-  workDuration: number;
-  shortBreakDuration: number;
-  longBreakDuration: number;
-  autoStartBreaks: boolean;
-  autoStartPomodoros: boolean;
-  sessionsUntilLongBreak: number;
-  soundEnabled: boolean;
-  notificationsEnabled: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
 // NOTES TYPES
 // =============================================================================
 
@@ -156,49 +108,6 @@ export interface INote extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
-// =============================================================================
-// NEWS & CONTENT TYPES
-// =============================================================================
-
-export interface INewsArticle extends Document {
-  _id: string;
-  title: string;
-  description: string;
-  content?: string;
-  url: string;
-  imageUrl?: string;
-  category: 'general' | 'medical' | 'education' | 'research' | 'technology';
-  source: {
-    name: string;
-    url?: string;
-  };
-  author?: string;
-  publishedAt: Date;
-  tags: string[];
-  relevanceScore: number;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface IResearchPaper extends Document {
-  _id: string;
-  title: string;
-  abstract: string;
-  authors: string[];
-  journal: string;
-  publishedAt: Date;
-  url: string;
-  doi?: string;
-  keywords: string[];
-  category: string;
-  citationCount?: number;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 
 // =============================================================================
 // MYSTERY TOPICS TYPES
@@ -267,15 +176,6 @@ export interface DiaryQuery extends PaginationQuery {
   search?: string;
 }
 
-export interface TaskQuery extends PaginationQuery {
-  status?: 'pending' | 'in-progress' | 'completed' | 'cancelled';
-  priority?: 'low' | 'medium' | 'high';
-  category?: string;
-  tags?: string;
-  dueDate?: string;
-  overdue?: string;
-}
-
 export interface NotesQuery extends PaginationQuery {
   category?: string;
   tags?: string;
@@ -283,14 +183,6 @@ export interface NotesQuery extends PaginationQuery {
   search?: string;
 }
 
-export interface NewsQuery extends PaginationQuery {
-  category?: string;
-  source?: string;
-  tags?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  search?: string;
-}
 
 // =============================================================================
 // UTILITY TYPES
@@ -298,8 +190,6 @@ export interface NewsQuery extends PaginationQuery {
 
 export type UserRole = 'user' | 'admin';
 export type Theme = 'light' | 'dark' | 'system';
-export type Priority = 'low' | 'medium' | 'high';
-export type TaskStatus = 'pending' | 'in-progress' | 'completed' | 'cancelled';
 export type Mood = 'great' | 'good' | 'okay' | 'bad' | 'terrible';
 export type TimerType = 'work' | 'shortBreak' | 'longBreak';
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
@@ -334,16 +224,6 @@ export interface CreateDiaryEntryRequest {
   isPrivate?: boolean;
 }
 
-export interface CreateTaskRequest {
-  title: string;
-  description?: string;
-  priority: Priority;
-  dueDate?: string;
-  tags?: string[];
-  category?: string;
-  estimatedTime?: number;
-}
-
 export interface CreateNoteRequest {
   title: string;
   content: string;
@@ -351,3 +231,4 @@ export interface CreateNoteRequest {
   category?: string;
   color?: string;
 }
+

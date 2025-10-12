@@ -1,25 +1,37 @@
-// Custom hook for localStorage with SSR safety
+"use client"
 
 import { useState, useEffect } from 'react'
 
+/**
+ * Custom hook for safely accessing localStorage in Next.js
+ * Handles SSR by checking if we're on the client side
+ */
 export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T | ((val: T) => T)) => void] {
   // State to store our value
   const [storedValue, setStoredValue] = useState<T>(initialValue)
+  const [isClient, setIsClient] = useState(false)
 
-  // Get from local storage on mount
+  // Check if we're on the client side
   useEffect(() => {
-    try {
-      const item = window.localStorage.getItem(key)
-      if (item) {
-        setStoredValue(JSON.parse(item))
+    setIsClient(true)
+  }, [])
+
+  // Load value from localStorage once we're on the client
+  useEffect(() => {
+    if (isClient) {
+      try {
+        const item = window.localStorage.getItem(key)
+        if (item) {
+          setStoredValue(JSON.parse(item))
+        }
+      } catch (error) {
+        console.error(`Error reading localStorage key "${key}":`, error)
       }
-    } catch (error) {
-      console.warn(`Error reading localStorage key "${key}":`, error)
     }
-  }, [key])
+  }, [key, isClient])
 
   // Return a wrapped version of useState's setter function that persists the new value to localStorage
   const setValue = (value: T | ((val: T) => T)) => {
@@ -30,41 +42,12 @@ export function useLocalStorage<T>(
       // Save state
       setStoredValue(valueToStore)
       
-      // Save to local storage
-      window.localStorage.setItem(key, JSON.stringify(valueToStore))
-    } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error)
-    }
-  }
-
-  return [storedValue, setValue]
-}
-
-// Hook for session storage
-export function useSessionStorage<T>(
-  key: string,
-  initialValue: T
-): [T, (value: T | ((val: T) => T)) => void] {
-  const [storedValue, setStoredValue] = useState<T>(initialValue)
-
-  useEffect(() => {
-    try {
-      const item = window.sessionStorage.getItem(key)
-      if (item) {
-        setStoredValue(JSON.parse(item))
+      // Save to local storage (only on client side)
+      if (isClient) {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore))
       }
     } catch (error) {
-      console.warn(`Error reading sessionStorage key "${key}":`, error)
-    }
-  }, [key])
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value
-      setStoredValue(valueToStore)
-      window.sessionStorage.setItem(key, JSON.stringify(valueToStore))
-    } catch (error) {
-      console.warn(`Error setting sessionStorage key "${key}":`, error)
+      console.error(`Error setting localStorage key "${key}":`, error)
     }
   }
 

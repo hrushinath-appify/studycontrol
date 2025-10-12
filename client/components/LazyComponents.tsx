@@ -32,23 +32,6 @@ export const LazyWrapper: React.FC<LazyWrapperProps> = ({
   </ErrorBoundary>
 )
 
-// Lazy loading HOC for components
-export function withLazyLoading<P extends object>(
-  importFn: () => Promise<{ default: React.ComponentType<P> }>,
-  fallback?: React.ReactNode
-) {
-  const LazyComponent = lazy(importFn)
-  
-  const LazyLoadedComponent = (props: P) => (
-    <LazyWrapper fallback={fallback}>
-      <LazyComponent {...props} />
-    </LazyWrapper>
-  )
-  
-  LazyLoadedComponent.displayName = 'LazyLoadedComponent'
-  return LazyLoadedComponent
-}
-
 // Pre-defined lazy components with optimized loading states
 export const LazyComponents = {
   DiaryDetailView: (props: React.ComponentProps<typeof LazyDiaryDetailView>) => (

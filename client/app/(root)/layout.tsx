@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
-import AuthenticatedLayout from "@/components/server/AuthenticatedLayout"
-import ClientAuthenticatedLayout from "@/components/layouts/AuthenticatedLayout"
+import AuthenticatedLayout from "@/components/layouts/AuthenticatedLayout"
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -13,7 +12,7 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthenticatedLayout>
-      <ClientAuthenticatedLayout>{children}</ClientAuthenticatedLayout>
+      {children}
     </AuthenticatedLayout>
   )
 }

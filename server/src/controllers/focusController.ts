@@ -67,7 +67,7 @@ export const updateTimerSettings = async (req: AuthenticatedRequest, res: Respon
 export const startFocusSession = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const { type, taskId, duration } = req.body;
+    const { type, duration } = req.body;
 
     const session = {
       id: Date.now().toString(),
@@ -75,7 +75,6 @@ export const startFocusSession = async (req: AuthenticatedRequest, res: Response
       duration: duration || 25,
       actualDuration: 0,
       completed: false,
-      taskId,
       startedAt: new Date(),
       userId
     };

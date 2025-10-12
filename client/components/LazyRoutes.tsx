@@ -33,16 +33,6 @@ export const LazyNotesPage = createLazyRoute(
   </div>
 )
 
-export const LazyToDoListPage = createLazyRoute(
-  () => import('@/app/(root)/to-do-list/page'),
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="text-center space-y-4">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-      <p className="text-muted-foreground">Loading Tasks...</p>
-    </div>
-  </div>
-)
-
 export const LazyFocusPage = createLazyRoute(
   () => import('@/app/(root)/focus/page'),
   <div className="min-h-screen flex items-center justify-center">
@@ -63,14 +53,57 @@ export const LazySettingsPage = createLazyRoute(
   </div>
 )
 
+export const LazyMysteryPage = createLazyRoute(
+  () => import('@/app/(root)/mystery/page'),
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-muted-foreground">Loading Mystery...</p>
+    </div>
+  </div>
+)
+
+export const LazyMarrowProgressPage = createLazyRoute(
+  () => import('@/app/(root)/marrow-progress/page'),
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-muted-foreground">Loading Marrow Progress...</p>
+    </div>
+  </div>
+)
+
+export const LazyDeveloperNotesPage = createLazyRoute(
+  () => import('@/app/(root)/developer-notes/page'),
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-muted-foreground">Loading Developer Notes...</p>
+    </div>
+  </div>
+)
+
+export const LazyHelpPage = createLazyRoute(
+  () => import('@/app/(root)/help/page'),
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-muted-foreground">Loading Help...</p>
+    </div>
+  </div>
+)
+
 // Utility to preload route components for better UX
 export const preloadRoutes = {
   home: () => import('@/app/(root)/home/page'),
   diary: () => import('@/app/(root)/diary/page'),
   notes: () => import('@/app/(root)/notes/page'),
-  todoList: () => import('@/app/(root)/to-do-list/page'),
   focus: () => import('@/app/(root)/focus/page'),
   settings: () => import('@/app/(root)/settings/page'),
+  mystery: () => import('@/app/(root)/mystery/page'),
+  'marrow-progress': () => import('@/app/(root)/marrow-progress/page'),
+  'developer-notes': () => import('@/app/(root)/developer-notes/page'),
+  help: () => import('@/app/(root)/help/page'),
 }
 
 // Hook to preload routes on user interaction (hover, focus, etc.)
