@@ -71,7 +71,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await connectToDatabase()
 
     const { id } = await params
-    
+
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return createErrorResponse('Invalid note ID', 400)
@@ -85,6 +85,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!title) {
       return createErrorResponse('Title is required', 400)
     }
+
+    // Debug logging
+    console.log('PUT Note Debug:', {
+      id,
+      userId,
+      title,
+      content: content?.substring(0, 50) + '...',
+      isValidId: mongoose.Types.ObjectId.isValid(id),
+      isValidUserId: mongoose.Types.ObjectId.isValid(userId)
+    })
 
     // Update note and ensure it belongs to the authenticated user - Convert userId to ObjectId
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,7 +113,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       { new: true, lean: true }
     )
 
+    console.log('PUT Note Result:', {
+      found: !!updatedNote,
+      noteId: updatedNote?._id,
+      noteTitle: updatedNote?.title
+    })
+
     if (!updatedNote) {
+      console.log('PUT Note Error: Note not found for query:', {
+        _id: new mongoose.Types.ObjectId(id),
+        userId: new mongoose.Types.ObjectId(userId)
+      })
       return createErrorResponse('Note not found', 404)
     }
 
