@@ -50,12 +50,26 @@ export async function GET(request: NextRequest) {
     const total = await (DiaryEntry as any).countDocuments(query)
 
     // Serialize MongoDB ObjectIds to strings for JSON and add formatted date
-    const serializedEntries = diaryEntries.map((entry: any) => ({
-      ...entry,
-      _id: entry._id.toString(),
-      userId: entry.userId.toString(),
-      date: formatDate(entry.createdAt),
-    }))
+    const serializedEntries = diaryEntries.map((entry: any) => {
+      // Convert ObjectIds to strings FIRST, then create the object
+      const entryId = entry._id.toString()
+      const entryUserId = entry.userId.toString()
+      const entryDate = formatDate(entry.createdAt)
+      
+      return {
+        _id: entryId,
+        id: entryId, // Include both _id and id for compatibility
+        userId: entryUserId,
+        title: entry.title,
+        content: entry.content,
+        date: entryDate,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+        mood: entry.mood,
+        tags: entry.tags || [],
+        isPrivate: entry.isPrivate,
+      }
+    })
 
     return createSuccessResponse({
       entries: serializedEntries,
@@ -112,11 +126,22 @@ export async function POST(request: NextRequest) {
     })
 
     // Serialize MongoDB ObjectIds to strings for JSON and add formatted date
+    const entryId = diaryEntry._id.toString()
+    const entryUserId = diaryEntry.userId.toString()
+    const entryDate = formatDate(diaryEntry.createdAt)
+    
     const serializedEntry = {
-      ...diaryEntry.toObject(),
-      _id: diaryEntry._id.toString(),
-      userId: diaryEntry.userId.toString(),
-      date: formatDate(diaryEntry.createdAt),
+      _id: entryId,
+      id: entryId, // Include both _id and id for compatibility
+      userId: entryUserId,
+      title: diaryEntry.title,
+      content: diaryEntry.content,
+      date: entryDate,
+      createdAt: diaryEntry.createdAt,
+      updatedAt: diaryEntry.updatedAt,
+      mood: diaryEntry.mood,
+      tags: diaryEntry.tags || [],
+      isPrivate: diaryEntry.isPrivate,
     }
 
     return createSuccessResponse(serializedEntry, 'Diary entry created successfully')

@@ -39,11 +39,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Serialize MongoDB ObjectIds to strings for JSON and add formatted date
+    const entryId = diaryEntry._id.toString()
+    const entryUserId = diaryEntry.userId.toString()
+    const entryDate = formatDate(diaryEntry.createdAt)
+    
     const serializedEntry = {
-      ...diaryEntry,
-      _id: diaryEntry._id.toString(),
-      userId: diaryEntry.userId.toString(),
-      date: formatDate(diaryEntry.createdAt),
+      _id: entryId,
+      id: entryId, // Include both _id and id for compatibility
+      userId: entryUserId,
+      title: diaryEntry.title,
+      content: diaryEntry.content,
+      date: entryDate,
+      createdAt: diaryEntry.createdAt,
+      updatedAt: diaryEntry.updatedAt,
+      mood: diaryEntry.mood,
+      tags: diaryEntry.tags || [],
+      isPrivate: diaryEntry.isPrivate,
     }
 
     return createSuccessResponse(serializedEntry, 'Diary entry retrieved successfully')
@@ -108,11 +119,22 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Serialize MongoDB ObjectIds to strings for JSON and add formatted date
+    const entryId = updatedEntry._id.toString()
+    const entryUserId = updatedEntry.userId.toString()
+    const entryDate = formatDate(updatedEntry.createdAt)
+    
     const serializedEntry = {
-      ...updatedEntry,
-      _id: updatedEntry._id.toString(),
-      userId: updatedEntry.userId.toString(),
-      date: formatDate(updatedEntry.createdAt),
+      _id: entryId,
+      id: entryId, // Include both _id and id for compatibility
+      userId: entryUserId,
+      title: updatedEntry.title,
+      content: updatedEntry.content,
+      date: entryDate,
+      createdAt: updatedEntry.createdAt,
+      updatedAt: updatedEntry.updatedAt,
+      mood: updatedEntry.mood,
+      tags: updatedEntry.tags || [],
+      isPrivate: updatedEntry.isPrivate,
     }
 
     return createSuccessResponse(serializedEntry, 'Diary entry updated successfully')
