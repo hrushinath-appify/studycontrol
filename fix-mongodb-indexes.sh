@@ -21,8 +21,11 @@ db.notes.dropIndexes()
 // Drop all marrow progress indexes except _id
 db.marrowprogresses.dropIndexes()
 
-// Drop all user indexes except _id
-db.users.dropIndex("mysteryClicks_1")
+// Drop all session indexes except _id (THIS IS THE MAIN CULPRIT!)
+db.sessions.dropIndexes()
+
+// Drop specific user index if it exists
+try { db.users.dropIndex("mysteryClicks_1") } catch(e) { print("mysteryClicks_1 index not found, skipping") }
 
 ## 3. After dropping indexes, redeploy the app
 ## Mongoose will automatically recreate the correct indexes

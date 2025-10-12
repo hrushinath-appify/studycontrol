@@ -19,23 +19,19 @@ const sessionSchema = new mongoose.Schema<ISession>({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true,
   },
   token: {
     type: String,
     required: true,
     unique: true,
-    index: true,
   },
   refreshToken: {
     type: String,
     sparse: true,
-    index: true,
   },
   expiresAt: {
     type: Date,
     required: true,
-    index: true,
   },
   userAgent: {
     type: String,
@@ -48,14 +44,17 @@ const sessionSchema = new mongoose.Schema<ISession>({
   isActive: {
     type: Boolean,
     default: true,
-    index: true,
   },
 }, {
   timestamps: true,
 })
 
-// Compound indexes for efficient queries
-sessionSchema.index({ userId: 1, isActive: 1 })
-sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }) // TTL index for automatic cleanup
+// Add indexes explicitly to avoid duplication warnings
+sessionSchema.index({ userId: 1 }, { background: true })
+sessionSchema.index({ token: 1 }, { unique: true, background: true })
+sessionSchema.index({ refreshToken: 1 }, { sparse: true, background: true })
+sessionSchema.index({ isActive: 1 }, { background: true })
+sessionSchema.index({ userId: 1, isActive: 1 }, { background: true })
+sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0, background: true }) // TTL index for automatic cleanup
 
 export const Session = mongoose.models.Session || mongoose.model<ISession>('Session', sessionSchema)

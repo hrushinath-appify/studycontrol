@@ -258,13 +258,9 @@ const diaryEntrySchema = new mongoose.Schema<IDiaryEntry>({
   timestamps: true,
 })
 
-// Add indexes separately to avoid duplication warnings
-if (!diaryEntrySchema.indexes().some(idx => JSON.stringify(idx) === JSON.stringify([[['userId', 1]], { background: true }]))) {
-  diaryEntrySchema.index({ userId: 1 }, { background: true })
-}
-if (!diaryEntrySchema.indexes().some(idx => JSON.stringify(idx) === JSON.stringify([[['createdAt', -1]], { background: true }]))) {
-  diaryEntrySchema.index({ createdAt: -1 }, { background: true })
-}
+// Add indexes only once when model is first created
+diaryEntrySchema.index({ userId: 1 }, { background: true })
+diaryEntrySchema.index({ createdAt: -1 }, { background: true })
 
 export const DiaryEntry = mongoose.models.DiaryEntry || mongoose.model<IDiaryEntry>('DiaryEntry', diaryEntrySchema)
 
