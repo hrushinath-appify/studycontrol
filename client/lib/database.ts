@@ -137,7 +137,6 @@ const userSchema = new mongoose.Schema<IUser>({
     type: Number,
     default: 0,
     min: 0,
-    index: true,
   },
   // User preferences
   preferences: {
@@ -229,7 +228,6 @@ const diaryEntrySchema = new mongoose.Schema<IDiaryEntry>({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true,
   },
   title: {
     type: String,
@@ -260,6 +258,14 @@ const diaryEntrySchema = new mongoose.Schema<IDiaryEntry>({
   timestamps: true,
 })
 
+// Add indexes separately to avoid duplication warnings
+if (!diaryEntrySchema.indexes().some(idx => JSON.stringify(idx) === JSON.stringify([[['userId', 1]], { background: true }]))) {
+  diaryEntrySchema.index({ userId: 1 }, { background: true })
+}
+if (!diaryEntrySchema.indexes().some(idx => JSON.stringify(idx) === JSON.stringify([[['createdAt', -1]], { background: true }]))) {
+  diaryEntrySchema.index({ createdAt: -1 }, { background: true })
+}
+
 export const DiaryEntry = mongoose.models.DiaryEntry || mongoose.model<IDiaryEntry>('DiaryEntry', diaryEntrySchema)
 
 // Note interface and schema  
@@ -281,7 +287,6 @@ const noteSchema = new mongoose.Schema<INote>({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true,
   },
   title: {
     type: String,
@@ -320,6 +325,10 @@ const noteSchema = new mongoose.Schema<INote>({
   timestamps: true,
 })
 
+// Add indexes separately to avoid duplication warnings
+noteSchema.index({ userId: 1 }, { background: true })
+noteSchema.index({ isPinned: -1, updatedAt: -1 }, { background: true })
+
 export const Note = mongoose.models.Note || mongoose.model<INote>('Note', noteSchema)
 
 // MarrowProgress interface and schema
@@ -343,7 +352,6 @@ const marrowProgressSchema = new mongoose.Schema<IMarrowProgress>({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true,
   },
   topicId: {
     type: String,
@@ -353,7 +361,6 @@ const marrowProgressSchema = new mongoose.Schema<IMarrowProgress>({
   completed: {
     type: Boolean,
     default: false,
-    index: true,
   },
   subject: {
     type: String,
