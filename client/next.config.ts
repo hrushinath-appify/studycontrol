@@ -4,18 +4,6 @@ const nextConfig: NextConfig = {
   // Enable experimental features for better performance
   experimental: {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
-    webpackMemoryOptimizations: true,
-  },
-  
-  // Turbopack configuration
-  turbopack: {
-    root: "/Users/rishi/studyControl/client",
-    rules: {
-      "*.svg": {
-        loaders: ["@svgr/webpack"],
-        as: "*.js",
-      },
-    },
   },
   
   // Output configuration for production builds
@@ -58,21 +46,14 @@ const nextConfig: NextConfig = {
   
   // Bundle analysis
   webpack: (config, { dev, isServer }) => {
+    // Simplified webpack configuration to avoid module loading issues
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
-        ...config.optimization.splitChunks,
         chunks: 'all',
         cacheGroups: {
-          default: false,
-          vendors: false,
           vendor: {
-            chunks: 'all',
-            name: 'vendor',
             test: /[\\/]node_modules[\\/]/,
-          },
-          common: {
-            name: 'common',
-            minChunks: 2,
+            name: 'vendors',
             chunks: 'all',
           },
         },
