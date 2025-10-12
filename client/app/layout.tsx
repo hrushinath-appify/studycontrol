@@ -24,10 +24,7 @@ export const metadata: Metadata = {
   authors: [{ name: "StudyControl Team" }],
   creator: "StudyControl",
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
+    icon: "/favicon.ico",
     shortcut: "/favicon.ico",
     apple: "/favicon.ico",
   },
