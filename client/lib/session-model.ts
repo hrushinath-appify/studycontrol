@@ -23,11 +23,9 @@ const sessionSchema = new mongoose.Schema<ISession>({
   token: {
     type: String,
     required: true,
-    unique: true,
   },
   refreshToken: {
     type: String,
-    sparse: true,
   },
   expiresAt: {
     type: Date,
