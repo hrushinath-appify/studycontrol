@@ -23,6 +23,14 @@ export const metadata: Metadata = {
   keywords: ["study", "focus", "productivity", "education", "notes"],
   authors: [{ name: "StudyControl Team" }],
   creator: "StudyControl",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -56,7 +64,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+      </head>
       <body className={`${manrope.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
