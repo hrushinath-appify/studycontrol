@@ -1,31 +1,20 @@
 import { NextRequest } from 'next/server'
 import { connectToDatabase, DiaryEntry } from '@/lib/database'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
-import jwt from 'jsonwebtoken'
-import { cookies } from 'next/headers'
-
-// Helper function to get authenticated user from token
-async function getAuthenticatedUser() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth-token')?.value
-  
-  if (!token) {
-    throw new Error('Authentication token not found')
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development') as { userId: string; email: string }
-    return decoded.userId
-  } catch {
-    throw new Error('Invalid authentication token')
-  }
-}
+import { getUserFromToken } from '@/lib/auth-utils'
+import mongoose from 'mongoose'
 
 // GET /api/diary - Get diary entries
 export async function GET(request: NextRequest) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const user = await getUserFromToken(request)
+    
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = user.id
 
     // Connect to database
     await connectToDatabase()
@@ -36,8 +25,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const search = searchParams.get('search') || ''
 
-    // Build query
-    const query: Record<string, unknown> = { userId }
+    // Build query - Convert userId string to ObjectId for proper matching
+    const query: Record<string, unknown> = { userId: new mongoose.Types.ObjectId(userId) }
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -59,8 +48,15 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const total = await (DiaryEntry as any).countDocuments(query)
 
+    // Serialize MongoDB ObjectIds to strings for JSON
+    const serializedEntries = diaryEntries.map((entry: any) => ({
+      ...entry,
+      _id: entry._id.toString(),
+      userId: entry.userId.toString(),
+    }))
+
     return createSuccessResponse({
-      entries: diaryEntries,
+      entries: serializedEntries,
       pagination: {
         page,
         limit,
@@ -82,7 +78,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
-    const userId = await getAuthenticatedUser()
+    const user = await getUserFromToken(request)
+    
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+    
+    const userId = user.id
 
     // Connect to database
     await connectToDatabase()
@@ -96,10 +98,10 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Title and content are required', 400)
     }
 
-    // Create new diary entry
+    // Create new diary entry - Convert userId string to ObjectId for proper storage
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const diaryEntry = await (DiaryEntry as any).create({
-      userId,
+      userId: new mongoose.Types.ObjectId(userId),
       title,
       content,
       mood: mood || 'neutral',
@@ -107,7 +109,14 @@ export async function POST(request: NextRequest) {
       isPrivate: isPrivate !== false, // Default to true if not specified
     })
 
-    return createSuccessResponse(diaryEntry, 'Diary entry created successfully')
+    // Serialize MongoDB ObjectIds to strings for JSON
+    const serializedEntry = {
+      ...diaryEntry.toObject(),
+      _id: diaryEntry._id.toString(),
+      userId: diaryEntry.userId.toString(),
+    }
+
+    return createSuccessResponse(serializedEntry, 'Diary entry created successfully')
 
   } catch (error) {
     console.error('API Route Error:', error)
