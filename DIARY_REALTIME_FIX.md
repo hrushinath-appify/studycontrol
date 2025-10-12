@@ -74,6 +74,37 @@ After this fix:
 4. ✅ Updating entries maintains proper ID references
 5. ✅ No linter errors introduced
 
+## Additional Fix - Missing Date Field
+
+### Second Issue (Deployed: October 12, 2025)
+After the initial fix, diary entries were still showing 404 errors because the API wasn't including the `date` field that the frontend expects.
+
+#### Root Cause #2
+- Database schema only has `createdAt` and `updatedAt` fields (via `timestamps: true`)
+- Frontend UI displays and expects `entry.date` 
+- The API wasn't transforming `createdAt` into a `date` field
+- This caused undefined values in the UI
+
+#### Solution #2
+Added `date` field to all diary API serializations:
+
+```typescript
+import { formatDate } from '@/lib/date-utils'
+
+const serializedEntry = {
+  ...entry,
+  _id: entry._id.toString(),
+  userId: entry.userId.toString(),
+  date: formatDate(entry.createdAt),  // NEW: Add formatted date field
+}
+```
+
+**Applied to:**
+- ✅ `GET /api/diary` - List entries
+- ✅ `POST /api/diary` - Create entry  
+- ✅ `GET /api/diary/[id]` - Get single entry
+- ✅ `PUT /api/diary/[id]` - Update entry
+
 ## Status
-🟢 **FIXED** - All diary API routes now properly serialize MongoDB ObjectIds to strings.
+🟢 **FULLY FIXED** - All diary API routes now properly serialize MongoDB ObjectIds to strings AND include the formatted date field.
 
