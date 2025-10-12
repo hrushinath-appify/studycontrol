@@ -24,7 +24,11 @@ export const metadata: Metadata = {
   authors: [{ name: "StudyControl Team" }],
   creator: "StudyControl",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico", sizes: "96x96", type: "image/png" },
+      { url: "/favicon.ico", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "16x16", type: "image/png" },
+    ],
     shortcut: "/favicon.ico",
     apple: "/favicon.ico",
   },
@@ -61,6 +65,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/favicon.ico" />
+      </head>
       <body className={`${manrope.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
