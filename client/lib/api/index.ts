@@ -1,11 +1,6 @@
 // API service layer - Main entry point
 // This module provides a unified interface for all API calls
 
-// Notes API
-export { NotesApi } from './notes'
-export { getStats as getNotesStats } from './notes'
-
-
 // Focus API
 export { FocusApi } from './focus'
 export { getStats as getFocusStats } from './focus'

@@ -166,7 +166,6 @@ export async function parseRequestBody(request: Request): Promise<Record<string,
 
 export interface UserStats {
   mysteryClicks: number
-  totalNotes: number
   focusSessionsTotal: number
   averageFocusTime: number
 }
@@ -222,7 +221,6 @@ export async function fetchUserStats(): Promise<UserStats> {
     // Return default stats if API fails for unknown reasons
     return {
       mysteryClicks: 0,
-      totalNotes: 0,
       focusSessionsTotal: 0,
       averageFocusTime: 0
     }

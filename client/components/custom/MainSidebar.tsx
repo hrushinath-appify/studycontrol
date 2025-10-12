@@ -22,7 +22,6 @@ import {
   BookOpen,
   LogOut,
   HelpCircle,
-  FileText,
   Focus,
   Sparkles,
   Heart,
@@ -59,11 +58,6 @@ const mainItems = [
   //   icon: Newspaper,
   // },
   
-  {
-    title: "Notes",
-    url: "/notes",
-    icon: FileText,
-  },
 ]
 
 
@@ -77,7 +71,6 @@ export default function MainSidebar() {
     // Map URL to route names for preloading
     const routeMap: Record<string, keyof typeof import('@/components/LazyRoutes').preloadRoutes> = {
       '/home': 'home',
-      '/notes': 'notes',
       '/focus': 'focus',
       '/settings': 'settings',
       '/mystery': 'mystery',

@@ -81,15 +81,4 @@ export function getSSEBroadcaster(): SSEBroadcaster {
   return broadcaster
 }
 
-// Convenience function to broadcast notes events
-export function broadcastNoteEvent(event: {
-  type: 'note_created' | 'note_updated' | 'note_deleted' | 'note_archived'
-  noteId: string
-  note?: any
-  userId: string
-  timestamp: string
-}): void {
-  const broadcaster = getSSEBroadcaster()
-  broadcaster.broadcast(event, event.userId)
-}
 

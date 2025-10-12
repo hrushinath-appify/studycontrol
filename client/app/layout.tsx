@@ -19,8 +19,8 @@ export const metadata: Metadata = {
     template: "Ammu's | StudyControl",
     default: "StudyControl — Your Study Companion",
   },
-  description: "Comprehensive study management platform with focus tools, notes, and progress tracking.",
-  keywords: ["study", "focus", "productivity", "education", "notes"],
+  description: "Comprehensive study management platform with focus tools and progress tracking.",
+  keywords: ["study", "focus", "productivity", "education"],
   authors: [{ name: "StudyControl Team" }],
   creator: "StudyControl",
   icons: {
@@ -32,13 +32,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     title: "StudyControl — Your Study Companion",
-    description: "Comprehensive study management platform with focus tools, notes, and progress tracking.",
+    description: "Comprehensive study management platform with focus tools and progress tracking.",
     siteName: "StudyControl",
   },
   twitter: {
     card: "summary_large_image",
     title: "StudyControl — Your Study Companion",
-    description: "Comprehensive study management platform with focus tools, notes, and progress tracking.",
+    description: "Comprehensive study management platform with focus tools and progress tracking.",
   },
   robots: {
     index: true,

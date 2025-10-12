@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { UserStats, Note } from '../models'
+import { UserStats } from '../models'
 import { AuthenticatedRequest } from '../types'
 
 // Get user statistics
@@ -15,27 +15,13 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
       await userStats.save()
     }
 
-    // Calculate real-time stats
-    const notes = await Note.find({ userId })
-
-    // Calculate note stats
-    const totalNotes = notes.length
-    const archivedNotes = notes.filter(note => note.isArchived).length
-
-    // Update the userStats document with calculated values
-    userStats.totalNotes = totalNotes
-    userStats.archivedNotes = archivedNotes
-    
+    // Save the userStats document
     await userStats.save()
 
     const statsData = {
       // Mystery stats
       mysteryClicks: userStats.mysteryExplorations,
       mysteryTopicsViewed: userStats.mysteryTopicsViewed,
-      
-      // Note stats
-      totalNotes,
-      archivedNotes,
       
       // Focus stats
       focusSessionsTotal: userStats.totalFocusSessions,
@@ -67,27 +53,6 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
   }
 }
 
-// Update note stats (called when note is created)
-export const updateNoteStats = async (userId: string, archived: boolean = false) => {
-  try {
-    let userStats = await UserStats.findOne({ userId })
-    if (!userStats) {
-      userStats = new UserStats({ userId })
-    }
-
-    // Update note stats manually
-    userStats.totalNotes += 1
-    if (archived) {
-      userStats.archivedNotes += 1
-    }
-    await userStats.save()
-    
-    return userStats
-  } catch (error) {
-    console.error('Update note stats error:', error)
-    throw error
-  }
-}
 
 // Update focus stats (called when focus session completes)
 export const updateFocusStats = async (userId: string, sessionTime: number) => {

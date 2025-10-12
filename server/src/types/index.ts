@@ -58,25 +58,6 @@ export interface AuthenticatedRequest extends Request {
 
 
 // =============================================================================
-// NOTES TYPES
-// =============================================================================
-
-export interface INote extends Document {
-  _id: string;
-  userId: string;
-  title: string;
-  content: string;
-  tags: string[];
-  category?: string;
-  isArchived: boolean;
-  color?: string;
-  attachments?: string[];
-  sharedWith?: string[]; // user IDs
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// =============================================================================
 // MYSTERY TOPICS TYPES
 // =============================================================================
 
@@ -135,12 +116,6 @@ export interface PaginationQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
-export interface NotesQuery extends PaginationQuery {
-  category?: string;
-  tags?: string;
-  isArchived?: string;
-  search?: string;
-}
 
 
 // =============================================================================
@@ -174,11 +149,4 @@ export interface RegisterRequest {
   password: string;
 }
 
-export interface CreateNoteRequest {
-  title: string;
-  content: string;
-  tags?: string[];
-  category?: string;
-  color?: string;
-}
 

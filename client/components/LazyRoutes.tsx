@@ -13,15 +13,6 @@ export const LazyHomePage = createLazyRoute(
   </div>
 )
 
-export const LazyNotesPage = createLazyRoute(
-  () => import('@/app/(root)/notes/page'),
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="text-center space-y-4">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-      <p className="text-muted-foreground">Loading Notes...</p>
-    </div>
-  </div>
-)
 
 export const LazyFocusPage = createLazyRoute(
   () => import('@/app/(root)/focus/page'),
@@ -86,7 +77,6 @@ export const LazyHelpPage = createLazyRoute(
 // Utility to preload route components for better UX
 export const preloadRoutes = {
   home: () => import('@/app/(root)/home/page'),
-  notes: () => import('@/app/(root)/notes/page'),
   focus: () => import('@/app/(root)/focus/page'),
   settings: () => import('@/app/(root)/settings/page'),
   mystery: () => import('@/app/(root)/mystery/page'),

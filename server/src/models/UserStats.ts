@@ -7,10 +7,6 @@ export interface IUserStats extends Document {
   mysteryExplorations: number
   mysteryTopicsViewed: number
   
-  // Notes statistics
-  totalNotes: number
-  archivedNotes: number
-  
   // Focus statistics
   totalFocusSessions: number
   totalFocusTime: number // in minutes
@@ -35,16 +31,6 @@ const userStatsSchema = new Schema<IUserStats>({
     default: 0
   },
   mysteryTopicsViewed: {
-    type: Number,
-    default: 0
-  },
-  
-  // Notes statistics
-  totalNotes: {
-    type: Number,
-    default: 0
-  },
-  archivedNotes: {
     type: Number,
     default: 0
   },
@@ -75,12 +61,6 @@ userStatsSchema.methods.updateMysteryStats = function() {
   this.mysteryExplorations += 1
 }
 
-userStatsSchema.methods.updateNotesStats = function(archived: boolean = false) {
-  this.totalNotes += 1
-  if (archived) {
-    this.archivedNotes += 1
-  }
-}
 
 userStatsSchema.methods.updateFocusStats = function(sessionTime: number) {
   this.totalFocusSessions += 1

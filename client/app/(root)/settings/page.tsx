@@ -33,7 +33,6 @@ interface UserPreferences {
 
 interface UserStats {
   mysteryClicks: number
-  totalNotes: number
   focusSessionsTotal: number
   averageFocusTime: number
 }
@@ -70,7 +69,6 @@ const SettingsPage = () => {
   // User stats state
   const [userStats, setUserStats] = useState<UserStats>({
     mysteryClicks: 0,
-    totalNotes: 0,
     focusSessionsTotal: 0,
     averageFocusTime: 0
   })
@@ -105,7 +103,6 @@ const SettingsPage = () => {
       // Create fresh fallback stats
       const fallbackStats = {
         mysteryClicks: 0,
-        totalNotes: 0,
         focusSessionsTotal: 0,
         averageFocusTime: 0
       }

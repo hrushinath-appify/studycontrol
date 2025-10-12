@@ -211,68 +211,6 @@ userSchema.index({ resetPasswordToken: 1 })
 
 export const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema)
 
-// Note interface and schema  
-export interface INote extends mongoose.Document {
-  userId: mongoose.Types.ObjectId
-  title: string
-  content: string
-  category?: string
-  tags?: string[]
-  isArchived: boolean
-  isPinned: boolean
-  color?: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-const noteSchema = new mongoose.Schema<INote>({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  title: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 200,
-  },
-  content: {
-    type: String,
-    required: true,
-    maxlength: 50000,
-  },
-  category: {
-    type: String,
-    trim: true,
-    maxlength: 50,
-  },
-  tags: [{
-    type: String,
-    trim: true,
-    maxlength: 30,
-  }],
-  isArchived: {
-    type: Boolean,
-    default: false,
-  },
-  isPinned: {
-    type: Boolean,
-    default: false,
-  },
-  color: {
-    type: String,
-    default: '#ffffff',
-  },
-}, {
-  timestamps: true,
-})
-
-// Add indexes separately to avoid duplication warnings
-noteSchema.index({ userId: 1 }, { background: true })
-noteSchema.index({ isPinned: -1, updatedAt: -1 }, { background: true })
-
-export const Note = mongoose.models.Note || mongoose.model<INote>('Note', noteSchema)
 
 // MarrowProgress interface and schema
 export interface IMarrowProgress extends mongoose.Document {

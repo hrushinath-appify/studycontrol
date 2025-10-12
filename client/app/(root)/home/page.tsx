@@ -9,7 +9,6 @@ import {
   Timer, 
   // Calendar, 
   BookOpen, 
-  FileText,
   RefreshCw
 } from 'lucide-react'
 
@@ -97,12 +96,6 @@ const HomePage = () => {
             description="Track your study time and progress."
             href="/focus"
             icon={<Timer className="w-5 h-5 sm:w-6 sm:h-6" />}
-          />
-          <FeatureCard
-            title="Notes"
-            description="Organize and review your study notes."
-            href="/notes"
-            icon={<FileText className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
         </div>
         {/* Motivational Quote Section */}
