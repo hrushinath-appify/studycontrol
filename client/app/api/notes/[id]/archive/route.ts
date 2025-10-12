@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Find the note first to get current archive status
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const currentNote = await (Note as any).findOne({
-      _id: id,
+      _id: new mongoose.Types.ObjectId(id),
       userId: new mongoose.Types.ObjectId(userId)
     }).lean()
 
@@ -41,7 +41,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Toggle archive status
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatedNote = await (Note as any).findOneAndUpdate(
-      { _id: id, userId: new mongoose.Types.ObjectId(userId) },
+      { _id: new mongoose.Types.ObjectId(id), userId: new mongoose.Types.ObjectId(userId) },
       {
         isArchived: !currentNote.isArchived,
         updatedAt: new Date()

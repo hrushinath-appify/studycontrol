@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Find note and ensure it belongs to the authenticated user - Convert userId to ObjectId
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const note = await (Note as any).findOne({
-      _id: id,
+      _id: new mongoose.Types.ObjectId(id),
       userId: new mongoose.Types.ObjectId(userId)
     }).lean()
 
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Update note and ensure it belongs to the authenticated user - Convert userId to ObjectId
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatedNote = await (Note as any).findOneAndUpdate(
-      { _id: id, userId: new mongoose.Types.ObjectId(userId) },
+      { _id: new mongoose.Types.ObjectId(id), userId: new mongoose.Types.ObjectId(userId) },
       {
         title,
         content: content || '',
@@ -160,7 +160,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Delete note and ensure it belongs to the authenticated user - Convert userId to ObjectId
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deletedNote = await (Note as any).findOneAndDelete({
-      _id: id,
+      _id: new mongoose.Types.ObjectId(id),
       userId: new mongoose.Types.ObjectId(userId)
     })
 

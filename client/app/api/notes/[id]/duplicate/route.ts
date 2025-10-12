@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Find the original note
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const originalNote = await (Note as any).findOne({
-      _id: id,
+      _id: new mongoose.Types.ObjectId(id),
       userId: new mongoose.Types.ObjectId(userId)
     }).lean()
 
