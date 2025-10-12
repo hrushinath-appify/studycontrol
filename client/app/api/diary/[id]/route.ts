@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { connectToDatabase, DiaryEntry } from '@/lib/database'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
 import { getUserFromToken } from '@/lib/auth-utils'
+import { formatDate } from '@/lib/date-utils'
 import mongoose from 'mongoose'
 
 // GET /api/diary/[id] - Get specific diary entry
@@ -37,11 +38,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return createErrorResponse('Diary entry not found', 404)
     }
 
-    // Serialize MongoDB ObjectIds to strings for JSON
+    // Serialize MongoDB ObjectIds to strings for JSON and add formatted date
     const serializedEntry = {
       ...diaryEntry,
       _id: diaryEntry._id.toString(),
       userId: diaryEntry.userId.toString(),
+      date: formatDate(diaryEntry.createdAt),
     }
 
     return createSuccessResponse(serializedEntry, 'Diary entry retrieved successfully')
@@ -105,11 +107,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return createErrorResponse('Diary entry not found', 404)
     }
 
-    // Serialize MongoDB ObjectIds to strings for JSON
+    // Serialize MongoDB ObjectIds to strings for JSON and add formatted date
     const serializedEntry = {
       ...updatedEntry,
       _id: updatedEntry._id.toString(),
       userId: updatedEntry.userId.toString(),
+      date: formatDate(updatedEntry.createdAt),
     }
 
     return createSuccessResponse(serializedEntry, 'Diary entry updated successfully')

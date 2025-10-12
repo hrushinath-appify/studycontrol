@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { connectToDatabase, DiaryEntry } from '@/lib/database'
 import { createSuccessResponse, createErrorResponse, handleApiError } from '@/lib/api-utils'
 import { getUserFromToken } from '@/lib/auth-utils'
+import { formatDate } from '@/lib/date-utils'
 import mongoose from 'mongoose'
 
 // GET /api/diary - Get diary entries
@@ -48,11 +49,12 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const total = await (DiaryEntry as any).countDocuments(query)
 
-    // Serialize MongoDB ObjectIds to strings for JSON
+    // Serialize MongoDB ObjectIds to strings for JSON and add formatted date
     const serializedEntries = diaryEntries.map((entry: any) => ({
       ...entry,
       _id: entry._id.toString(),
       userId: entry.userId.toString(),
+      date: formatDate(entry.createdAt),
     }))
 
     return createSuccessResponse({
@@ -109,11 +111,12 @@ export async function POST(request: NextRequest) {
       isPrivate: isPrivate !== false, // Default to true if not specified
     })
 
-    // Serialize MongoDB ObjectIds to strings for JSON
+    // Serialize MongoDB ObjectIds to strings for JSON and add formatted date
     const serializedEntry = {
       ...diaryEntry.toObject(),
       _id: diaryEntry._id.toString(),
       userId: diaryEntry.userId.toString(),
+      date: formatDate(diaryEntry.createdAt),
     }
 
     return createSuccessResponse(serializedEntry, 'Diary entry created successfully')
