@@ -5,10 +5,6 @@ import LoadingSpinner from '@/components/ui/loading-spinner'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 // Lazy loaded components for better performance
-export const LazyDiaryDetailView = lazy(() => 
-  import('@/components/custom/DiaryDetailView')
-)
-
 export const LazyMainSidebar = lazy(() => 
   import('@/components/custom/MainSidebar')
 )
@@ -34,18 +30,6 @@ export const LazyWrapper: React.FC<LazyWrapperProps> = ({
 
 // Pre-defined lazy components with optimized loading states
 export const LazyComponents = {
-  DiaryDetailView: (props: React.ComponentProps<typeof LazyDiaryDetailView>) => (
-    <LazyWrapper 
-      fallback={
-        <div className="h-96 flex items-center justify-center">
-          <LoadingSpinner />
-        </div>
-      }
-    >
-      <LazyDiaryDetailView {...props} />
-    </LazyWrapper>
-  ),
-  
   MainSidebar: () => (
     <LazyWrapper 
       fallback={

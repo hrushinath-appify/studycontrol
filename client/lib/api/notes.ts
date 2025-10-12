@@ -56,10 +56,19 @@ export class NotesApi {
   static async getNotes(params?: NoteApiParams): Promise<Note[]> {
     try {
       const response = await apiClient.get<{ notes: Note[] }>(this.ENDPOINT, params)
-      return response.data?.notes || []
+      const notes = response.data?.notes || []
+      
+      // Sync to localStorage as backup only
+      try {
+        this.saveLocalNotes(notes)
+      } catch (localError) {
+        console.warn('Failed to sync notes to localStorage:', localError)
+      }
+      
+      return notes
     } catch (error) {
-      console.warn('Failed to fetch notes from API, using localStorage:', error)
-      return this.getLocalNotes(params)
+      console.error('Failed to fetch notes from API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -69,9 +78,8 @@ export class NotesApi {
       const response = await apiClient.get<Note>(`${this.ENDPOINT}/${id}`)
       return response.data || null
     } catch (error) {
-      console.warn('Failed to fetch note by ID from API, using localStorage:', error)
-      const notes = this.getLocalNotes()
-      return notes.find(note => note.id === id) || null
+      console.error('Failed to fetch note by ID from API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -81,7 +89,7 @@ export class NotesApi {
       const response = await apiClient.post<Note>(this.ENDPOINT, data)
       const newNote = response.data!
       
-      // Sync to localStorage when API succeeds
+      // Sync to localStorage as backup only
       try {
         const localNotes = this.getLocalNotes({ archived: true })
         const updatedNotes = [newNote, ...localNotes.filter(note => note.id !== newNote.id)]
@@ -92,8 +100,8 @@ export class NotesApi {
       
       return newNote
     } catch (error) {
-      console.warn('Failed to create note via API, using localStorage:', error)
-      return this.createLocalNote(data)
+      console.error('Failed to create note via API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -103,7 +111,7 @@ export class NotesApi {
       const response = await apiClient.put<Note>(`${this.ENDPOINT}/${data.id}`, data)
       const updatedNote = response.data!
       
-      // Sync to localStorage when API succeeds
+      // Sync to localStorage as backup only
       try {
         const localNotes = this.getLocalNotes({ archived: true })
         const noteIndex = localNotes.findIndex(note => note.id === data.id)
@@ -122,8 +130,8 @@ export class NotesApi {
       
       return updatedNote
     } catch (error) {
-      console.warn('Failed to update note via API, using localStorage:', error)
-      return this.updateLocalNote(data)
+      console.error('Failed to update note via API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -132,7 +140,7 @@ export class NotesApi {
     try {
       await apiClient.delete(`${this.ENDPOINT}/${id}`)
       
-      // Sync to localStorage when API succeeds
+      // Sync to localStorage as backup only
       try {
         const localNotes = this.getLocalNotes({ archived: true })
         const updatedNotes = localNotes.filter(note => note.id !== id)
@@ -143,8 +151,8 @@ export class NotesApi {
       
       return true
     } catch (error) {
-      console.warn('Failed to delete note via API, using localStorage:', error)
-      return this.deleteLocalNote(id)
+      console.error('Failed to delete note via API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -156,8 +164,8 @@ export class NotesApi {
       const response = await apiClient.patch<Note>(`${this.ENDPOINT}/${id}/archive`)
       return response.data!
     } catch (error) {
-      console.warn('Failed to toggle archive via API, using localStorage:', error)
-      return this.toggleLocalArchive(id)
+      console.error('Failed to toggle archive via API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -167,8 +175,8 @@ export class NotesApi {
       const response = await apiClient.post<Note>(`${this.ENDPOINT}/${id}/duplicate`)
       return response.data!
     } catch (error) {
-      console.warn('Failed to duplicate note via API, using localStorage:', error)
-      return this.duplicateLocalNote(id)
+      console.error('Failed to duplicate note via API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -181,15 +189,8 @@ export class NotesApi {
       })
       return response.data?.notes || []
     } catch (error) {
-      console.warn('Failed to search notes from API, using localStorage:', error)
-      const notes = this.getLocalNotes()
-      const lowercaseQuery = query.toLowerCase()
-      return notes.filter(note =>
-        note.title.toLowerCase().includes(lowercaseQuery) ||
-        note.content.toLowerCase().includes(lowercaseQuery) ||
-        note.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery)) ||
-        (note.category?.toLowerCase().includes(lowercaseQuery) ?? false)
-      )
+      console.error('Failed to search notes from API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -199,8 +200,8 @@ export class NotesApi {
       const response = await apiClient.get<NoteStats>(`${this.ENDPOINT}/stats`)
       return response.data!
     } catch (error) {
-      console.warn('Failed to fetch note stats from API, calculating from localStorage:', error)
-      return this.calculateLocalStats()
+      console.error('Failed to fetch note stats from API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -210,9 +211,8 @@ export class NotesApi {
       const response = await apiClient.get<Note[]>(`${this.ENDPOINT}/tag/${tag}`)
       return response.data || []
     } catch (error) {
-      console.warn('Failed to fetch notes by tag from API, using localStorage:', error)
-      const notes = this.getLocalNotes()
-      return notes.filter(note => note.tags.includes(tag))
+      console.error('Failed to fetch notes by tag from API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 
@@ -222,9 +222,8 @@ export class NotesApi {
       const response = await apiClient.get<string[]>(`${this.ENDPOINT}/tags`)
       return response.data || []
     } catch (error) {
-      console.warn('Failed to fetch tags from API, using localStorage:', error)
-      const notes = this.getLocalNotes()
-      return Array.from(new Set(notes.flatMap(note => note.tags)))
+      console.error('Failed to fetch tags from API:', error)
+      throw error // Don't fallback to localStorage, let the UI handle the error
     }
   }
 

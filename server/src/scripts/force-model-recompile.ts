@@ -50,7 +50,8 @@ async function forceModelRecompile() {
         if (collectionInfo.length > 0) {
           console.log('📋 Collection exists');
           // Try to get collection stats instead
-          const stats = await db.collection('diaryentries').stats();
+          const collection = db.collection('diaryentries');
+          const stats = await (collection as any).stats();
           console.log('📊 Collection stats:', stats);
         }
       } catch (error) {

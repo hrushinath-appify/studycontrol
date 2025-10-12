@@ -1,10 +1,6 @@
 // API service layer - Main entry point
 // This module provides a unified interface for all API calls
 
-// Diary API
-export { DiaryApi } from './diary'
-export { getStats as getDiaryStats } from './diary'
-
 // Notes API
 export { NotesApi } from './notes'
 export { getStats as getNotesStats } from './notes'

@@ -128,7 +128,7 @@ const NotesPage = React.memo(() => {
       setStats(calculatedStats)
     } catch (error) {
       console.error('Failed to load notes:', error)
-      setError('Failed to load notes. Please try again.')
+      setError('Failed to load notes. Please check your connection and try again.')
       setNotes([])
       setStats(null)
     } finally {
@@ -270,38 +270,20 @@ const NotesPage = React.memo(() => {
     } catch (error) {
       console.error('Failed to save note:', error)
       
-      // If it's a "Note not found" error, try to sync the note to localStorage first
-      if (error instanceof Error && error.message === 'Note not found') {
-        try {
-          // Try to reload all notes to sync localStorage
-          console.log('Note not found in localStorage, resyncing notes...')
-          await loadNotesAndStats()
-          
-          // Try saving again after sync
-          const retryUpdatedNote = await NotesApi.updateNote({
-            id: selectedNote.id,
-            title: selectedNote.title,
-            content: selectedNote.content
-          })
-          
-          setNotes(prev => {
-            const updatedNotes = prev.map(note => 
-              note.id === selectedNote.id ? retryUpdatedNote : note
-            )
-            const newStats = calculateStats(updatedNotes)
-            setStats(newStats)
-            return updatedNotes
-          })
-          setSelectedNote(retryUpdatedNote)
-          setError(null)
-          
-          console.log('Successfully saved after resync')
-        } catch (retryError) {
-          console.error('Failed to save even after resync:', retryError)
-          setError('Failed to save note. Changes may be lost. Please refresh the page.')
+      // Handle different types of errors
+      if (error instanceof Error) {
+        if (error.message.includes('Unauthorized')) {
+          setError('Session expired. Please log in again.')
+        } else if (error.message.includes('Note not found')) {
+          setError('Note not found. It may have been deleted by another session.')
+          // Clear the selected note since it no longer exists
+          setSelectedNote(null)
+          setIsEditing(false)
+        } else {
+          setError('Failed to save note. Please check your connection and try again.')
         }
       } else {
-        setError('Failed to save note. Your changes may be lost.')
+        setError('Failed to save note. Please try again.')
       }
     }
   }, [selectedNote, calculateStats, loadNotesAndStats])
@@ -336,7 +318,11 @@ const NotesPage = React.memo(() => {
       setNewNoteTags('')
     } catch (error) {
       console.error('Failed to create note:', error)
-      setError('Failed to create note. Please try again.')
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        setError('Session expired. Please log in again.')
+      } else {
+        setError('Failed to create note. Please check your connection and try again.')
+      }
     } finally {
       setOperationLoading(prev => ({ ...prev, create: false }))
     }
@@ -363,23 +349,28 @@ const NotesPage = React.memo(() => {
     } catch (error) {
       console.error('Failed to delete note:', error)
       
-      // Still remove from UI for better UX, but show warning
-      setNotes(prev => {
-        const updatedNotes = prev.filter(note => note.id !== noteId)
-        const newStats = calculateStats(updatedNotes)
-        setStats(newStats)
-        return updatedNotes
-      })
-      if (selectedNote?.id === noteId) {
-        setSelectedNote(null)
-        setIsEditing(false)
-      }
-      
-      if (!isOnline) {
-        setHasOfflineChanges(true)
-        setError('Note deleted locally. Changes will sync when connection is restored.')
+      // Handle different types of errors
+      if (error instanceof Error) {
+        if (error.message.includes('Unauthorized')) {
+          setError('Session expired. Please log in again.')
+        } else if (error.message.includes('Note not found')) {
+          // Note was already deleted, remove from UI
+          setNotes(prev => {
+            const updatedNotes = prev.filter(note => note.id !== noteId)
+            const newStats = calculateStats(updatedNotes)
+            setStats(newStats)
+            return updatedNotes
+          })
+          if (selectedNote?.id === noteId) {
+            setSelectedNote(null)
+            setIsEditing(false)
+          }
+          setError(null) // Clear error since this is expected
+        } else {
+          setError('Failed to delete note. Please check your connection and try again.')
+        }
       } else {
-        setError('Note deleted locally, but may not be synced to server. Changes will sync when connection is restored.')
+        setError('Failed to delete note. Please try again.')
       }
     } finally {
       setOperationLoading(prev => ({ ...prev, delete: false }))
@@ -403,7 +394,11 @@ const NotesPage = React.memo(() => {
       })
     } catch (error) {
       console.error('Failed to duplicate note:', error)
-      setError('Failed to duplicate note. Please try again.')
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        setError('Session expired. Please log in again.')
+      } else {
+        setError('Failed to duplicate note. Please check your connection and try again.')
+      }
     } finally {
       setOperationLoading(prev => ({ ...prev, duplicate: false }))
     }
@@ -428,7 +423,11 @@ const NotesPage = React.memo(() => {
       setStats(calculatedStats)
     } catch (error) {
       console.error('Failed to search notes:', error)
-      setError('Failed to search notes. Please try again.')
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        setError('Session expired. Please log in again.')
+      } else {
+        setError('Failed to search notes. Please check your connection and try again.')
+      }
     } finally {
       setOperationLoading(prev => ({ ...prev, search: false }))
     }

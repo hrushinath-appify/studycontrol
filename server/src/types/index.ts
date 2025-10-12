@@ -58,39 +58,6 @@ export interface AuthenticatedRequest extends Request {
 
 
 // =============================================================================
-// DIARY TYPES
-// =============================================================================
-
-export interface IDiaryEntry extends Document {
-  _id: string;
-  userId: string;
-  title: string;
-  content: string;
-  preview: string;
-  date: string;
-  mood?: 'great' | 'good' | 'okay' | 'bad' | 'terrible';
-  tags: string[];
-  wordCount: number;
-  isPrivate: boolean;
-  attachments?: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface DiaryStats {
-  totalEntries: number;
-  currentStreak: number;
-  longestStreak: number;
-  totalWords: number;
-  averageWordsPerEntry: number;
-  moodDistribution: Record<string, number>;
-  entriesThisMonth: number;
-  entriesThisWeek: number;
-  entriesThisYear: number;
-  mostUsedTags: Array<{ tag: string; count: number }>;
-}
-
-// =============================================================================
 // NOTES TYPES
 // =============================================================================
 
@@ -168,14 +135,6 @@ export interface PaginationQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
-export interface DiaryQuery extends PaginationQuery {
-  mood?: 'great' | 'good' | 'okay' | 'bad' | 'terrible';
-  tags?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  search?: string;
-}
-
 export interface NotesQuery extends PaginationQuery {
   category?: string;
   tags?: string;
@@ -213,15 +172,6 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-}
-
-export interface CreateDiaryEntryRequest {
-  title: string;
-  content: string;
-  mood?: Mood;
-  tags?: string[];
-  date?: string;
-  isPrivate?: boolean;
 }
 
 export interface CreateNoteRequest {

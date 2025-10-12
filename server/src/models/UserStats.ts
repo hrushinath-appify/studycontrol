@@ -3,12 +3,6 @@ import { Schema, model, Document, Types } from 'mongoose'
 export interface IUserStats extends Document {
   userId: Types.ObjectId
   
-  // Diary statistics
-  totalDiaryEntries: number
-  currentDiaryStreak: number
-  longestDiaryStreak: number
-  lastDiaryEntryDate?: Date
-  
   // Mystery statistics
   mysteryExplorations: number
   mysteryTopicsViewed: number
@@ -33,23 +27,6 @@ const userStatsSchema = new Schema<IUserStats>({
     ref: 'User',
     required: true,
     unique: true
-  },
-  
-  // Diary statistics
-  totalDiaryEntries: {
-    type: Number,
-    default: 0
-  },
-  currentDiaryStreak: {
-    type: Number,
-    default: 0
-  },
-  longestDiaryStreak: {
-    type: Number,
-    default: 0
-  },
-  lastDiaryEntryDate: {
-    type: Date
   },
   
   // Mystery statistics
@@ -94,38 +71,6 @@ const userStatsSchema = new Schema<IUserStats>({
 userStatsSchema.index({ userId: 1 })
 
 // Methods to update stats
-userStatsSchema.methods.updateDiaryStats = function(entryDate: Date) {
-  this.totalDiaryEntries += 1
-  
-  // Update streak logic
-  const today = new Date()
-  const lastEntry = this.lastDiaryEntryDate
-  
-  if (lastEntry) {
-    const daysDiff = Math.floor((today.getTime() - lastEntry.getTime()) / (1000 * 60 * 60 * 24))
-    
-    if (daysDiff === 1) {
-      // Consecutive day
-      this.currentDiaryStreak += 1
-    } else if (daysDiff === 0) {
-      // Same day, don't increment streak
-    } else {
-      // Streak broken
-      this.currentDiaryStreak = 1
-    }
-  } else {
-    // First entry
-    this.currentDiaryStreak = 1
-  }
-  
-  // Update longest streak
-  if (this.currentDiaryStreak > this.longestDiaryStreak) {
-    this.longestDiaryStreak = this.currentDiaryStreak
-  }
-  
-  this.lastDiaryEntryDate = entryDate
-}
-
 userStatsSchema.methods.updateMysteryStats = function() {
   this.mysteryExplorations += 1
 }

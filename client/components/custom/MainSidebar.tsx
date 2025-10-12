@@ -26,7 +26,6 @@ import {
   Focus,
   Sparkles,
   Heart,
-  PenTool,
   BarChart3,
   // Newspaper,
 } from "lucide-react"
@@ -65,11 +64,6 @@ const mainItems = [
     url: "/notes",
     icon: FileText,
   },
-  {
-    title: "Diary",
-    url: "/diary",
-    icon: PenTool,
-  },
 ]
 
 
@@ -83,7 +77,6 @@ export default function MainSidebar() {
     // Map URL to route names for preloading
     const routeMap: Record<string, keyof typeof import('@/components/LazyRoutes').preloadRoutes> = {
       '/home': 'home',
-      '/diary': 'diary',
       '/notes': 'notes',
       '/focus': 'focus',
       '/settings': 'settings',

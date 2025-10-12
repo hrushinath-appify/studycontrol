@@ -142,28 +142,6 @@ export function validateRegisterRequest(body: any): ValidationResult {
 }
 
 // =============================================================================
-// DIARY VALIDATION
-// =============================================================================
-
-export function validateDiaryEntry(title: string, content: string): FormErrors {
-  const errors: FormErrors = {}
-
-  if (!title.trim()) {
-    errors.title = 'Title is required'
-  } else if (title.trim().length < 3) {
-    errors.title = 'Title must be at least 3 characters long'
-  }
-
-  if (!content.trim()) {
-    errors.content = 'Content is required'
-  } else if (content.trim().length < 10) {
-    errors.content = 'Content must be at least 10 characters long'
-  }
-
-  return errors
-}
-
-// =============================================================================
 // NOTE VALIDATION
 // =============================================================================
 

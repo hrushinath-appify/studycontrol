@@ -165,7 +165,6 @@ export async function parseRequestBody(request: Request): Promise<Record<string,
 // =============================================================================
 
 export interface UserStats {
-  diaryHighestStreak: number
   mysteryClicks: number
   totalNotes: number
   focusSessionsTotal: number
@@ -222,7 +221,6 @@ export async function fetchUserStats(): Promise<UserStats> {
     
     // Return default stats if API fails for unknown reasons
     return {
-      diaryHighestStreak: 0,
       mysteryClicks: 0,
       totalNotes: 0,
       focusSessionsTotal: 0,

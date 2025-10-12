@@ -154,9 +154,10 @@ export function useRealtimeNotes() {
   }
 }
 
-// Utility function to sync real-time events with local storage
+// Utility function to sync real-time events with local storage (backup only)
 export function syncRealtimeEventWithStorage(event: RealtimeNoteEvent) {
   try {
+    // Only sync to localStorage as backup, not as primary storage
     const localNotes = JSON.parse(localStorage.getItem('studyControlNotes') || '[]')
     
     switch (event.type) {
@@ -189,7 +190,8 @@ export function syncRealtimeEventWithStorage(event: RealtimeNoteEvent) {
         break
     }
   } catch (error) {
-    console.error('Failed to sync real-time event with localStorage:', error)
+    console.warn('Failed to sync real-time event with localStorage backup:', error)
+    // Don't throw error, just log warning since this is backup only
   }
 }
 

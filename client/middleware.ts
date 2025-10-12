@@ -4,7 +4,6 @@ import { jwtVerify } from 'jose'
 // Define protected and public routes
 const protectedRoutes = [
   '/home',
-  '/diary',
   '/focus',
   '/notes',
   '/settings',

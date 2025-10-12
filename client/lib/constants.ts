@@ -51,7 +51,6 @@ export const POMODORO = {
 
 export const STORAGE_KEYS = {
   USER_PREFERENCES: 'user-preferences',
-  DIARY_ENTRIES: 'diary-entries',
   NOTES: 'notes',
   POMODORO_SESSIONS: 'pomodoro-sessions',
   THEME: 'theme',
@@ -66,7 +65,6 @@ export const ROUTES = {
   HOME: '/home',
   LOGIN: '/login',
   SIGNUP: '/signup',
-  DIARY: '/diary',
   FOCUS: '/focus',
   NOTES: '/notes',
   SETTINGS: '/settings',
@@ -78,7 +76,6 @@ export const ROUTES = {
 
 export const PROTECTED_ROUTES = [
   ROUTES.HOME,
-  ROUTES.DIARY,
   ROUTES.FOCUS,
   ROUTES.NOTES,
   ROUTES.SETTINGS,

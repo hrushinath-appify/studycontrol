@@ -94,9 +94,6 @@ export const toastMessages = {
   },
 
   studyControl: {
-    diaryEntryCreated: "Diary entry created successfully",
-    diaryEntryUpdated: "Diary entry updated successfully",
-    diaryEntryDeleted: "Diary entry deleted successfully",
     noteCreated: "Note created successfully",
     noteUpdated: "Note updated successfully",
     noteDeleted: "Note deleted successfully",

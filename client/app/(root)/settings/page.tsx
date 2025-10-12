@@ -12,7 +12,6 @@ import {
   User, 
   Palette, 
   Trophy, 
-  Flame, 
   Bell, 
   HelpCircle, 
   MessageSquare, 
@@ -33,7 +32,6 @@ interface UserPreferences {
 }
 
 interface UserStats {
-  diaryHighestStreak: number
   mysteryClicks: number
   totalNotes: number
   focusSessionsTotal: number
@@ -71,7 +69,6 @@ const SettingsPage = () => {
 
   // User stats state
   const [userStats, setUserStats] = useState<UserStats>({
-    diaryHighestStreak: 0,
     mysteryClicks: 0,
     totalNotes: 0,
     focusSessionsTotal: 0,
@@ -105,25 +102,12 @@ const SettingsPage = () => {
         setStatsError('Failed to load statistics. Please try refreshing the page.')
       }
       
-      // Fallback to localStorage for backward compatibility
-      const diaryStreakData = localStorage.getItem('diaryStreakData')
-      
       // Create fresh fallback stats
       const fallbackStats = {
-        diaryHighestStreak: 0,
         mysteryClicks: 0,
         totalNotes: 0,
         focusSessionsTotal: 0,
         averageFocusTime: 0
-      }
-      
-      if (diaryStreakData) {
-        try {
-          const streakData = JSON.parse(diaryStreakData)
-          fallbackStats.diaryHighestStreak = streakData.diaryHighestStreak || streakData.longestStreak || 0
-        } catch (parseError) {
-          console.error('Error parsing diary streak data:', parseError)
-        }
       }
       
       // Get mystery explorations from server (async)
@@ -198,24 +182,15 @@ const SettingsPage = () => {
 
   // Listen for other events that might update stats
   useEffect(() => {
-    const handleDiaryUpdate = () => {
-      console.log('Diary entries updated, refreshing settings stats...')
-      loadUserStats()
-    }
-
     const handleStatsUpdate = () => {
       console.log('Stats updated event received, refreshing settings stats...')
       loadUserStats()
     }
-
-    // Listen for diary entry updates
-    window.addEventListener('diaryEntriesUpdated', handleDiaryUpdate)
     
     // Listen for general stats updates
     window.addEventListener('userStatsUpdated', handleStatsUpdate)
 
     return () => {
-      window.removeEventListener('diaryEntriesUpdated', handleDiaryUpdate)
       window.removeEventListener('userStatsUpdated', handleStatsUpdate)
     }
   }, [loadUserStats])
@@ -564,19 +539,6 @@ const SettingsPage = () => {
                 )}
               </div>
             )}
-            <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-              <div className="p-3 rounded-full bg-background shadow-sm text-orange-500">
-                <Flame className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-foreground">Diary Highest Streak</h4>
-                <p className="text-sm text-muted-foreground">Your longest consecutive diary entry streak.</p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-primary">{userStats.diaryHighestStreak}</div>
-                <div className="text-xs text-muted-foreground">days</div>
-              </div>
-            </div>
             
             <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
               <div className="p-3 rounded-full bg-background shadow-sm text-purple-500">

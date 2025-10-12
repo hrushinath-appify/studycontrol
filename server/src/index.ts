@@ -38,7 +38,6 @@ const startServer = async (): Promise<void> => {
    • Health Check: http://localhost:${config.PORT}/health
    • API Health: http://localhost:${config.PORT}${config.API_PREFIX}/health
    • Authentication: http://localhost:${config.PORT}${config.API_PREFIX}/auth
-   • Diary Entries: http://localhost:${config.PORT}${config.API_PREFIX}/diary
    • Quotes: http://localhost:${config.PORT}${config.API_PREFIX}/quotes
    
 📊 Database:

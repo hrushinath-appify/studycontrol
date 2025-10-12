@@ -99,78 +99,6 @@ export const validateChangePassword = [
     .withMessage('New password must contain at least one lowercase letter, one uppercase letter, one number, and one special character (@$!%*?&)'),
 ];
 
-// Diary validation rules
-export const validateCreateDiaryEntry = [
-  body('title')
-    .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Title must be between 1 and 200 characters'),
-  
-  body('content')
-    .trim()
-    .isLength({ min: 1, max: 50000 })
-    .withMessage('Content must be between 1 and 50,000 characters'),
-  
-  body('mood')
-    .optional()
-    .isIn(['great', 'good', 'okay', 'bad', 'terrible'])
-    .withMessage('Mood must be one of: great, good, okay, bad, terrible'),
-  
-  body('tags')
-    .optional()
-    .isArray({ max: 10 })
-    .withMessage('Maximum 10 tags allowed'),
-  
-  body('tags.*')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 30 })
-    .withMessage('Each tag must be between 1 and 30 characters'),
-  
-  body('date')
-    .optional()
-    .isISO8601()
-    .withMessage('Date must be a valid ISO date'),
-  
-  body('isPrivate')
-    .optional()
-    .isBoolean()
-    .withMessage('isPrivate must be a boolean'),
-];
-
-export const validateUpdateDiaryEntry = [
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid diary entry ID'),
-  
-  body('title')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Title must be between 1 and 200 characters'),
-  
-  body('content')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 50000 })
-    .withMessage('Content must be between 1 and 50,000 characters'),
-  
-  body('mood')
-    .optional()
-    .isIn(['great', 'good', 'okay', 'bad', 'terrible'])
-    .withMessage('Mood must be one of: great, good, okay, bad, terrible'),
-  
-  body('tags')
-    .optional()
-    .isArray({ max: 10 })
-    .withMessage('Maximum 10 tags allowed'),
-  
-  body('isPrivate')
-    .optional()
-    .isBoolean()
-    .withMessage('isPrivate must be a boolean'),
-];
-
 // Note validation rules
 export const validateCreateNote = [
   body('title')
@@ -232,7 +160,6 @@ export const validateMongoId = [
 
 // Specific ID validators for clarity
 export const validateNoteId = validateMongoId;
-export const validateDiaryId = validateMongoId;
 
 export const validatePagination = [
   query('page')

@@ -211,59 +211,6 @@ userSchema.index({ resetPasswordToken: 1 })
 
 export const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema)
 
-// Diary Entry interface and schema
-export interface IDiaryEntry extends mongoose.Document {
-  userId: mongoose.Types.ObjectId
-  title: string
-  content: string
-  mood?: 'excellent' | 'good' | 'neutral' | 'bad' | 'terrible'
-  tags?: string[]
-  isPrivate: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-
-const diaryEntrySchema = new mongoose.Schema<IDiaryEntry>({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  title: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 200,
-  },
-  content: {
-    type: String,
-    required: true,
-    maxlength: 10000,
-  },
-  mood: {
-    type: String,
-    enum: ['excellent', 'good', 'neutral', 'bad', 'terrible'],
-    default: 'neutral',
-  },
-  tags: [{
-    type: String,
-    trim: true,
-    maxlength: 50,
-  }],
-  isPrivate: {
-    type: Boolean,
-    default: true,
-  },
-}, {
-  timestamps: true,
-})
-
-// Add indexes only once when model is first created
-diaryEntrySchema.index({ userId: 1 }, { background: true })
-diaryEntrySchema.index({ createdAt: -1 }, { background: true })
-
-export const DiaryEntry = mongoose.models.DiaryEntry || mongoose.model<IDiaryEntry>('DiaryEntry', diaryEntrySchema)
-
 // Note interface and schema  
 export interface INote extends mongoose.Document {
   userId: mongoose.Types.ObjectId

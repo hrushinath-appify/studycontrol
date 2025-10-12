@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import authRoutes from './auth';
-import diaryRoutes from './diary';
 import notesRoutes from './notes';
 import mysteryRoutes from './mystery';
 import focusRoutes from './focus';
@@ -22,7 +21,6 @@ router.get('/health', (req, res) => {
 
 // API routes
 router.use('/auth', authRoutes);
-router.use('/diary', diaryRoutes);
 router.use('/notes', notesRoutes);
 router.use('/mystery', mysteryRoutes);
 router.use('/focus', focusRoutes);

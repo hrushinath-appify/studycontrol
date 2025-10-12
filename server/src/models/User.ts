@@ -215,7 +215,6 @@ userSchema.virtual('fullName').get(function () {
 userSchema.pre('deleteOne', { document: true, query: false }, async function (next) {
   try {
     // Clean up user's data when user is deleted
-    await mongoose.model('DiaryEntry').deleteMany({ userId: this._id });
     await mongoose.model('Note').deleteMany({ userId: this._id });
     await mongoose.model('PomodoroSession').deleteMany({ userId: this._id });
     await mongoose.model('TimerSettings').deleteMany({ userId: this._id });

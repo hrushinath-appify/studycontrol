@@ -10,8 +10,7 @@ import {
   // Calendar, 
   BookOpen, 
   FileText,
-  RefreshCw,
-  PenTool
+  RefreshCw
 } from 'lucide-react'
 
 const HomePage = () => {
@@ -104,12 +103,6 @@ const HomePage = () => {
             description="Organize and review your study notes."
             href="/notes"
             icon={<FileText className="w-5 h-5 sm:w-6 sm:h-6" />}
-          />
-          <FeatureCard
-            title="Diary"
-            description="Record your daily study reflections."
-            href="/diary"
-            icon={<PenTool className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
         </div>
         {/* Motivational Quote Section */}

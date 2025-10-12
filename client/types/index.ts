@@ -54,27 +54,6 @@ export interface FormErrors {
 }
 
 // =============================================================================
-// DIARY TYPES
-// =============================================================================
-
-export interface DiaryEntry {
-  id: string
-  date: string
-  title: string
-  content: string
-  mood?: 'great' | 'good' | 'okay' | 'bad' | 'terrible'
-  tags?: string[]
-  createdAt: string
-  updatedAt: string
-}
-
-export interface StreakData {
-  currentStreak: number
-  longestStreak: number
-  lastEntryDate: string | null
-}
-
-// =============================================================================
 // PRODUCTIVITY TYPES
 // =============================================================================
 
@@ -183,12 +162,6 @@ export interface FeatureCardProps {
 export interface TopBarProps {
   title?: string
   showKeyboardShortcut?: boolean
-}
-
-export interface DiaryDetailViewProps {
-  entry: DiaryEntry
-  previousEntry?: DiaryEntry | null
-  nextEntry?: DiaryEntry | null
 }
 
 // =============================================================================
