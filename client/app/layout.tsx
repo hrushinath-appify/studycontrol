@@ -25,13 +25,15 @@ export const metadata: Metadata = {
   creator: "StudyControl",
   icons: {
     icon: [
-      { url: "/favicon/web-app-manifest-192x192.png", type: "image/png", sizes: "192x192" },
-      { url: "/favicon/web-app-manifest-512x512.png", type: "image/png", sizes: "512x512" }
+      { url: "/favicon.png", type: "image/png", sizes: "48x48" },
+      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+      { url: "/favicon-192x192.png", type: "image/png", sizes: "192x192" },
+      { url: "/favicon-512x512.png", type: "image/png", sizes: "512x512" }
     ],
     apple: [
-      { url: "/favicon/web-app-manifest-192x192.png", sizes: "192x192", type: "image/png" }
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }
     ],
-    shortcut: "/favicon/web-app-manifest-192x192.png"
+    shortcut: "/favicon.png"
   },
   manifest: "/site.webmanifest",
   openGraph: {
