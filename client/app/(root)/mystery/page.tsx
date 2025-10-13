@@ -240,7 +240,7 @@ const MysteryPage = () => {
                   ))}
                   <DropdownMenuSeparator />
                   <div className="px-3 py-2 text-xs text-muted-foreground italic text-center">
-                    New subjects are coming soon.
+                    New subjects are coming soon...
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>

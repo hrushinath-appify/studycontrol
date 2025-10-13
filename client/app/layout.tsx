@@ -17,35 +17,34 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: {
     template: "Ammu's | StudyControl",
-    default: "StudyControl — Your Study Companion",
+    default: "StudyControl — Your Study Companion ❤️",
   },
-  description: "Comprehensive study management platform with focus tools and progress tracking.",
-  keywords: ["study", "focus", "productivity", "education"],
+  description: "Comprehensive study management platform with focus tools and progress tracking, made with love.",
+  keywords: ["study", "focus", "productivity", "education", "love"],
   authors: [{ name: "StudyControl Team" }],
   creator: "StudyControl",
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.png", type: "image/png", sizes: "32x32" },
-      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" }
+      { url: "/favicon/web-app-manifest-192x192.png", type: "image/png", sizes: "192x192" },
+      { url: "/favicon/web-app-manifest-512x512.png", type: "image/png", sizes: "512x512" }
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }
+      { url: "/favicon/web-app-manifest-192x192.png", sizes: "192x192", type: "image/png" }
     ],
-    shortcut: "/favicon.png"
+    shortcut: "/favicon/web-app-manifest-192x192.png"
   },
   manifest: "/site.webmanifest",
   openGraph: {
     type: "website",
     locale: "en_US",
-    title: "StudyControl — Your Study Companion",
-    description: "Comprehensive study management platform with focus tools and progress tracking.",
+    title: "StudyControl — Your Study Companion ❤️",
+    description: "Comprehensive study management platform with focus tools and progress tracking, made with love.",
     siteName: "StudyControl",
   },
   twitter: {
     card: "summary_large_image",
-    title: "StudyControl — Your Study Companion",
-    description: "Comprehensive study management platform with focus tools and progress tracking.",
+    title: "StudyControl — Your Study Companion ❤️",
+    description: "Comprehensive study management platform with focus tools and progress tracking, made with love.",
   },
   robots: {
     index: true,

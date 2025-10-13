@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .favicon-preview { 
+            display: inline-block; 
+            margin: 10px;
+            text-align: center;
+        }
+        canvas { 
+            border: 1px solid #ccc; 
+            margin: 5px;
+        }
+        button {
+            background: #e63946;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Heart Favicon Generator</h1>
+    <p>Click the buttons below to generate and download PNG versions of your heart favicon:</p>
+    
+    <div class="favicon-preview">
+        <h3>32x32 PNG</h3>
+        <canvas id="canvas32" width="32" height="32"></canvas>
+        <br>
+        <button onclick="generateFavicon(32)">Generate 32x32</button>
+        <button onclick="downloadFavicon(32)">Download</button>
+    </div>
+    
+    <div class="favicon-preview">
+        <h3>16x16 PNG</h3>
+        <canvas id="canvas16" width="16" height="16"></canvas>
+        <br>
+        <button onclick="generateFavicon(16)">Generate 16x16</button>
+        <button onclick="downloadFavicon(16)">Download</button>
+    </div>
+    
+    <div class="favicon-preview">
+        <h3>180x180 Apple Touch Icon</h3>
+        <canvas id="canvas180" width="180" height="180"></canvas>
+        <br>
+        <button onclick="generateFavicon(180)">Generate 180x180</button>
+        <button onclick="downloadFavicon(180)">Download</button>
+    </div>
+
+    <script>
+        function generateFavicon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Create gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#ff6b6b');
+            gradient.addColorStop(0.5, '#ee5a52');
+            gradient.addColorStop(1, '#e63946');
+            
+            // Draw background circle
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2-1, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw heart
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            
+            const scale = size / 32;
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            // Heart shape path (simplified)
+            ctx.moveTo(centerX, centerY - 6 * scale);
+            ctx.bezierCurveTo(centerX - 3 * scale, centerY - 9 * scale, centerX - 8 * scale, centerY - 6 * scale, centerX - 8 * scale, centerY - 2 * scale);
+            ctx.bezierCurveTo(centerX - 8 * scale, centerY + 2 * scale, centerX, centerY + 8 * scale, centerX, centerY + 8 * scale);
+            ctx.bezierCurveTo(centerX, centerY + 8 * scale, centerX + 8 * scale, centerY + 2 * scale, centerX + 8 * scale, centerY - 2 * scale);
+            ctx.bezierCurveTo(centerX + 8 * scale, centerY - 6 * scale, centerX + 3 * scale, centerY - 9 * scale, centerX, centerY - 6 * scale);
+            
+            ctx.fill();
+            
+            // Add stroke
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = Math.max(1, scale * 0.5);
+            ctx.stroke();
+        }
+        
+        function downloadFavicon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            
+            if (size === 32) {
+                link.download = 'favicon.png';
+            } else if (size === 16) {
+                link.download = 'favicon-16x16.png';
+            } else if (size === 180) {
+                link.download = 'apple-touch-icon.png';
+            }
+            
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Auto-generate all sizes on page load
+        window.onload = function() {
+            generateFavicon(32);
+            generateFavicon(16);
+            generateFavicon(180);
+        };
+    </script>
+</body>
+</html>
