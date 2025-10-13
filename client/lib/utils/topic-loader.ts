@@ -1,5 +1,5 @@
 // Optimized topic loader with lazy loading support
-import type { MysteryTopic } from '../mock-data/medicine'
+import type { MysteryTopic } from '../mock-data/videos'
 
 let cachedTopics: MysteryTopic[] | null = null
 let loadingPromise: Promise<MysteryTopic[]> | null = null
@@ -20,7 +20,7 @@ export async function loadMysteryTopics(): Promise<MysteryTopic[]> {
   }
 
   // Start loading
-  loadingPromise = import('../mock-data/medicine').then((module) => {
+  loadingPromise = import('../mock-data/videos').then((module) => {
     cachedTopics = module.mysteryTopics
     loadingPromise = null
     return cachedTopics

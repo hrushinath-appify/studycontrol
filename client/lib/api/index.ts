@@ -13,7 +13,7 @@ export * from './quotes'
 
 // Re-export common types from API modules
 export type { Quote } from './quotes'
-export type { MysteryTopic } from '../mock-data/medicine'
+export type { MysteryTopic } from '../mock-data/videos'
 
 // Base API configuration
 export const API_CONFIG = {

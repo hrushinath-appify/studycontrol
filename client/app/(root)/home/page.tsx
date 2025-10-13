@@ -8,8 +8,12 @@ import {
   BarChart3, 
   Timer, 
   // Calendar, 
-  BookOpen, 
-  RefreshCw
+  RefreshCw,
+  Search,
+  ListTodo,
+  StickyNote,
+  Calendar,
+  Sparkles
 } from 'lucide-react'
 
 const HomePage = () => {
@@ -83,13 +87,37 @@ const HomePage = () => {
             title="Unleash the Mystery"
             description="Discover the mystery of your studies."
             href="/mystery"
-            icon={<BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />}
+            icon={<Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
           <FeatureCard
             title="Marrow Progress"
-            description="Track your Marrow learning progress."
+            description="Track your video learning progress across all subjects."
             href="/marrow-progress"
-            icon={<BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />}
+            icon={<BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />}
+          />
+          <FeatureCard
+            title="ChatGPT Search"
+            description="AI-powered search and learning assistant for your studies."
+            href="/chatgpt-search"
+            icon={<Search className="w-5 h-5 sm:w-6 sm:h-6" />}
+          />
+          <FeatureCard
+            title="To-Do List"
+            description="Organize and track your study tasks and goals."
+            href="/todo-list"
+            icon={<ListTodo className="w-5 h-5 sm:w-6 sm:h-6" />}
+          />
+          <FeatureCard
+            title="Notes"
+            description="Take and organize your study notes efficiently."
+            href="/notes"
+            icon={<StickyNote className="w-5 h-5 sm:w-6 sm:h-6" />}
+          />
+          <FeatureCard
+            title="Diary"
+            description="Journal your study journey and track progress."
+            href="/diary"
+            icon={<Calendar className="w-5 h-5 sm:w-6 sm:h-6" />}
           />
           <FeatureCard
             title="Focus Mode"

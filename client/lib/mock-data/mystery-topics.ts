@@ -3,8 +3,8 @@
 // NOTE: This file is deprecated. Use @/lib/utils/topic-loader instead for better performance
 // The topic-loader uses lazy loading to avoid including the large data file in the initial bundle
 
-import { MysteryTopic } from './medicine'
-import { mysteryTopics } from './medicine'
+import { MysteryTopic } from './videos'
+import { mysteryTopics } from './videos'
 
 // Legacy utility functions - kept for backward compatibility
 // For new code, use the async versions from @/lib/utils/topic-loader

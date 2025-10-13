@@ -13,6 +13,46 @@ export const LazyHomePage = createLazyRoute(
   </div>
 )
 
+export const LazyChatGPTSearchPage = createLazyRoute(
+  () => import('@/app/(root)/chatgpt-search/page'),
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-muted-foreground">Loading ChatGPT Search...</p>
+    </div>
+  </div>
+)
+
+export const LazyTodoListPage = createLazyRoute(
+  () => import('@/app/(root)/todo-list/page'),
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-muted-foreground">Loading To-Do List...</p>
+    </div>
+  </div>
+)
+
+export const LazyNotesPage = createLazyRoute(
+  () => import('@/app/(root)/notes/page'),
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-muted-foreground">Loading Notes...</p>
+    </div>
+  </div>
+)
+
+export const LazyDiaryPage = createLazyRoute(
+  () => import('@/app/(root)/diary/page'),
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      <p className="text-muted-foreground">Loading Diary...</p>
+    </div>
+  </div>
+)
+
 
 export const LazyFocusPage = createLazyRoute(
   () => import('@/app/(root)/focus/page'),
@@ -77,6 +117,10 @@ export const LazyHelpPage = createLazyRoute(
 // Utility to preload route components for better UX
 export const preloadRoutes = {
   home: () => import('@/app/(root)/home/page'),
+  'chatgpt-search': () => import('@/app/(root)/chatgpt-search/page'),
+  'todo-list': () => import('@/app/(root)/todo-list/page'),
+  notes: () => import('@/app/(root)/notes/page'),
+  diary: () => import('@/app/(root)/diary/page'),
   focus: () => import('@/app/(root)/focus/page'),
   settings: () => import('@/app/(root)/settings/page'),
   mystery: () => import('@/app/(root)/mystery/page'),

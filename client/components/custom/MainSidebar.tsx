@@ -26,6 +26,10 @@ import {
   Sparkles,
   Heart,
   BarChart3,
+  Search,
+  ListTodo,
+  StickyNote,
+  Calendar,
   // Newspaper,
 } from "lucide-react"
 import { useAuth } from "@/components/AuthProvider"
@@ -37,7 +41,7 @@ const mainItems = [
     url: "/home",
     icon: Home,
   },
-  {
+ {
     title: "Mystery",
     url: "/mystery",
     icon: Sparkles,
@@ -46,6 +50,26 @@ const mainItems = [
     title: "Marrow Progress",
     url: "/marrow-progress",
     icon: BarChart3,
+  },
+  {
+    title: "ChatGPT Search",
+    url: "/chatgpt-search",
+    icon: Search,
+  },
+  {
+    title: "To-Do List",
+    url: "/todo-list",
+    icon: ListTodo,
+  },
+  {
+    title: "Notes",
+    url: "/notes",
+    icon: StickyNote,
+  },
+  {
+    title: "Diary",
+    url: "/diary",
+    icon: Calendar,
   },
   {
     title: "Focus",
@@ -71,6 +95,10 @@ export default function MainSidebar() {
     // Map URL to route names for preloading
     const routeMap: Record<string, keyof typeof import('@/components/LazyRoutes').preloadRoutes> = {
       '/home': 'home',
+      '/chatgpt-search': 'chatgpt-search',
+      '/todo-list': 'todo-list',
+      '/notes': 'notes',
+      '/diary': 'diary',
       '/focus': 'focus',
       '/settings': 'settings',
       '/mystery': 'mystery',

@@ -11,8 +11,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MysteryTopic } from "@/lib/mock-data/medicine";
-import { loadMysteryTopics } from "@/lib/utils/topic-loader";
+import { VideoTopic } from "@/lib/utils/videos-loader";
+import { loadVideoTopics } from "@/lib/utils/videos-loader";
 import { BookOpen, CheckCircle, Clock, Trophy, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -33,7 +33,7 @@ interface ProgressState {
 interface SubjectData {
   name: string;
   chapters: {
-    [chapterName: string]: MysteryTopic[];
+    [chapterName: string]: VideoTopic[];
   };
 }
 
@@ -44,10 +44,10 @@ const TopicItem = React.memo(({
   isUpdating, 
   onToggle 
 }: { 
-  topic: MysteryTopic; 
+  topic: VideoTopic; 
   isCompleted: boolean; 
   isUpdating: boolean; 
-  onToggle: (topic: MysteryTopic) => void;
+  onToggle: (topic: VideoTopic) => void;
 }) => {
   return (
     <div
@@ -80,10 +80,6 @@ const TopicItem = React.memo(({
           {topic.title}
         </label>
         
-        <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2">
-          {topic.description}
-        </p>
-        
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {topic.estimatedTime > 0 && (
             <Badge variant="outline" className="text-[10px] sm:text-xs">
@@ -94,11 +90,6 @@ const TopicItem = React.memo(({
           {topic.difficulty && (
             <Badge variant="outline" className="text-[10px] sm:text-xs">
               {topic.difficulty}
-            </Badge>
-          )}
-          {topic.questions.length > 0 && (
-            <Badge variant="outline" className="text-[10px] sm:text-xs hidden sm:inline-flex">
-              {topic.questions.length} questions
             </Badge>
           )}
         </div>
@@ -115,33 +106,33 @@ export default function MarrowProgressPage() {
   const [error, setError] = useState<string | null>(null);
   const [updatingTopics, setUpdatingTopics] = useState<Set<string>>(new Set());
   const [isClient, setIsClient] = useState(false);
-  const [mysteryTopics, setMysteryTopics] = useState<MysteryTopic[]>([]);
+  const [videoTopics, setVideoTopics] = useState<VideoTopic[]>([]);
   const { isAuthenticated, isInitializing } = useAuth();
 
   // Ensure we're on the client side and load topics
   useEffect(() => {
     setIsClient(true);
     
-    // Lazy load mystery topics for better initial page load
-    loadMysteryTopics()
-      .then(topics => {
-        setMysteryTopics(topics);
+    // Lazy load video topics for better initial page load
+    loadVideoTopics()
+      .then((topics: VideoTopic[]) => {
+        setVideoTopics(topics);
       })
-      .catch(err => {
-        console.error('Failed to load mystery topics:', err);
+      .catch((err: Error) => {
+        console.error('Failed to load video topics:', err);
         setError('Failed to load topics');
       });
   }, []);
 
   // Organize topics by subject and chapter (memoized for performance)
   const organizedData: { [subject: string]: SubjectData } = useMemo(() => {
-    if (mysteryTopics.length === 0) {
+    if (videoTopics.length === 0) {
       return {};
     }
 
     const organized: { [subject: string]: SubjectData } = {};
 
-    mysteryTopics.forEach((topic) => {
+    videoTopics.forEach((topic) => {
       const subject = topic.category;
       const chapter = topic.tags[0] || "General";
 
@@ -160,17 +151,9 @@ export default function MarrowProgressPage() {
     });
 
     return organized;
-  }, [mysteryTopics]);
+  }, [videoTopics]);
 
-  // Load progress from database on component mount (client-side only)
-  useEffect(() => {
-    // Ensure we're on the client side and auth is initialized
-    if (isClient && !isInitializing) {
-      loadProgress();
-    }
-  }, [isClient, isInitializing]);
-
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -206,9 +189,17 @@ export default function MarrowProgressPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
-  const toggleTopicCompletion = useCallback(async (topic: MysteryTopic) => {
+  // Load progress from database on component mount (client-side only)
+  useEffect(() => {
+    // Ensure we're on the client side and auth is initialized
+    if (isClient && !isInitializing) {
+      loadProgress();
+    }
+  }, [isClient, isInitializing, loadProgress]);
+
+  const toggleTopicCompletion = useCallback(async (topic: VideoTopic) => {
     const topicId = topic.id;
     const newCompleted = !progress[topicId];
     
@@ -286,14 +277,21 @@ export default function MarrowProgressPage() {
   const getSubjectProgress = useCallback((subject: SubjectData) => {
     const allTopics = Object.values(subject.chapters).flat();
     const completedTopics = allTopics.filter((topic) => progress[topic.id]);
+    const totalMinutes = allTopics.reduce((sum, topic) => sum + topic.estimatedTime, 0);
+    const completedMinutes = completedTopics.reduce((sum, topic) => sum + topic.estimatedTime, 0);
+    const totalHours = Math.round((totalMinutes / 60) * 10) / 10; // Round to 1 decimal place
+    const completedHours = Math.round((completedMinutes / 60) * 10) / 10;
+    
     return {
       completed: completedTopics.length,
       total: allTopics.length,
       percentage: calculateProgressPercentage(completedTopics.length, allTopics.length),
+      totalHours,
+      completedHours,
     };
   }, [progress]);
 
-  const getChapterProgress = useCallback((topics: MysteryTopic[]) => {
+  const getChapterProgress = useCallback((topics: VideoTopic[]) => {
     const completedTopics = topics.filter((topic) => progress[topic.id]);
     return {
       completed: completedTopics.length,
@@ -303,24 +301,31 @@ export default function MarrowProgressPage() {
   }, [progress]);
 
   const overallProgress = useMemo(() => {
-    if (mysteryTopics.length === 0) {
-      return { completed: 0, total: 0, percentage: 0 };
+    if (videoTopics.length === 0) {
+      return { completed: 0, total: 0, percentage: 0, totalHours: 0, completedHours: 0 };
     }
-    const completedTopics = mysteryTopics.filter((topic) => progress[topic.id]);
+    const completedTopics = videoTopics.filter((topic) => progress[topic.id]);
+    const totalMinutes = videoTopics.reduce((sum, topic) => sum + topic.estimatedTime, 0);
+    const completedMinutes = completedTopics.reduce((sum, topic) => sum + topic.estimatedTime, 0);
+    const totalHours = Math.round((totalMinutes / 60) * 10) / 10; // Round to 1 decimal place
+    const completedHours = Math.round((completedMinutes / 60) * 10) / 10;
+    
     return {
       completed: completedTopics.length,
-      total: mysteryTopics.length,
-      percentage: calculateProgressPercentage(completedTopics.length, mysteryTopics.length),
+      total: videoTopics.length,
+      percentage: calculateProgressPercentage(completedTopics.length, videoTopics.length),
+      totalHours,
+      completedHours,
     };
-  }, [mysteryTopics, progress]);
+  }, [videoTopics, progress]);
 
-  if (!isClient || loading || isInitializing || mysteryTopics.length === 0) {
+  if (!isClient || loading || isInitializing || videoTopics.length === 0) {
     return (
       <div className="container mx-auto p-3 sm:p-4 md:p-6">
         <div className="flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
           <div className="text-center space-y-3 sm:space-y-4">
             <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto text-primary" />
-            <p className="text-sm sm:text-base text-muted-foreground">Loading your progress...</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Loading your video progress...</p>
           </div>
         </div>
       </div>
@@ -383,9 +388,14 @@ export default function MarrowProgressPage() {
           <CardContent>
             <div className="space-y-2 sm:space-y-3">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
-                <span className="text-xs sm:text-sm text-muted-foreground">
-                  {overallProgress.completed} of {overallProgress.total} topics completed
-                </span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                  <span className="text-xs sm:text-sm text-muted-foreground">
+                    {overallProgress.completed} of {overallProgress.total} videos completed
+                  </span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">
+                    {overallProgress.completedHours}h / {overallProgress.totalHours}h total
+                  </span>
+                </div>
                 <Badge variant={overallProgress.percentage === 100 ? "default" : "secondary"} className="text-xs sm:text-sm w-fit">
                   {overallProgress.percentage}%
                 </Badge>
@@ -413,6 +423,9 @@ export default function MarrowProgressPage() {
                     <Badge variant="outline" className="text-xs sm:text-sm">
                       {subjectProgress.completed}/{subjectProgress.total}
                     </Badge>
+                    <Badge variant="outline" className="text-xs sm:text-sm">
+                      {subjectProgress.totalHours}h
+                    </Badge>
                     <Badge variant={subjectProgress.percentage === 100 ? "default" : "secondary"} className="text-xs sm:text-sm">
                       {subjectProgress.percentage}%
                     </Badge>
@@ -433,7 +446,7 @@ export default function MarrowProgressPage() {
                             <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 min-w-0">
                               <h3 className="text-sm sm:text-base md:text-lg font-semibold text-left truncate">{chapterName}</h3>
                               <Badge variant="outline" className="text-[10px] sm:text-xs w-fit">
-                                {topics.length} topics
+                                {topics.length} videos
                               </Badge>
                             </div>
                             <div className="flex items-center gap-2">
