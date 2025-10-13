@@ -102,14 +102,14 @@ const HomePage = () => {
         <div className="bg-gradient-to-r from-blue-50/80 to-purple-50/80 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-200/50 dark:border-blue-800/30 backdrop-blur-sm">
           <div className="text-center space-y-3 sm:space-y-4">
             <div className="flex justify-center items-center gap-2 sm:gap-3">
-              <span className="text-2xl sm:text-4xl">💡</span>
+              <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl">💡</span>
               <button
                 onClick={loadQuote}
                 disabled={isLoading}
-                className="p-1.5 sm:p-2 rounded-full bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1 sm:p-1.5 md:p-2 rounded-full bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/40 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Get new inspirational quote from curated collection"
               >
-                <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blue-600 dark:text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
             </div>
             {isLoading ? (
