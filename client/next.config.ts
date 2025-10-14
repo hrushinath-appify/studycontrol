@@ -3,9 +3,28 @@ import type { NextConfig } from "next"
 const nextConfig: NextConfig = {
   // Enable experimental features for better performance
   experimental: {
-    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+    optimizePackageImports: [
+      "lucide-react", 
+      "@radix-ui/react-icons",
+      "@radix-ui/react-accordion",
+      "@radix-ui/react-avatar",
+      "@radix-ui/react-checkbox",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-label",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-progress",
+      "@radix-ui/react-radio-group",
+      "@radix-ui/react-separator",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-switch",
+      "@radix-ui/react-tooltip"
+    ],
     webpackMemoryOptimizations: true,
   },
+
+  // External packages for server components
+  serverExternalPackages: ["mongoose"],
   
   // Turbopack configuration
   turbopack: {
@@ -58,10 +77,16 @@ const nextConfig: NextConfig = {
   
   // Bundle analysis
   webpack: (config, { dev, isServer }) => {
+    // Only apply optimizations in production builds
     if (!dev && !isServer) {
+      // Improve tree shaking (without conflicting with Next.js cache)
+      config.optimization.sideEffects = false
+      
       config.optimization.splitChunks = {
         ...config.optimization.splitChunks,
         chunks: 'all',
+        minSize: 20000,
+        maxSize: 244000,
         cacheGroups: {
           default: false,
           vendors: false,
@@ -69,11 +94,25 @@ const nextConfig: NextConfig = {
             chunks: 'all',
             name: 'vendor',
             test: /[\\/]node_modules[\\/]/,
+            priority: 20,
           },
           common: {
             name: 'common',
             minChunks: 2,
             chunks: 'all',
+            priority: 10,
+          },
+          radix: {
+            name: 'radix',
+            test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+            chunks: 'all',
+            priority: 30,
+          },
+          lucide: {
+            name: 'lucide',
+            test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
+            chunks: 'all',
+            priority: 30,
           },
         },
       }

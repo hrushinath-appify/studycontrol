@@ -556,7 +556,7 @@ const SettingsPage = () => {
             >
               <div className="flex items-center gap-3">
                 <Info className="h-5 w-5 text-primary" />
-                <span className="font-medium text-foreground">App Version</span>
+                <span className="font-medium text-foreground">App Version (Stable)</span>
               </div>
               <span className="text-muted-foreground text-base">1.1</span>
             </div>
