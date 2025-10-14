@@ -86,12 +86,29 @@ export function ProfileIcon() {
 
   if (!user) return null
 
-  const initials = user.name
-    .split(" ")
-    .map((name) => name[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
+  // Improved initials generation logic
+  const generateInitials = (name: string): string => {
+    if (!name || name.trim() === '') return 'U'
+    
+    const trimmedName = name.trim()
+    const words = trimmedName.split(/\s+/).filter(word => word.length > 0)
+    
+    if (words.length === 0) return 'U'
+    
+    // If single word, take first 2 characters
+    if (words.length === 1) {
+      return trimmedName.substring(0, 2).toUpperCase()
+    }
+    
+    // If multiple words, take first character of each word (max 2)
+    return words
+      .slice(0, 2)
+      .map(word => word[0])
+      .join("")
+      .toUpperCase()
+  }
+
+  const initials = generateInitials(user.name)
 
   return (
     <DropdownMenu>

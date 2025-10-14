@@ -211,7 +211,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const updateProfile = async (data: Partial<User>) => {
     try {
       const response = await fetch('/api/auth/profile', {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },

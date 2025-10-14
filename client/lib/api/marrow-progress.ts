@@ -70,8 +70,17 @@ export interface MarrowProgressUpdate {
 
 export async function fetchMarrowProgress(): Promise<MarrowProgressResponse> {
   try {
+    // Get auth token from localStorage
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+    
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch('/api/marrow-progress', {
       method: 'GET',
+      headers,
       credentials: 'include',
     })
 
@@ -90,11 +99,19 @@ export async function fetchMarrowProgress(): Promise<MarrowProgressResponse> {
 
 export async function updateMarrowProgress(update: MarrowProgressUpdate): Promise<MarrowProgressItem> {
   try {
+    // Get auth token from localStorage
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch('/api/marrow-progress', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
       body: JSON.stringify(update),
     })
@@ -112,13 +129,21 @@ export async function updateMarrowProgress(update: MarrowProgressUpdate): Promis
   }
 }
 
-export async function bulkUpdateMarrowProgress(updates: MarrowProgressUpdate[]): Promise<any> {
+export async function bulkUpdateMarrowProgress(updates: MarrowProgressUpdate[]): Promise<{ success: boolean; updated: number }> {
   try {
+    // Get auth token from localStorage
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch('/api/marrow-progress/bulk', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
       body: JSON.stringify({ updates }),
     })
@@ -138,8 +163,17 @@ export async function bulkUpdateMarrowProgress(updates: MarrowProgressUpdate[]):
 
 export async function fetchMarrowProgressStats(): Promise<MarrowProgressStats> {
   try {
+    // Get auth token from localStorage
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+    
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch('/api/marrow-progress/stats', {
       method: 'GET',
+      headers,
       credentials: 'include',
     })
 

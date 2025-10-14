@@ -14,11 +14,11 @@ export const LazyHomePage = createLazyRoute(
 )
 
 export const LazyChatGPTSearchPage = createLazyRoute(
-  () => import('@/app/(root)/chatgpt-search/page'),
+  () => import('@/app/(root)/ai-assistants/page'),
   <div className="min-h-screen flex items-center justify-center">
     <div className="text-center space-y-4">
       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-      <p className="text-muted-foreground">Loading ChatGPT Search...</p>
+      <p className="text-muted-foreground">Loading AI Assistants...</p>
     </div>
   </div>
 )
@@ -117,7 +117,7 @@ export const LazyHelpPage = createLazyRoute(
 // Utility to preload route components for better UX
 export const preloadRoutes = {
   home: () => import('@/app/(root)/home/page'),
-  'chatgpt-search': () => import('@/app/(root)/chatgpt-search/page'),
+  'chatgpt-search': () => import('@/app/(root)/ai-assistants/page'),
   'todo-list': () => import('@/app/(root)/todo-list/page'),
   notes: () => import('@/app/(root)/notes/page'),
   diary: () => import('@/app/(root)/diary/page'),

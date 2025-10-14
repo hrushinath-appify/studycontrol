@@ -16,8 +16,6 @@ import {
   AlertTriangle,
   Sparkles,
   ArrowLeft,
-  Star,
-  CheckCircle,
   Bell,
   Heart,
   Loader2
@@ -63,8 +61,17 @@ const NotesPage = () => {
       if (isAuthenticated) {
         // Try to get data from API first (same as Marrow Progress page)
         try {
+          // Get auth token from localStorage
+          const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+          
+          const headers: Record<string, string> = {}
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`
+          }
+
           const response = await fetch('/api/marrow-progress', {
             method: 'GET',
+            headers,
             credentials: 'include',
           })
           
@@ -377,32 +384,68 @@ const NotesPage = () => {
                     Coming Soon
                   </div>
 
-                  {/* Features List */}
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center justify-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                      What to Expect
-                    </h3>
-                    <div className="grid gap-3">
-                      {[
-                        "Rich text editor with formatting options",
-                        "Smart categorization by subjects",
-                        "Search and filter through all notes",
-                        "Image and diagram support",
-                        "Cloud sync across all devices",
-                        "Export options (PDF, Word, etc.)",
-                        "Collaborative note sharing",
-                        "Template library for medical topics"
-                      ].map((feature, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-3 p-3 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl border border-orange-100/50 dark:border-orange-800/30 opacity-60"
-                          style={{ animationDelay: `${index * 0.1}s` }}
-                        >
-                          <CheckCircle className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                          <span className="text-gray-500 dark:text-gray-400 font-medium">{feature}</span>
+                  {/* Interactive Coming Soon Section */}
+                  <div className="relative space-y-6">
+                    {/* Animated background elements */}
+                    <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                      <div className="absolute top-4 left-4 w-16 h-16 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                      <div className="absolute top-8 right-8 w-12 h-12 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-full animate-bounce" style={{ animationDelay: '1s' }} />
+                      <div className="absolute bottom-4 left-1/2 w-8 h-8 bg-gradient-to-br from-red-500/20 to-yellow-400/20 rounded-full animate-bounce" style={{ animationDelay: '2s' }} />
+                    </div>
+
+                    {/* Main Coming Soon Content */}
+                    <div className="relative text-center space-y-4 p-8 bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 dark:from-yellow-900/10 dark:via-orange-900/10 dark:to-red-900/10 rounded-2xl border-2 border-yellow-200/50 dark:border-yellow-700/30 shadow-inner">
+                      <div className="space-y-4">
+                        {/* Animated rocket icon */}
+                        <div className="flex justify-center">
+                          <div className="relative">
+                            <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-xl transform hover:scale-110 transition-all duration-300 animate-pulse">
+                              <Zap className="w-10 h-10 text-white animate-bounce" />
+                            </div>
+                            {/* Rocket trail effect */}
+                            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-2 h-8 bg-gradient-to-t from-yellow-400 to-transparent rounded-full animate-pulse opacity-60" />
+                          </div>
                         </div>
-                      ))}
+
+                        {/* Coming Soon Text with gradient animation */}
+                        <div className="space-y-2">
+                          <h3 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 bg-clip-text text-transparent animate-pulse">
+                            Coming Soon
+                          </h3>
+                          <p className="text-lg text-gray-600 dark:text-gray-300 font-medium">
+                            Something Amazing is on the Way!
+                          </p>
+                        </div>
+
+                        {/* Interactive countdown-style elements */}
+                        <div className="flex justify-center gap-4 mt-6">
+                          {[
+                            { label: 'Days', value: '??', color: 'from-yellow-400 to-orange-400' },
+                            { label: 'Hours', value: '??', color: 'from-orange-400 to-red-400' },
+                            { label: 'Minutes', value: '??', color: 'from-red-400 to-pink-400' }
+                          ].map((item, index) => (
+                            <div
+                              key={item.label}
+                              className={`group cursor-pointer p-4 bg-gradient-to-br ${item.color} rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-pulse`}
+                              style={{ animationDelay: `${index * 0.5}s` }}
+                            >
+                              <div className="text-2xl font-bold text-white text-center">
+                                {item.value}
+                              </div>
+                              <div className="text-xs font-semibold text-white/80 text-center uppercase tracking-wide">
+                                {item.label}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Fun teaser text */}
+                        <div className="mt-6 p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl border border-white/20 dark:border-gray-700/20 backdrop-blur-sm">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+                            &ldquo;Get ready for a revolutionary note-taking experience that will transform how you organize your medical knowledge! 🚀✨&rdquo;
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

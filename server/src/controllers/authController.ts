@@ -33,11 +33,28 @@ const generateTokens = (userId: string, email: string, role: string) => {
 
 // Generate avatar URL (using initials)
 const generateAvatarUrl = (name: string): string => {
-  const initials = name
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase())
-    .join('')
-    .substring(0, 2);
+  const generateInitials = (name: string): string => {
+    if (!name || name.trim() === '') return 'U'
+    
+    const trimmedName = name.trim()
+    const words = trimmedName.split(/\s+/).filter(word => word.length > 0)
+    
+    if (words.length === 0) return 'U'
+    
+    // If single word, take first 2 characters
+    if (words.length === 1) {
+      return trimmedName.substring(0, 2).toUpperCase()
+    }
+    
+    // If multiple words, take first character of each word (max 2)
+    return words
+      .slice(0, 2)
+      .map(word => word[0])
+      .join("")
+      .toUpperCase()
+  }
+
+  const initials = generateInitials(name)
   
   return `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff&size=200`;
 };

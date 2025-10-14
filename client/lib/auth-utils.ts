@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 import { connectToDatabase, User } from '@/lib/database'
-import { Session } from '@/lib/session-model'
 
 export interface AuthenticatedUser {
   id: string
@@ -13,7 +12,7 @@ export interface AuthenticatedUser {
   lastLoginAt?: string
 }
 
-// Helper function to verify JWT token and get user (with session validation)
+// Helper function to verify JWT token and get user (simplified without session validation)
 export async function getUserFromToken(request: NextRequest): Promise<AuthenticatedUser | null> {
   try {
     console.log('🔍 Getting user from JWT token...')
@@ -53,36 +52,13 @@ export async function getUserFromToken(request: NextRequest): Promise<Authentica
     await connectToDatabase()
     console.log('✅ Database connected')
 
-    // Step: Validate session in database (as per auth flow diagram)
-    console.log('🔍 Validating session in database...')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const session = await (Session as any).findOne({
-      token,
-      userId: decoded.userId,
-      isActive: true,
-      expiresAt: { $gt: new Date() } // Check expiration
-    }).lean()
-
-    if (!session) {
-      console.log('❌ Session not found, expired, or inactive')
-      return null
-    }
-
-    console.log('✅ Session validated in database')
-
-    // Get user from database
+    // Get user from database (simplified - no session validation)
     console.log('🔍 Fetching user from database...')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userDoc = await (User as any).findById(decoded.userId).lean()
     
     if (!userDoc || !userDoc.isActive) {
       console.log('❌ User not found or inactive')
-      // Invalidate session
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (Session as any).updateOne(
-        { _id: session._id },
-        { $set: { isActive: false } }
-      )
       return null
     }
 

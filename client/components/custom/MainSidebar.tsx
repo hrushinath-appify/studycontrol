@@ -15,6 +15,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   Home,
@@ -52,8 +53,8 @@ const mainItems = [
     icon: BarChart3,
   },
   {
-    title: "ChatGPT Search",
-    url: "/chatgpt-search",
+    title: "AI Assistants",
+    url: "/ai-assistants",
     icon: Search,
   },
   {
@@ -90,12 +91,13 @@ export default function MainSidebar() {
   const { logout } = useAuth()
   const pathname = usePathname()
   const { preloadRoute } = useRoutePreloading()
+  const { setOpenMobile, isMobile } = useSidebar()
 
   const createHoverHandler = useCallback((url: string) => () => {
     // Map URL to route names for preloading
     const routeMap: Record<string, keyof typeof import('@/components/LazyRoutes').preloadRoutes> = {
       '/home': 'home',
-      '/chatgpt-search': 'chatgpt-search',
+      '/ai-assistants': 'chatgpt-search',
       '/todo-list': 'todo-list',
       '/notes': 'notes',
       '/diary': 'diary',
@@ -112,6 +114,19 @@ export default function MainSidebar() {
       preloadRoute(routeName)
     }
   }, [preloadRoute])
+
+  const handleLinkClick = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  }, [isMobile, setOpenMobile])
+
+  const handleLogout = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+    logout()
+  }, [isMobile, setOpenMobile, logout])
 
   return (
     <Sidebar
@@ -151,6 +166,7 @@ export default function MainSidebar() {
                         href={item.url} 
                         className="flex items-center gap-4 h-full px-3"
                         onMouseEnter={createHoverHandler(item.url)}
+                        onClick={handleLinkClick}
                       >
                         <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                         <span className="group-data-[collapsible=icon]:hidden font-medium">{item.title}</span>
@@ -175,6 +191,7 @@ export default function MainSidebar() {
                 href="/settings" 
                 className="flex items-center gap-4 h-full px-3"
                 onMouseEnter={createHoverHandler('/settings')}
+                onClick={handleLinkClick}
               >
                 <Settings className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                 <span className="group-data-[collapsible=icon]:hidden font-medium">Settings</span>
@@ -190,6 +207,7 @@ export default function MainSidebar() {
                 href="/developer-notes" 
                 className="flex items-center gap-4 h-full px-3"
                 onMouseEnter={createHoverHandler('/developer-notes')}
+                onClick={handleLinkClick}
               >
                 <Heart className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                 <span className="group-data-[collapsible=icon]:hidden font-medium">Developer Notes</span>
@@ -205,6 +223,7 @@ export default function MainSidebar() {
                 href="/help" 
                 className="flex items-center gap-4 h-full px-3"
                 onMouseEnter={createHoverHandler('/help')}
+                onClick={handleLinkClick}
               >
                 <HelpCircle className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                 <span className="group-data-[collapsible=icon]:hidden font-medium">About & Support</span>
@@ -213,7 +232,7 @@ export default function MainSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={logout}
+              onClick={handleLogout}
               className="text-destructive hover:text-destructive hover:bg-destructive/10 group-data-[collapsible=icon]:px-3 h-11 rounded-xl transition-all duration-200"
             >
               <LogOut className="h-5 w-5 flex-shrink-0" />

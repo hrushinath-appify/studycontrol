@@ -5,31 +5,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
+// import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/components/AuthProvider'
 import { useTheme } from 'next-themes'
 import { 
   User, 
   Palette, 
   Trophy, 
-  Bell, 
+  // Bell, 
   HelpCircle, 
   MessageSquare, 
-  FileText, 
+  // FileText, 
   Shield,
   ChevronRight,
   Flower2,
   Sparkles,
-  Target,
-  Eye
+  // Target, 
+  Eye,
+  Info
 } from 'lucide-react'
 import { fetchUserStats } from '@/lib/api-utils'
 import { getMysteryExplorationCount, onMysteryExplorationUpdate, syncMysteryStatsWithServer } from '@/lib/mystery-tracker'
 import { cn } from '@/lib/utils'
-
-interface UserPreferences {
-  studyReminders: boolean
-}
 
 interface UserStats {
   mysteryClicks: number
@@ -60,11 +57,6 @@ const SettingsPage = () => {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
   const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({})
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({})
-  
-  // User preferences state
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    studyReminders: true
-  })
 
   // User stats state
   const [userStats, setUserStats] = useState<UserStats>({
@@ -266,11 +258,6 @@ const SettingsPage = () => {
     }
   }, [passwordData, changePassword])
 
-  const handlePreferenceChange = useCallback((key: keyof UserPreferences, value: boolean) => {
-    const newPreferences = { ...preferences, [key]: value }
-    setPreferences(newPreferences)
-    localStorage.setItem('userPreferences', JSON.stringify(newPreferences))
-  }, [preferences])
 
   const handleThemeChange = useCallback((newTheme: string) => {
     setTheme(newTheme)
@@ -305,15 +292,12 @@ const SettingsPage = () => {
     handleThemeChange('dark')
   }, [handleThemeChange])
 
-  const handleStudyRemindersChange = useCallback((checked: boolean) => {
-    handlePreferenceChange('studyReminders', checked)
-  }, [handlePreferenceChange])
+  // const handleStudyRemindersChange = useCallback((checked: boolean) => {
+  //   handlePreferenceChange('studyReminders', checked)
+  // }, [handlePreferenceChange])
 
   const helpItems = [
-    { id: 'faq', label: 'FAQ', icon: HelpCircle },
-    { id: 'contact', label: 'Contact Support', icon: MessageSquare },
-    { id: 'terms', label: 'Terms of Service', icon: FileText },
-    { id: 'privacy', label: 'Privacy Policy', icon: Shield }
+    { id: 'contact', label: 'Contact your babeee ❤️', icon: MessageSquare }
   ]
 
   if (!mounted) {
@@ -555,40 +539,27 @@ const SettingsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Notifications Section */}
-        <Card className="mb-8 content-overlay">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <Bell className="h-5 w-5" />
-              Notifications
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <Target className="h-5 w-5 text-primary" />
-                <div>
-                  <h4 className="font-medium text-foreground">Study Reminders</h4>
-                  <p className="text-sm text-muted-foreground">Receive reminders for study sessions.</p>
-                </div>
-              </div>
-              <Switch
-                checked={preferences.studyReminders}
-                onCheckedChange={handleStudyRemindersChange}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Notifications Section removed */}
 
-        {/* Help & Legal Section */}
+        {/* Help Section */}
         <Card className="content-overlay">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
               <HelpCircle className="h-5 w-5" />
-              Help & Legal
+              Help
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            {/* Version details as a list item */}
+            <div 
+              className="flex items-center justify-between p-4 rounded-lg group"
+            >
+              <div className="flex items-center gap-3">
+                <Info className="h-5 w-5 text-primary" />
+                <span className="font-medium text-foreground">App Version</span>
+              </div>
+              <span className="text-muted-foreground text-base">1.1</span>
+            </div>
             {helpItems.map((item) => (
               <div 
                 key={item.id}

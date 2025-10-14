@@ -18,7 +18,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/custom/dropdown-menu"
+} from "@/components/ui/dropdown-menu"
 
 const MysteryPage = () => {
   const router = useRouter()
@@ -27,8 +27,12 @@ const MysteryPage = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [selectedSubject, setSelectedSubject] = useState<string>('All')
   
-  // Get unique subjects from the videos data
-  const availableSubjects = ['All', ...Array.from(new Set(VideosData.map(data => data.subject)))]
+  // Get unique subjects from the videos data, sorted alphabetically
+  const uniqueSubjects = Array.from(new Set(VideosData.map(data => data.subject))).sort()
+  const availableSubjects = [
+    `All (${VideosData.length})`, 
+    ...uniqueSubjects
+  ]
 
   // Handler for Google search for topic title
   const handleTopicTitleClick = useCallback(() => {
@@ -61,10 +65,11 @@ const MysteryPage = () => {
   const getFilteredTopics = useCallback(async () => {
     const topics = await loadMysteryTopics()
     
-    if (selectedSubject === 'All') {
+    if (selectedSubject.startsWith('All')) {
       return topics
     }
     
+    // For individual subjects (no count format needed)
     return topics.filter(topic => topic.category === selectedSubject)
   }, [selectedSubject])
 
@@ -217,31 +222,40 @@ const MysteryPage = () => {
                   >
                     <Filter className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                     <span className="text-xs sm:text-sm">
-                      {selectedSubject === 'All' ? 'All Subjects' : selectedSubject}
+                      {selectedSubject.startsWith('All') 
+                        ? 'All Subjects' 
+                        : selectedSubject
+                      }
                     </span>
                     <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 group-hover:translate-x-1 transition-transform duration-200" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuLabel>Filter by Subject</DropdownMenuLabel>
+                <DropdownMenuContent 
+                  className="w-56 max-h-[300px] overflow-y-auto"
+                  align="start"
+                  sideOffset={4}
+                >
+                  <DropdownMenuLabel className="text-purple-700 dark:text-purple-300">
+                    Unleash by Subject
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {availableSubjects.map((subject) => (
                     <DropdownMenuItem
                       key={subject}
                       onClick={() => handleSubjectFilter(subject)}
-                      className={`cursor-pointer ${selectedSubject === subject ? 'bg-purple-100 dark:bg-purple-900/50' : ''}`}
+                      className={`cursor-pointer transition-colors duration-200 ${
+                        selectedSubject === subject 
+                          ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-900 dark:text-purple-100' 
+                          : 'hover:bg-purple-50 dark:hover:bg-purple-900/25'
+                      }`}
                     >
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      {subject}
+                      <BookOpen className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="flex-1">{subject}</span>
                       {selectedSubject === subject && (
-                        <div className="ml-auto w-2 h-2 bg-purple-500 rounded-full" />
+                        <div className="ml-auto w-2 h-2 bg-purple-500 rounded-full flex-shrink-0" />
                       )}
                     </DropdownMenuItem>
                   ))}
-                  <DropdownMenuSeparator />
-                  <div className="px-3 py-2 text-xs text-muted-foreground italic text-center">
-                    New subjects are coming soon...
-                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -403,7 +417,7 @@ const MysteryPage = () => {
                       Fun Facts
                     </h4>
                     <ul className="space-y-2">
-                      {currentTopic.funFacts.slice(0, 5).map((fact, index) => (
+                      {currentTopic.funFacts.slice(0, currentTopic.funFacts.length - 1).map((fact, index) => (
                         <li key={index} className="text-gray-700 dark:text-gray-300 text-sm md:text-base leading-relaxed flex items-start">
                           <span className="inline-block w-2 h-2 bg-orange-400 rounded-full mr-3 mt-2 flex-shrink-0" />
                           {fact}
