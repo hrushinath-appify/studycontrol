@@ -127,9 +127,14 @@ function createEmailTransporter() {
     pass: process.env.SMTP_PASS ? '***' : 'missing'
   });
 
+  // Check if email configuration is available
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    throw new Error('Email configuration is not set. Please configure SMTP_USER and SMTP_PASS environment variables.');
+  }
+
   if (process.env.SMTP_HOST === 'smtp.gmail.com') {
     // Gmail specific configuration
-    return nodemailer.createTransport({
+    return nodemailer.createTransporter({
       service: 'gmail',
       auth: {
         user: process.env.SMTP_USER,
@@ -138,7 +143,7 @@ function createEmailTransporter() {
     });
   } else {
     // Generic SMTP configuration
-    return nodemailer.createTransport({
+    return nodemailer.createTransporter({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
@@ -154,6 +159,12 @@ function createEmailTransporter() {
 async function sendVerificationEmail(email, name, token) {
   try {
     console.log('🔧 Attempting to send email to:', email);
+    
+    // Check if email configuration is available
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.log('❌ Email configuration missing (SMTP_USER or SMTP_PASS not set)');
+      return false;
+    }
     
     const transporter = createEmailTransporter();
     
@@ -311,25 +322,39 @@ module.exports = async function handler(req, res) {
 
       // Save user to database
       await user.save();
+      console.log('✅ User saved successfully:', user.email);
 
       // Send verification email
       let emailSent = false;
+      let emailError = null;
       try {
         emailSent = await sendVerificationEmail(user.email, user.name, verificationToken);
+        if (emailSent) {
+          console.log('✅ Verification email sent successfully to:', user.email);
+        } else {
+          console.log('⚠️ Verification email sending returned false (likely configuration issue)');
+          emailError = 'Email configuration not available';
+        }
       } catch (error) {
-        console.error('Failed to send verification email:', error);
+        console.error('❌ Failed to send verification email:', error.message);
+        emailError = error.message;
       }
 
       // Return success response (password is automatically excluded by toJSON transform)
+      const responseMessage = emailSent 
+        ? 'Registration successful! Please check your email to verify your account before logging in.'
+        : emailError 
+          ? `Registration successful! However, we could not send the verification email (${emailError}). Please contact support to verify your account.`
+          : 'Registration successful! However, we could not send the verification email. Please contact support to verify your account.';
+      
       return res.status(201).json({
         success: true,
         data: {
           user: user.toJSON(),
           emailSent,
+          emailError: emailError || undefined,
         },
-        message: emailSent 
-          ? 'Registration successful! Please check your email to verify your account before logging in.'
-          : 'Registration successful! However, we could not send the verification email. Please contact support.'
+        message: responseMessage
       });
     }
 

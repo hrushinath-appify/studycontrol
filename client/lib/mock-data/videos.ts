@@ -4619,6 +4619,214 @@ export const VideosData: VideosData[] = [
       },
     ],
   },
+  {
+    subject: "Forensic Medicine",
+    topics: [
+      {
+        topic: "Forensic Traumatology",
+        subtopics: [
+          {
+            title: "Definitions in Forensic Medicine",
+            video_length: "27 Min",
+          },
+          {
+            title: "Blunt Trauma Injuries",
+            video_length: "60 Min",
+          },
+          {
+            title: "Sharp Trauma Injuries",
+            video_length: "35 Min",
+          },
+          {
+            title: "Regional Injuries: Part 1",
+            video_length: "40 Min",
+          },
+          {
+            title: "Regional Injuries: Part 2",
+            video_length: "34 Min",
+          },
+          {
+            title: "Thermal Injuries",
+            video_length: "61 Min",
+          },
+          {
+            title: "Proximal Ballistics",
+            video_length: "67 Min",
+          },
+          {
+            title: "Intermediate and Terminal Ballistics: Part 1",
+            video_length: "42 Min",
+          },
+          {
+            title: "Intermediate and Terminal Ballistics: Part 2",
+            video_length: "45 Min",
+          },
+          {
+            title:
+              "Electrical Injuries, Explosion Injuries and Torture Methods",
+            video_length: "53 Min",
+          },
+          {
+            title: "Transportation Injuries",
+            video_length: "42 Min",
+          },
+        ],
+      },
+      {
+        topic: "Medical Jurisprudence - E8",
+        subtopics: [
+          {
+            title: "Indian Legal System",
+            video_length: "55 Min",
+          },
+          {
+            title: "Medical Ethics",
+            video_length: "37 Min",
+          },
+          {
+            title: "Medical Negligence",
+            video_length: "74 Min",
+          },
+          {
+            title: "Consent in Medical Practice",
+            video_length: "32 Min",
+          },
+        ],
+      },
+      {
+        topic: "Forensic Pathology",
+        subtopics: [
+          {
+            title: "Autopsy Procedures",
+            video_length: "68 Min",
+          },
+          {
+            title: "Early Postmortem Changes",
+            video_length: "62 Min",
+          },
+          {
+            title: "Late Postmortem Changes",
+            video_length: "43 Min",
+          },
+          {
+            title: "Human Identification: Part 1",
+            video_length: "42 Min",
+          },
+          {
+            title: "Human Identification: Part 2",
+            video_length: "76 Min",
+          },
+          {
+            title: "Human Identification: Part 3",
+            video_length: "34 Min",
+          },
+          {
+            title: "Hanging",
+            video_length: "62 Min",
+          },
+          {
+            title: "Strangulation",
+            video_length: "17 Min",
+          },
+          {
+            title: "Suffocation",
+            video_length: "17 Min",
+          },
+          {
+            title: "Drowning",
+            video_length: "52 Min",
+          },
+        ],
+      },
+      {
+        topic: "Sexual Jurisprudence",
+        subtopics: [
+          {
+            title: "Impotence, Virginity and Delivery",
+            video_length: "68 Min",
+          },
+          {
+            title: "Abortion",
+            video_length: "29 Min",
+          },
+          {
+            title: "Infant Deaths and Child Abuse",
+            video_length: "39 Min",
+          },
+          {
+            title: "Sexual Offences",
+            video_length: "75 Min",
+          },
+        ],
+      },
+      {
+        topic: "Toxicology",
+        subtopics: [
+          {
+            title: "General Toxicology",
+            video_length: "75 Min",
+          },
+          {
+            title: "Duties of a Doctor in a Case of Poisoning",
+            video_length: "31 Min",
+          },
+          {
+            title: "Corrosive Poisons",
+            video_length: "34 Min",
+          },
+          {
+            title: "Metallic Irritants",
+            video_length: "72 Min",
+          },
+          {
+            title: "Non-Metallic Irritants",
+            video_length: "20 Min",
+          },
+          {
+            title: "Organic Irritants",
+            video_length: "65 Min",
+          },
+          {
+            title: "Neurotoxic Poisons: Deliriants",
+            video_length: "62 Min",
+          },
+          {
+            title: "Neurotoxic Poisons: Inebriants",
+            video_length: "34 Min",
+          },
+          {
+            title: "Neurotoxic Poisons: Somniferous and Spinal Poisons",
+            video_length: "34 Min",
+          },
+          {
+            title: "Asphyxiants and Cardiac Poisons",
+            video_length: "57 Min",
+          },
+          {
+            title: "Agricultural Poisons",
+            video_length: "21 Min",
+          },
+        ],
+      },
+      {
+        topic: "Forensic Psychiatry and Miscellaneous",
+        subtopics: [
+          {
+            title: "Forensic Psychiatry",
+            video_length: "47 Min",
+          },
+          {
+            title: "Trace Evidence",
+            video_length: "23 Min",
+          },
+          {
+            title: "Acts and Legal Sections of Importance",
+            video_length: "66 Min",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 /**
