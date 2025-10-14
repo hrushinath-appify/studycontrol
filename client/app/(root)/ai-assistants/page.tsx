@@ -32,7 +32,7 @@ const ChatGPTSearchPage = () => {
       features: ["Current medical research", "Evidence-based information", "Cited sources", "Clinical guidelines"]
     },
     {
-      name: "GitHub Copilot",
+      name: "Copilot - Unlimited ChatGPT",
       description: "AI assistant for medical data analysis and research tools",
       url: "https://github.com/copilot",
       icon: <Github className="w-6 h-6" />,

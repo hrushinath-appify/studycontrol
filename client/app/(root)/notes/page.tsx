@@ -320,7 +320,7 @@ const NotesPage = () => {
                               🚫 No Cheating! 🕵️‍♂️
                             </p>
                             <p className="text-sm text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300">
-                              We&apos;re watching your progress... with love! 👀❤️
+                               I&apos;m watching your progress babyy... only with love! 👀❤️
                             </p>
                           </div>
                         </div>
