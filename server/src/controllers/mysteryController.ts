@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthenticatedRequest } from '@/types';
+import { AuthenticatedRequest } from '../types';
 import { updateMysteryStats } from './statsController';
 
 // For now, we'll use in-memory mock data for mystery topics

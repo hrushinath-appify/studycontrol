@@ -7,9 +7,9 @@ import {
   searchMysteryTopics,
   getMysteryTopicsByDifficulty,
   trackMysteryExploration
-} from '@/controllers/mysteryController';
+} from '../controllers/mysteryController';
 import { authenticate } from '../middleware/auth';
-import { validatePagination, validateSearch, validateMongoId } from '@/middleware/validation';
+import { validatePagination, validateSearch, validateMongoId } from '../middleware/validation';
 
 const router = Router();
 

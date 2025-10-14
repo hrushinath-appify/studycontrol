@@ -6,9 +6,9 @@ import {
   completeFocusSession,
   getFocusSessions,
   getFocusStats
-} from '@/controllers/focusController';
-import { authenticate } from '@/middleware/auth';
-import { validatePagination } from '@/middleware/validation';
+} from '../controllers/focusController';
+import { authenticate } from '../middleware/auth';
+import { validatePagination } from '../middleware/validation';
 
 const router = Router();
 

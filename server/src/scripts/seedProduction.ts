@@ -1,6 +1,6 @@
-import { database } from '@/config/database';
-import { User } from '@/models';
-import { config } from '@/config/environment';
+import { database } from '../config/database';
+import { User } from '../models';
+import { config } from '../config/environment';
 
 // Production admin user (CRITICAL: Change password after first use)
 const adminUser = {

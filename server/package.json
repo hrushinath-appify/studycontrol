@@ -11,7 +11,13 @@
     "test:watch": "jest --watch",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
-    "seed": "ts-node src/scripts/seed.ts"
+    "seed": "ts-node src/scripts/seed.ts",
+    "fix-mood-enum": "ts-node -r tsconfig-paths/register src/scripts/fix-diary-mood-enum.ts",
+    "force-recompile": "ts-node -r tsconfig-paths/register src/scripts/force-model-recompile.ts",
+    "test-mood": "ts-node -r tsconfig-paths/register src/scripts/test-mood-validation.ts",
+    "complete-fix": "ts-node -r tsconfig-paths/register src/scripts/complete-mood-fix.ts",
+    "nuclear-fix": "ts-node -r tsconfig-paths/register src/scripts/drop-and-recreate-collection.ts",
+    "simple-reset": "ts-node -r tsconfig-paths/register src/scripts/simple-collection-reset.ts"
   },
   "keywords": [
     "studycontrol",

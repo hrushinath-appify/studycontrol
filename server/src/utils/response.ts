@@ -1,4 +1,4 @@
-import { ApiResponse, ApiError } from '@/types';
+import { ApiResponse, ApiError } from '../types';
 
 // Helper function to create success responses
 export const createSuccessResponse = <T>(

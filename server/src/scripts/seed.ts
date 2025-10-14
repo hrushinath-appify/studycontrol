@@ -1,5 +1,5 @@
-import { database } from '@/config/database';
-import { User } from '@/models';
+import { database } from '../config/database';
+import { User } from '../models';
 
 
 // Optional admin user (remove/comment out if not needed)
